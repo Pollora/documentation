@@ -1,6 +1,6 @@
 # Taxonomies
 
-Just like the implementation of post types, Pollen leverages the [Extended CPTs](https://github.com/johnbillion/extended-cpts) library, coupled with a post types service provider, to enable taxonomy configuration from a config file.
+Just like the implementation of post types, Pollora leverages the [Extended CPTs](https://github.com/johnbillion/extended-cpts) library, coupled with a post types service provider, to enable taxonomy configuration from a config file.
 
 By default, the `customer_type` taxonomy is defined and linked to the `supplier` post type. You can remove this taxonomy or replace it with one that better suits your needs.
 

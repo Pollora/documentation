@@ -2,7 +2,7 @@
 
 ## Introduction
 
-The Pollen framework offers a robust and flexible system for creating and managing WordPress themes. This guide will help you understand how to create, customize, and use themes with Pollen.
+The Pollora framework offers a robust and flexible system for creating and managing WordPress themes. This guide will help you understand how to create, customize, and use themes with Pollora.
 
 ## Creating a New Theme
 
@@ -24,7 +24,7 @@ This command creates a new theme with the necessary folder structure and base fi
 
 ### Theme Structure
 
-A typical Pollen theme has the following structure:
+A typical Pollora theme has the following structure:
 
 ```plaintext
 theme-name/
@@ -93,7 +93,7 @@ export default defineConfig({
 
 ## TailwindCSS Integration
 
-Each Pollen theme is pre-configured with TailwindCSS. The `package.json` file includes the necessary dependencies:
+Each Pollora theme is pre-configured with TailwindCSS. The `package.json` file includes the necessary dependencies:
 
 ```json
 {
@@ -113,7 +113,7 @@ To use TailwindCSS in your theme, make sure to include the necessary directives 
 
 ## Theme Management
 
-Pollen's `ThemeManager` offers several useful methods for managing themes:
+Pollora's `ThemeManager` offers several useful methods for managing themes:
 
 - `Theme::load($themeName)`: Loads a specific theme
 - `Theme::getAvailableThemes()`: Retrieves the list of available themes
@@ -127,7 +127,7 @@ Pollen's `ThemeManager` offers several useful methods for managing themes:
 The `asset()` method allows you to easily reference theme assets:
 
 ```php
-use Pollen\Support\Facades\Theme;
+use Pollora\Support\Facades\Theme;
 
 // Get the URL for an image in the theme
 $logoUrl = Theme::asset('logo.png', 'images');
@@ -162,7 +162,7 @@ This configuration is used by the `Theme::asset()` method to locate assets corre
 
 ## Localization
 
-Language files should be placed in the `lang/` folder of your theme. Pollen will load them automatically.
+Language files should be placed in the `lang/` folder of your theme. Pollora will load them automatically.
 
 ## Theme Development
 
@@ -192,7 +192,7 @@ Commands needs to be run inside the theme folder.
 
 ## Conclusion
 
-The Pollen framework offers a powerful and flexible theme system, integrating modern tools like Vite and TailwindCSS. By following these guidelines, you can create robust and maintainable WordPress themes.
+The Pollora framework offers a powerful and flexible theme system, integrating modern tools like Vite and TailwindCSS. By following these guidelines, you can create robust and maintainable WordPress themes.
 
 ## Asset Management
 

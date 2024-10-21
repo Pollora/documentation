@@ -1,6 +1,6 @@
 # Assets Management
 
-The Pollen framework provides a powerful asset management system with support for ViteJS integration and Asset Containers.
+The Pollora framework provides a powerful asset management system with support for ViteJS integration and Asset Containers.
 
 ## Basic Usage
 The `Asset` class simplifies adding CSS and JavaScript assets with chainable methods:
@@ -153,4 +153,4 @@ This allows for consistent asset management across your entire WordPress setup, 
 
 It is essential to declare assets in a **Service Provider** rather than a **Hookable** class. The service provider ensures the assets are properly enqueued via the WordPress `wp_enqueue_scripts` hook.
 
-By following these guidelines, you can ensure consistent and efficient asset management across your entire WordPress setup, leveraging the power of ViteJS and Pollen's asset management system.
+By following these guidelines, you can ensure consistent and efficient asset management across your entire WordPress setup, leveraging the power of ViteJS and Pollora's asset management system.

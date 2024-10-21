@@ -58,7 +58,7 @@ Here is an example of a hookable class:
 
 namespace App\Hooks;
 
-use Pollen\Hook\Hookable;
+use Pollora\Hook\Hookable;
 
 class MyHook extends Hookable
 {
@@ -85,7 +85,7 @@ To accomplish this, you just need to define a `$hook` instance property in your 
 
 namespace App\Hooks;
 
-use Pollen\Hook\Hookable;
+use Pollora\Hook\Hookable;
 
 class MyFirstHook extends Hookable
 {
@@ -108,7 +108,7 @@ Additionally, an execution priority can be established by setting the `$priority
 
 namespace App\Hooks;
 
-use Pollen\Hook\Hookable;
+use Pollora\Hook\Hookable;
 
 class MyFirstHook extends Hookable
 {
@@ -139,7 +139,7 @@ Filters work similarly to actions, but the `register()` method receives paramete
 
 namespace App\Hooks;
 
-use Pollen\Hook\Hookable;
+use Pollora\Hook\Hookable;
 
 class ContentOverride extends Hookable
 {

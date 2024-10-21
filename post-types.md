@@ -2,11 +2,11 @@
 
 The `config/post-types.php` file allows you to create your own custom post types.
 
-Pollen integrates the [Extended CPTs](https://github.com/johnbillion/extended-cpts) library and a dedicated post types service provider. This setup allows you to configure post types directly from a config file.
+Pollora integrates the [Extended CPTs](https://github.com/johnbillion/extended-cpts) library and a dedicated post types service provider. This setup allows you to configure post types directly from a config file.
 
 By default, there is a post type called `supplier`. You can delete or replace it with a type that better suits your needs.
 
-All [parameters provided by Extended CPTs](https://github.com/johnbillion/extended-cpts/wiki/Registering-Post-Types) can be used. An example post type included in Pollen demonstrates how to change the names associated with `singular`, `plural`, and `slug`.
+All [parameters provided by Extended CPTs](https://github.com/johnbillion/extended-cpts/wiki/Registering-Post-Types) can be used. An example post type included in Pollora demonstrates how to change the names associated with `singular`, `plural`, and `slug`.
 
 ## Creating Multiple Custom Post Types
 
