@@ -37,7 +37,7 @@ return [
 To register a hookable class, you need to declare it in the `hooks` property of the `config/app.php` file. Here is an example of how to declare a hookable class in this file:
 
 ```php
-// config/app.php
+// bootstrap/hooks.php
 return [
     // other configurations
 
