@@ -10,3 +10,4 @@
 - [Assets](/docs/{{version}}/assets)
 - [Auth](/docs/{{version}}/auth)
 - [Creating a theme](/docs/{{version}}/theming)
+- [IDE Configuration](/docs/{{version}}/ide)
