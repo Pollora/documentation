@@ -4,6 +4,7 @@
 - [Middleware](/docs/{{version}}/middleware)
 - [Controllers](/docs/{{version}}/controllers)
 - [Hooks](/docs/{{version}}/hooks)
++ [Admin Pages](/docs/{{version}}/admin-pages)
 - [Post Types](/docs/{{version}}/post-types)
 - [Taxonomies](/docs/{{version}}/taxonomies)
 - [Ajax](/docs/{{version}}/ajax)
