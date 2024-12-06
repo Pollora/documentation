@@ -124,41 +124,55 @@ Pollora's `ThemeManager` offers several useful methods for managing themes:
 
 ### Using Theme Assets
 
-The `asset()` method allows you to easily reference theme assets:
+The framework provides an intuitive way to manage and reference theme assets through the `Asset` facade. The `Asset` facade ensures you can easily retrieve URLs for assets in the active theme's container.
+
+#### Accessing Theme Assets
+
+You can reference theme assets with the following examples:
 
 ```php
-use Pollora\Support\Facades\Theme;
+use Pollora\Support\Facades\Asset;
 
 // Get the URL for an image in the theme
-$logoUrl = Theme::asset('logo.png', 'images');
+$logoUrl = (string)Asset::url('assets/images/logo.png'); // the string cast is necessary to return the url
 
-// Get the URL for a CSS file
-$styleUrl = Theme::asset('app.css', 'css');
+// Get the URL for a CSS file in the theme
+$styleUrl = (string)Asset::url('assets/css/app.css');
 
-// Get the URL for a JavaScript file
-$scriptUrl = Theme::asset('app.js', 'js');
+// Get the URL for a JavaScript file in the theme
+$scriptUrl = (string)Asset::url('assets/js/app.js');
 ```
 
-This method uses the asset directory configuration specified in your theme's `config.php` file.
+#### Explicitly Specifying the Theme Container
 
-## Asset Directory Configuration
-
-In your theme's `config.php` file, you can specify the directory structure for different asset types:
+Although the framework defaults to the active theme's container, you can explicitly specify it using the `from('theme')` method for clarity:
 
 ```php
-return [
-    // ... autres configurations ...
-    'asset_dir' => [
-        'root' => 'assets',
-        'images' => 'images',
-        'fonts' => 'fonts',
-        'css' => 'css',
-        'js' => 'js',
-    ],
-];
+use Pollora\Support\Facades\Asset;
+
+// Explicitly specify the "theme" container
+$logoUrl = (string)Asset::url('assets/images/logo.png')->from('theme'); // the string cast is necessary to return the url
+$styleUrl = (string)Asset::url('assets/css/app.css')->from('theme');
+$scriptUrl = (string)Asset::url('assets/js/app.js')->from('theme');
 ```
 
-This configuration is used by the `Theme::asset()` method to locate assets correctly.
+#### Blade Integration for Theme Assets
+
+You can reference theme assets directly in your Blade templates, with or without specifying the container explicitly:
+
+```blade
+<img src="{{ Asset::url('assets/images/logo.png') }}">
+<link rel="stylesheet" href="{{ Asset::url('assets/css/app.css') }}">
+<script src="{{ Asset::url('assets/js/app.js') }}"></script>
+```
+
+Or, explicitly specify the theme container:
+
+```blade
+<img src="{{ Asset::url('assets/images/logo.png')->from('theme') }}">
+<link rel="stylesheet" href="{{ Asset::url('assets/css/app.css')->from('theme') }}">
+<script src="{{ Asset::url('assets/js/app.js')->from('theme') }}">
+```
 
 ## Localization
 
