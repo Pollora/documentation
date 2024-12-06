@@ -42,42 +42,68 @@ app('asset.container')->addContainer('my-plugin', [
 ]);
 ```
 
-### Using Asset Containers
+### Accessing Assets
 
-The framework automatically sets up a default container for the active theme. You can reference assets using Vite macros:
+You can easily reference assets using the `Asset` facade:
 
 ```php
-use Illuminate\Support\Facades\Vite;
+use Pollora\Support\Facades\Asset;
 
 // Reference an image
-$imageUrl = Vite::image('logo.png');
+$imageUrl = Asset::url('assets/images/logo.png');
 
 // Reference a CSS file
-$cssUrl = Vite::css('app.css');
+$cssUrl = Asset::url('assets/css/app.css');
 
 // Reference a JavaScript file
-$jsUrl = Vite::js('app.js');
+$jsUrl = Asset::url('assets/js/app.js');
 
 // Reference a font file
-$fontUrl = Vite::font('myfont.woff2');
+$fontUrl = Asset::url('assets/fonts/myfont.woff2');
 ```
 
-### Specifying Asset Containers
+#### Using a Specific Asset Container
 
-You can specify a different asset container by passing its slug as the second parameter to the Vite macros:
+By default, the framework uses the **active theme's asset container**. If you want to explicitly reference assets from a different container, use the `from()` method:
 
 ```php
-// Reference an image from a specific asset container
-$imageUrl = Vite::image('logo.png', 'plugin-assets');
+use Pollora\Support\Facades\Asset;
 
-// Reference a CSS file from a specific asset container
-$cssUrl = Vite::css('app.css', 'admin-assets');
+// Reference an image from the "admin" container
+$imageUrl = Asset::url('assets/images/logo.png')->from('admin');
 
-// Reference a JavaScript file from a specific asset container
-$jsUrl = Vite::js('app.js', 'frontend-assets');
+// Reference a CSS file from the "shared" container
+$cssUrl = Asset::url('assets/css/styles.css')->from('shared');
 ```
 
-This allows you to manage assets from different sources (e.g., themes, plugins, admin area) separately and efficiently.
+#### Inline Usage in Blade Templates
+
+You can also use the `Asset` facade directly within your Blade templates for dynamic asset referencing:
+
+```blade
+<img src="{{ Asset::url('assets/images/logo.png') }}">
+<img src="{{ Asset::url('assets/images/admin-logo.png')->from('admin') }}">
+<link rel="stylesheet" href="{{ Asset::url('assets/css/app.css') }}">
+<script src="{{ Asset::url('assets/js/app.js') }}"></script>
+```
+
+#### How It Works
+
+The `Asset` facade leverages an internal `AssetFile` class that dynamically resolves the correct URL based on the specified asset path and container. The default container is set to `theme`, which corresponds to the assets of the active theme. 
+
+If no container is specified, the framework falls back to the default container automatically.
+
+#### Examples
+
+```php
+// Using the default "theme" container
+$imageUrl = Asset::url('assets/images/theme-logo.png');
+
+// Switching to another container
+$sharedCss = Asset::url('assets/css/shared-styles.css')->from('shared');
+```
+
+This updated approach provides greater flexibility and maintains clarity in your asset management workflow. It ensures that assets are always correctly referenced, regardless of their container or context.
 
 ## ViteJS Integration
 
