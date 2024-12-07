@@ -42,7 +42,77 @@ app('asset.container')->addContainer('my-plugin', [
 ]);
 ```
 
-### Accessing Assets
+## ViteJS Integration
+
+To use ViteJS for asset management:
+
+```php
+Asset::add('my-vite-asset', 'path/to/asset.js')
+    ->container('theme') // Optional: specify a container
+    ->useVite()
+    ->toFrontend();
+```
+
+### Configuration Options
+
+The following methods are available for configuring assets:
+
+- `add(string $handle, string $path)`: Add a new asset.
+- `container(string $containerName)`: Specify the asset container to use.
+- `dependencies(array $dependencies)`: Specify asset dependencies.
+- `version(string $version)`: Set the asset version.
+- `media(string $media)`: Set the media type for styles.
+- `loadInFooter()`: Load the script in the footer.
+- `loadStrategy(string $strategy)`: Set the script load strategy (e.g., 'defer').
+- `toFrontend()`, `toBackend()`, `toLoginScreen()`, `toCustomizer()`, `toEditor()`: Specify where to load the asset.
+- `useVite()`: Use ViteJS for this asset.
+
+### Localizing JavaScript
+
+Use the `localize(string $objectName, array $data)` method to localize JavaScript:
+
+```php
+Asset::add('handle', 'path/to/asset.js')
+    ->localize('myData', ['key' => 'value']);
+```
+
+### Inline Content
+
+Add inline content for CSS or JavaScript using the `inline(string $content)` method:
+
+```php
+Asset::add('my-theme', 'css/screen.min.css')
+    ->inline('.panel-main { border: 1px solid blue; }');
+
+Asset::add('typekit', 'https://use.typekit.net/fdsjhizo.js')
+    ->inline('try{Typekit.load({ async: true });}catch(e){}');
+```
+
+### Default Container
+
+A default container is automatically set for the theme. If you don't specify a container, the default will be used:
+
+```php
+Asset::add('default/script', Theme::path('assets/app.js'))
+    ->toFrontend()
+    ->useVite();
+```
+
+This will use the default theme container configuration.
+
+### Non-Vite Assets
+
+You can use Asset Containers for non-Vite assets as well:
+
+```php
+Asset::add('plugin/legacy-script', 'js/legacy.js')
+    ->container('plugin')
+    ->toBackend();
+```
+
+This allows for consistent asset management across your entire WordPress setup, regardless of whether you're using ViteJS or traditional asset inclusion methods.
+
+## Accessing Assets
 
 You can easily reference assets using the `Asset` facade:
 
@@ -62,7 +132,7 @@ $jsUrl = Asset::url('assets/js/app.js');
 $fontUrl = Asset::url('assets/fonts/myfont.woff2');
 ```
 
-#### Using a Specific Asset Container
+### Using a Specific Asset Container
 
 By default, the framework uses the **active theme's asset container**. If you want to explicitly reference assets from a different container, use the `from()` method:
 
@@ -76,7 +146,7 @@ $imageUrl = Asset::url('assets/images/logo.png')->from('admin');
 $cssUrl = Asset::url('assets/css/styles.css')->from('shared');
 ```
 
-#### Inline Usage in Blade Templates
+### Inline Usage in Blade Templates
 
 You can also use the `Asset` facade directly within your Blade templates for dynamic asset referencing:
 
@@ -87,13 +157,13 @@ You can also use the `Asset` facade directly within your Blade templates for dyn
 <script src="{{ Asset::url('assets/js/app.js') }}"></script>
 ```
 
-#### How It Works
+### How It Works
 
 The `Asset` facade leverages an internal `AssetFile` class that dynamically resolves the correct URL based on the specified asset path and container. The default container is set to `theme`, which corresponds to the assets of the active theme. 
 
 If no container is specified, the framework falls back to the default container automatically.
 
-#### Examples
+### Examples
 
 ```php
 // Using the default "theme" container
@@ -104,76 +174,6 @@ $sharedCss = Asset::url('assets/css/shared-styles.css')->from('shared');
 ```
 
 This updated approach provides greater flexibility and maintains clarity in your asset management workflow. It ensures that assets are always correctly referenced, regardless of their container or context.
-
-## ViteJS Integration
-
-To use ViteJS for asset management:
-
-```php
-Asset::add('my-vite-asset', 'path/to/asset.js')
-    ->container('theme') // Optional: specify a container
-    ->useVite()
-    ->toFrontend();
-```
-
-## Configuration Options
-
-The following methods are available for configuring assets:
-
-- `add(string $handle, string $path)`: Add a new asset.
-- `container(string $containerName)`: Specify the asset container to use.
-- `dependencies(array $dependencies)`: Specify asset dependencies.
-- `version(string $version)`: Set the asset version.
-- `media(string $media)`: Set the media type for styles.
-- `loadInFooter()`: Load the script in the footer.
-- `loadStrategy(string $strategy)`: Set the script load strategy (e.g., 'defer').
-- `toFrontend()`, `toBackend()`, `toLoginScreen()`, `toCustomizer()`, `toEditor()`: Specify where to load the asset.
-- `useVite()`: Use ViteJS for this asset.
-
-## Localizing JavaScript
-
-Use the `localize(string $objectName, array $data)` method to localize JavaScript:
-
-```php
-Asset::add('handle', 'path/to/asset.js')
-    ->localize('myData', ['key' => 'value']);
-```
-
-## Inline Content
-
-Add inline content for CSS or JavaScript using the `inline(string $content)` method:
-
-```php
-Asset::add('my-theme', 'css/screen.min.css')
-    ->inline('.panel-main { border: 1px solid blue; }');
-
-Asset::add('typekit', 'https://use.typekit.net/fdsjhizo.js')
-    ->inline('try{Typekit.load({ async: true });}catch(e){}');
-```
-
-## Default Container
-
-A default container is automatically set for the theme. If you don't specify a container, the default will be used:
-
-```php
-Asset::add('default/script', Theme::path('assets/app.js'))
-    ->toFrontend()
-    ->useVite();
-```
-
-This will use the default theme container configuration.
-
-## Non-Vite Assets
-
-You can use Asset Containers for non-Vite assets as well:
-
-```php
-Asset::add('plugin/legacy-script', 'js/legacy.js')
-    ->container('plugin')
-    ->toBackend();
-```
-
-This allows for consistent asset management across your entire WordPress setup, regardless of whether you're using ViteJS or traditional asset inclusion methods.
 
 ## Important: Use of the Service Provider
 
