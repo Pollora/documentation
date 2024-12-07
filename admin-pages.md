@@ -118,10 +118,3 @@ resources/
 - `$slug`: Unique identifier for the subpage
 - `$action`: Callback or action to execute to display content
 ```
-
-This documentation:
-- Explains the basic usage of the facade
-- Shows Laravel integration (views, dependency injection)
-- Presents best practices
-- Provides a complete parameter reference
-- Includes practical examples
