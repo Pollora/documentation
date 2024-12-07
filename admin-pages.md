@@ -117,4 +117,3 @@ resources/
 - `$capability`: WordPress capability required to access the page
 - `$slug`: Unique identifier for the subpage
 - `$action`: Callback or action to execute to display content
-```
