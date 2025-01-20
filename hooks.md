@@ -20,8 +20,58 @@ Hookable classes are not automatically enlisted in the application lifecycle. Wh
 
 ## Hookable declaration
 
+### Declarate with artisan
 
-### Declaring hooks in `bootstrap/hooks.php` (recommended)
+You can create a new hookable class using the `make:hook` artisan command:
+
+```bash
+# Create a basic hookable class
+php artisan make:hook MyHook
+
+# Create a hookable class with a specific WordPress hook
+php artisan make:hook MyHook --hook=init
+
+# Create a hookable class with a specific hook and priority
+php artisan make:hook MyHook --hook=init --priority=20
+
+# Create a hookable class in a subdirectory
+php artisan make:hook Admin/MyHook
+```
+
+The command will:
+1. Create a new hookable class in the `app/Hooks` directory
+2. Automatically register it in the `bootstrap/hooks.php` file
+
+Here is an example of a generated hookable class:
+
+```php
+<?php
+
+namespace App\Hooks;
+
+use Pollora\Hook\Hookable;
+
+class MyHook extends Hookable
+{
+    public $hook = 'init';
+    
+    public int $priority = 10;
+
+    /**
+     * Extend WordPress.
+     */
+    public function register()
+    {
+        // Code is executed on the "init" WordPress action only.
+    }
+}
+```
+
+Once generated, you can start implementing your hook logic in the `register()` method.
+
+### Manual declaration
+
+#### Declaring hooks in `bootstrap/hooks.php` (recommended)
 
 In addition to `config/app.php`, hookable classes can also be registered in the `bootstrap/hooks.php` file. The hooks declared in this file are merged with those in `config/app.php`. Here's an example of how to declare a hookable class in the `bootstrap/hooks.php` file:
 
@@ -32,7 +82,7 @@ return [
 ];
 ```
 
-### Declaring hooks in `config/app.php`
+#### Declaring hooks in `config/app.php`
 
 To register a hookable class, you need to declare it in the `hooks` property of the `config/app.php` file. Here is an example of how to declare a hookable class in this file:
 
@@ -49,30 +99,6 @@ return [
 
 Both files will be merged during the boot process, allowing you to register hooks in either or both locations.
 
-## Basic hookable class
-
-Here is an example of a hookable class:
-
-```php
-<?php
-
-namespace App\Hooks;
-
-use Pollora\Hook\Hookable;
-
-class MyHook extends Hookable
-{
-    /**
-     * Augment WordPress.
-     */
-    public function register()
-    {
-        // Implement your code...
-    }
-}
-```
-
-Once you have created the class, you must register it by adding it either to the `hooks` property in `config/app.php` or in the `bootstrap/hooks.php` file.
 
 ## Hookable action
 
