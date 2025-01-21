@@ -102,7 +102,18 @@ Route::any('page', ['landing-page', function() {
 
 // Route with multiple page slugs
 Route::any('page', [['contact', 'request-a-quote'], [FormController::class, 'index']]);
+
+// Custom template route
+Route::any('template', ['contact', function () {
+    return view('page');
+}]);
 ```
+
+#### Template Routes
+
+When working with WordPress custom templates (defined in `themes/[theme-name]/config/templates.php`), you can create specific routes to handle these templates. For example, the route above will intercept all pages using the "contact" template.
+
+⚠️ **Important**: Template routes must be declared **before** the generic page route (`Route::any('page')`), otherwise they won't be taken into account.
 
 ### Extending Route Conditions
 
