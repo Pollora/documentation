@@ -3,9 +3,12 @@
 - [Overview](#overview)
 - [Lifecycle hooks](#lifecycle-hooks)
 - [Hookable declaration](#hookable-declaration)
-- [Basic hookable class](#basic-hookable-class)
-- [Hookable action](#hookable-action)
-- [Hookable filter](#hookable-filter)
+  - [Declarate with artisan](#declarate-with-artisan)
+  - [Manual declaration](#manual-declaration)
+- [Attribute-based hooks](#attribute-based-hooks)
+  - [Declarate with artisan](#declarate-with-artisan-1)
+  - [Action hooks](#action-hooks)
+  - [Filter hooks](#filter-hooks)
 - [Singleton access](#singleton-access)
 
 ## Overview
@@ -179,6 +182,90 @@ class ContentOverride extends Hookable
 ```
 
 After defining the filter, remember to register it in `config/app.php` or `bootstrap/hooks.php`.
+
+## Attribute-based hooks
+
+With the new attribute-based approach, you can define action and filter hooks using PHP attributes. This approach provides a more concise and expressive way to define hooks within your classes.
+
+### Declarate with artisan
+
+You can create a new attribute-based hook class using the `make:action` or `make:filter` Artisan commands:
+
+```bash
+# Create a new action hook class
+php artisan make:action MyAction
+
+# Create a new action hook class with a specific WordPress hook
+php artisan make:action MyAction --hook=init
+
+# Create a new action hook class with a specific hook and priority
+php artisan make:action MyAction --hook=init --priority=20
+
+# Create a new filter hook class
+php artisan make:filter MyFilter
+
+# Create a new filter hook class with a specific WordPress hook
+php artisan make:filter MyFilter --hook=the_content
+
+# Create a new filter hook class with a specific hook and priority
+php artisan make:filter MyFilter --hook=the_content --priority=20
+```
+
+These commands will:
+1. Create a new hook class in the `app/Hooks` directory
+2. Automatically register the class in the `bootstrap/hooks.php` file
+
+If you run the same command on an existing hook class file, it will append the new hook to the file.
+
+Make sure that the hook class file is included in the `bootstrap/hooks.php` file. With the Artisan commands, this step is done automatically.
+
+### Action hooks
+
+To define an action hook, you can use the `Action` attribute from the `Pollora\Attributes\Action` namespace. Here's an example:
+
+```php
+<?php
+
+namespace App\Hooks;
+
+use Pollora\Attributes\Action;
+
+class MyAction
+{
+    #[Action('init', priority: 20)]
+    public function handleInit(): void
+    {
+        // Code to execute for the 'init' WordPress action
+    }
+}
+```
+
+In this example, the `handleInit` method will be executed when the `init` WordPress action is triggered, with a priority of `20`.
+
+### Filter hooks
+
+To define a filter hook, you can use the `Filter` attribute from the `Pollora\Attributes\Filter` namespace. Here's an example:
+
+```php
+<?php
+
+namespace App\Hooks;
+
+use Pollora\Attributes\Filter;
+
+class MyFilter
+{
+    #[Filter('the_content', priority: 10)]
+    public function handleTheContent(string $content): string
+    {
+        // Modify the content and return the updated value
+        return str_replace('ugly', 'shiny', $content);
+    }
+}
+```
+
+In this example, the `handleTheContent` method will be executed when the `the_content` WordPress filter is triggered, with a priority of `10`. The method receives the content as a parameter and should return the modified content.
+
 
 ## Singleton access
 
