@@ -41,7 +41,28 @@ You can find more about Laravel's routes in [the official documentation](https:/
 
 ## WordPress-Style Route Declarations
 
-Your implementation allows WordPress-style route declarations. You can define route conditions and their corresponding aliases using the 'conditions' array in the `config/app.php` file:
+Pollora Framework provides two ways to define routes: standard Laravel routes and WordPress-specific routes. The WordPress-specific routes are designed to integrate with WordPress's conditional tags system.
+
+### WordPress Routes vs Standard Routes
+
+There are two main methods to define routes in your application:
+
+1. **Standard Laravel Routes** (`Route::get()`, `Route::post()`, `Route::any()`, etc.):
+   - These routes follow Laravel's standard routing behavior
+   - They do not interact with WordPress's conditional tags system
+   - They do not automatically receive WordPress-specific middleware
+
+2. **WordPress-Specific Routes** (`Route::wordpress()`):
+   - These routes integrate with WordPress's conditional tags system
+   - They automatically receive WordPress-specific middleware:
+     - `WordPressBindings`: Adds WordPress objects (post, query) to the route
+     - `WordPressHeaders`: Manages HTTP headers for WordPress responses
+     - `WordPressBodyClass`: Handles body classes for WordPress templates
+   - They are processed through WordPress's conditional logic
+
+### WordPress Route Conditions
+
+WordPress routes use conditions defined in the `config/wordpress.php` file. These conditions map WordPress conditional tags to route URIs:
 
 ```php
 return [
@@ -85,36 +106,52 @@ return [
 ];
 ```
 
-### WordPress-Like Route Usage
+### Using WordPress Routes
 
-You can integrate WordPress-like route declarations using your defined conditions and aliases. Here are a few examples:
+To define a WordPress-specific route, use the `wordpress` method:
 
 ```php
 // Dynamic route for single posts
-Route::any('post', function () {
+Route::wordpress('single', function () {
     return view('post');
 });
 
-// Route for a landing page
-Route::any('page', ['landing-page', function() {
+// Route for a specific page
+Route::wordpress('page', ['landing-page', function() {
     return view('pages.landing');
 }]);
 
 // Route with multiple page slugs
-Route::any('page', [['contact', 'request-a-quote'], [FormController::class, 'index']]);
+Route::wordpress('page', [['contact', 'request-a-quote'], [FormController::class, 'index']]);
 
 // Custom template route
-Route::any('template', ['contact', function () {
+Route::wordpress('template', ['contact', function () {
     return view('page');
 }]);
 ```
 
+#### Important Differences from Standard Routes
+
+When using `Route::wordpress()` instead of `Route::any()` or other standard methods:
+
+1. The route will be processed through WordPress's conditional tags system
+2. WordPress-specific middleware will be automatically applied
+3. WordPress objects like `$post` and `$wp_query` will be available in the route parameters
+4. The route will only match if the WordPress condition is met
+
 #### Template Routes
 
-When working with WordPress custom templates (defined in `themes/[theme-name]/config/templates.php`), you can create specific routes to handle these templates. For example, the route above will intercept all pages using the "contact" template.
+When working with WordPress custom templates (defined in `themes/[theme-name]/config/templates.php`), you can create specific routes to handle these templates. For example:
 
-⚠️ **Important**: Template routes must be declared **before** the generic page route (`Route::any('page')`), otherwise they won't be taken into account.
+```php
+// This will match any page using the "contact" template
+Route::wordpress('template', ['contact', function () {
+    return view('page');
+}]);
+```
+
+⚠️ **Important**: Template routes must be declared **before** the generic page route (`Route::wordpress('page')`), otherwise they won't be taken into account.
 
 ### Extending Route Conditions
 
-You can extend your WordPress-style routes with your own conditions in the `config/app.php` file, providing greater customization in route behaviors.
+You can extend your WordPress-style routes with your own conditions in the `config/wordpress.php` file, providing greater customization in route behaviors.
