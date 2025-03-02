@@ -52,13 +52,14 @@ There are two main methods to define routes in your application:
    - They do not interact with WordPress's conditional tags system
    - They do not automatically receive WordPress-specific middleware
 
-2. **WordPress-Specific Routes** (`Route::wordpress()`):
+2. **WordPress-Specific Routes** (`Route::wordpress()` or `Route::wp()`):
    - These routes integrate with WordPress's conditional tags system
    - They automatically receive WordPress-specific middleware:
      - `WordPressBindings`: Adds WordPress objects (post, query) to the route
      - `WordPressHeaders`: Manages HTTP headers for WordPress responses
      - `WordPressBodyClass`: Handles body classes for WordPress templates
    - They are processed through WordPress's conditional logic
+   - `Route::wp()` is a shortcut alias for `Route::wordpress()`
 
 ### WordPress Route Conditions
 
@@ -66,9 +67,8 @@ WordPress routes use conditions defined in the `config/wordpress.php` file. Thes
 
 ```php
 return [
-    // ...
     'conditions' => [
-        // Define WordPress-like route conditions and aliases
+        // Core WordPress conditions
         'is_404' => '404',
         'is_archive' => 'archive',
         'is_attachment' => 'attachment',
@@ -93,7 +93,7 @@ return [
         'is_time' => 'time',
         'is_year' => 'year',
 
-        // WooCommerce
+        // WooCommerce conditions
         'is_shop' => 'shop',
         'is_product' => 'product',
         'is_cart' => 'cart',
@@ -103,8 +103,23 @@ return [
         'is_product_tag' => 'product_tag',
         'is_wc_endpoint_url' => 'wc_endpoint',
     ],
+    // ... other WordPress configuration options
 ];
 ```
+
+The framework provides a default set of conditions in its `config/wordpress.php` file. You can override or extend these conditions in your application's `config/wordpress.php` file.
+
+#### Publishing the WordPress Configuration File
+
+To customize WordPress route conditions, you can publish the framework's configuration file to your application:
+
+```bash
+php artisan vendor:publish --tag=wp-config
+```
+
+This command will copy the framework's configuration file to your application's `config/` directory, allowing you to customize it according to your needs.
+
+Each condition maps a WordPress conditional function (like `is_page()`) to a route URI or array of URIs. For example, `'is_page' => 'page'` means that when you use `Route::wordpress('page', ...)`, it will check if the current request matches the `is_page()` WordPress condition.
 
 ### Using WordPress Routes
 
@@ -117,18 +132,75 @@ Route::wordpress('single', function () {
 });
 
 // Route for a specific page
-Route::wordpress('page', ['landing-page', function() {
+Route::wordpress('page', 'landing-page', function() {
     return view('pages.landing');
-}]);
+});
 
 // Route with multiple page slugs
-Route::wordpress('page', [['contact', 'request-a-quote'], [FormController::class, 'index']]);
+Route::wordpress('page', ['contact', 'request-a-quote'], [FormController::class, 'index']);
 
 // Custom template route
-Route::wordpress('template', ['contact', function () {
+Route::wordpress('template', 'contact', function () {
     return view('page');
-}]);
+});
 ```
+
+#### Using the `wp` Shortcut
+
+For convenience, a shortcut method `wp` is available as an alias for `wordpress`. This allows for more concise route definitions:
+
+```php
+// Using the wp shortcut
+Route::wp('single', function () {
+    return view('post');
+});
+
+// With parameters
+Route::wp('page', 'about-us', function() {
+    return view('pages.about');
+});
+
+// With multiple parameters
+Route::wp('tax', 'product_cat', 'electronics', function() {
+    return view('taxonomy.product-category');
+});
+```
+
+Both `wordpress` and `wp` methods have identical functionality - the choice between them is purely stylistic.
+
+The `wordpress` method accepts a variable number of arguments:
+- The first argument is always the WordPress condition (e.g., 'single', 'page')
+- The last argument is always the callback function or controller action
+- Any arguments in between are passed as parameters to the WordPress condition function
+
+For example, in `Route::wordpress('page', 'landing-page', function() {...})`:
+- 'page' is the condition (maps to `is_page()` in WordPress)
+- 'landing-page' is the parameter (effectively calling `is_page('landing-page')`)
+- The function is the callback to execute when the condition is met
+
+#### Advanced Examples
+
+Here are some more advanced examples of how to use the new syntax with multiple parameters:
+
+```php
+// Route for a specific post type and ID
+// Equivalent to is_singular('product', 123)
+Route::wordpress('singular', 'product', 123, function() {
+    return view('product.show');
+});
+
+// Route for a specific taxonomy term
+// Equivalent to is_tax('product_cat', 'electronics')
+Route::wordpress('tax', 'product_cat', 'electronics', function() {
+    return view('taxonomy.product-category');
+});
+
+// Route with controller method and multiple parameters
+// Equivalent to is_post_type_archive(['product', 'service'])
+Route::wordpress('post-type-archive', ['product', 'service'], [ArchiveController::class, 'index']);
+```
+
+The parameters are passed directly to the WordPress conditional function in the same order they are defined in the route.
 
 #### Important Differences from Standard Routes
 
@@ -145,13 +217,51 @@ When working with WordPress custom templates (defined in `themes/[theme-name]/co
 
 ```php
 // This will match any page using the "contact" template
-Route::wordpress('template', ['contact', function () {
+Route::wordpress('template', 'contact', function () {
     return view('page');
-}]);
+});
+
+// This will match any page using the "landing" template and pass data to the view
+Route::wordpress('template', 'landing', function () {
+    return view('page.landing', [
+        'features' => Feature::all(),
+    ]);
+});
 ```
 
 ⚠️ **Important**: Template routes must be declared **before** the generic page route (`Route::wordpress('page')`), otherwise they won't be taken into account.
 
 ### Extending Route Conditions
 
-You can extend your WordPress-style routes with your own conditions in the `config/wordpress.php` file, providing greater customization in route behaviors.
+You can extend the WordPress route conditions by adding your own entries to the `conditions` array in your application's `config/wordpress.php` file:
+
+```php
+// config/wordpress.php
+return [
+    'conditions' => [
+        // Add your custom conditions
+        'is_custom_post_type' => 'custom-post-type',
+        'is_special_page' => ['special-page', 'special'],
+        
+        // Override existing conditions
+        'is_page' => ['page', 'static-page'],
+    ],
+];
+```
+
+You can also create your own WordPress conditional functions and use them in your routes:
+
+```php
+// functions.php or a custom plugin file
+function is_special_page() {
+    // Your custom logic to determine if this is a special page
+    return is_page() && has_term('special', 'page_category');
+}
+
+// routes/web.php
+Route::wp('special-page', function() {
+    return view('pages.special');
+});
+```
+
+This approach allows you to create highly customized routing logic while maintaining the clean syntax of WordPress-style routes.
