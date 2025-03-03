@@ -41,7 +41,7 @@ You can find more about Laravel's routes in [the official documentation](https:/
 
 ## WordPress-Style Route Declarations
 
-Pollora Framework provides two ways to define routes: standard Laravel routes and WordPress-specific routes. The WordPress-specific routes are designed to integrate with WordPress's conditional tags system.
+Pollora Framework provides WordPress-specific routes that integrate with WordPress's conditional tags system.
 
 ### WordPress Routes vs Standard Routes
 
@@ -52,14 +52,15 @@ There are two main methods to define routes in your application:
    - They do not interact with WordPress's conditional tags system
    - They do not automatically receive WordPress-specific middleware
 
-2. **WordPress-Specific Routes** (`Route::wordpress()` or `Route::wp()`):
+2. **WordPress-Specific Routes** (`Route::wp()` and `Route::wpMatch()`):
    - These routes integrate with WordPress's conditional tags system
    - They automatically receive WordPress-specific middleware:
      - `WordPressBindings`: Adds WordPress objects (post, query) to the route
      - `WordPressHeaders`: Manages HTTP headers for WordPress responses
      - `WordPressBodyClass`: Handles body classes for WordPress templates
    - They are processed through WordPress's conditional logic
-   - `Route::wp()` is a shortcut alias for `Route::wordpress()`
+   - `Route::wp()` accepts all HTTP verbs
+   - `Route::wpMatch()` allows specifying specific HTTP verbs
 
 ### WordPress Route Conditions
 
@@ -123,88 +124,66 @@ Each condition maps a WordPress conditional function (like `is_page()`) to a rou
 
 ### Using WordPress Routes
 
-To define a WordPress-specific route, use the `wordpress` method:
+To define a WordPress-specific route, you can use either the `wp` or `wpMatch` method:
 
 ```php
-// Dynamic route for single posts
-Route::wordpress('single', function () {
-    return view('post');
-});
-
-// Route for a specific page
-Route::wordpress('page', 'landing-page', function() {
-    return view('pages.landing');
-});
-
-// Route with multiple page slugs
-Route::wordpress('page', ['contact', 'request-a-quote'], [FormController::class, 'index']);
-
-// Custom template route
-Route::wordpress('template', 'contact', function () {
-    return view('page');
-});
-```
-
-#### Using the `wp` Shortcut
-
-For convenience, a shortcut method `wp` is available as an alias for `wordpress`. This allows for more concise route definitions:
-
-```php
-// Using the wp shortcut
+// Using wp (accepts all HTTP verbs)
 Route::wp('single', function () {
     return view('post');
 });
 
-// With parameters
-Route::wp('page', 'about-us', function() {
-    return view('pages.about');
+// Using wpMatch with specific HTTP verbs
+Route::wpMatch('GET', 'page', 'landing-page', function() {
+    return view('pages.landing');
 });
 
-// With multiple parameters
+// Using wpMatch with multiple HTTP verbs
+Route::wpMatch(['GET', 'POST'], 'page', ['contact', 'request-a-quote'], [FormController::class, 'index']);
+
+// Custom template route
+Route::wp('template', 'contact', function () {
+    return view('page');
+});
+```
+
+The `wp` method is a convenient shortcut that accepts all HTTP verbs. If you need to restrict a route to specific HTTP methods, use `wpMatch` instead.
+
+Both methods accept a variable number of arguments:
+- For `wp`:
+  - First argument is the WordPress condition (e.g., 'single', 'page')
+  - Last argument is the callback function or controller action
+  - Any arguments in between are passed as parameters to the WordPress condition function
+
+- For `wpMatch`:
+  - First argument is the HTTP method(s) ('GET', 'POST', etc. or an array of methods)
+  - Second argument is the WordPress condition
+  - Last argument is the callback function or controller action
+  - Any arguments in between are passed as parameters to the WordPress condition function
+
+For example:
+```php
+// Route for GET requests to a specific page
+Route::wpMatch('GET', 'page', 'landing-page', function() {
+    return view('pages.landing');
+});
+
+// Route for POST requests to a form page
+Route::wpMatch('POST', 'page', 'contact', [FormController::class, 'submit']);
+
+// Route accepting both GET and POST for a product
+Route::wpMatch(['GET', 'POST'], 'singular', 'product', 123, function() {
+    return view('product.show');
+});
+
+// Route for all HTTP verbs using wp shortcut
 Route::wp('tax', 'product_cat', 'electronics', function() {
     return view('taxonomy.product-category');
 });
 ```
 
-Both `wordpress` and `wp` methods have identical functionality - the choice between them is purely stylistic.
-
-The `wordpress` method accepts a variable number of arguments:
-- The first argument is always the WordPress condition (e.g., 'single', 'page')
-- The last argument is always the callback function or controller action
-- Any arguments in between are passed as parameters to the WordPress condition function
-
-For example, in `Route::wordpress('page', 'landing-page', function() {...})`:
-- 'page' is the condition (maps to `is_page()` in WordPress)
-- 'landing-page' is the parameter (effectively calling `is_page('landing-page')`)
-- The function is the callback to execute when the condition is met
-
-#### Advanced Examples
-
-Here are some more advanced examples of how to use the new syntax with multiple parameters:
-
-```php
-// Route for a specific post type and ID
-// Equivalent to is_singular('product', 123)
-Route::wordpress('singular', 'product', 123, function() {
-    return view('product.show');
-});
-
-// Route for a specific taxonomy term
-// Equivalent to is_tax('product_cat', 'electronics')
-Route::wordpress('tax', 'product_cat', 'electronics', function() {
-    return view('taxonomy.product-category');
-});
-
-// Route with controller method and multiple parameters
-// Equivalent to is_post_type_archive(['product', 'service'])
-Route::wordpress('post-type-archive', ['product', 'service'], [ArchiveController::class, 'index']);
-```
-
-The parameters are passed directly to the WordPress conditional function in the same order they are defined in the route.
-
 #### Important Differences from Standard Routes
 
-When using `Route::wordpress()` instead of `Route::any()` or other standard methods:
+When using `Route::wp()` or `Route::wpMatch()` instead of `Route::any()` or other standard methods:
 
 1. The route will be processed through WordPress's conditional tags system
 2. WordPress-specific middleware will be automatically applied
@@ -217,19 +196,19 @@ When working with WordPress custom templates (defined in `themes/[theme-name]/co
 
 ```php
 // This will match any page using the "contact" template
-Route::wordpress('template', 'contact', function () {
+Route::wp('template', 'contact', function () {
     return view('page');
 });
 
 // This will match any page using the "landing" template and pass data to the view
-Route::wordpress('template', 'landing', function () {
+Route::wp('template', 'landing', function () {
     return view('page.landing', [
         'features' => Feature::all(),
     ]);
 });
 ```
 
-⚠️ **Important**: Template routes must be declared **before** the generic page route (`Route::wordpress('page')`), otherwise they won't be taken into account.
+⚠️ **Important**: Template routes must be declared **before** the generic page route (`Route::wp('page')`), otherwise they won't be taken into account.
 
 ### Extending Route Conditions
 
