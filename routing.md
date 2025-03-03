@@ -64,7 +64,12 @@ There are two main methods to define routes in your application:
 
 ### WordPress Route Conditions
 
-WordPress routes use conditions defined in the `config/wordpress.php` file. These conditions map WordPress conditional tags to route URIs:
+WordPress routes use conditions that can be specified in two ways:
+
+1. Using predefined aliases (shorter syntax)
+2. Using actual WordPress conditional function names (more explicit)
+
+The framework provides a default set of aliases in the `config/wordpress.php` file. These aliases map WordPress conditional tags to route URIs:
 
 ```php
 return [
@@ -108,7 +113,7 @@ return [
 ];
 ```
 
-The framework provides a default set of conditions in its `config/wordpress.php` file. You can override or extend these conditions in your application's `config/wordpress.php` file.
+The framework provides a default set of aliases in its `config/wordpress.php` file. You can override or extend these aliases in your application's `config/wordpress.php` file.
 
 #### Publishing the WordPress Configuration File
 
@@ -120,63 +125,92 @@ php artisan vendor:publish --tag=wp-config
 
 This command will copy the framework's configuration file to your application's `config/` directory, allowing you to customize it according to your needs.
 
-Each condition maps a WordPress conditional function (like `is_page()`) to a route URI or array of URIs. For example, `'is_page' => 'page'` means that when you use `Route::wordpress('page', ...)`, it will check if the current request matches the `is_page()` WordPress condition.
+Each alias maps a WordPress conditional function (like `is_page()`) to a route URI or array of URIs. For example, `'is_page' => 'page'` means that when you use `Route::wp('page', ...)` or `Route::wp('is_page', ...)`, it will check if the current request matches the `is_page()` WordPress condition.
 
 ### Using WordPress Routes
 
-To define a WordPress-specific route, you can use either the `wp` or `wpMatch` method:
+To define a WordPress-specific route, you can use either the `wp` or `wpMatch` method. You have two ways to specify the WordPress condition:
+
+1. Using the predefined aliases (shorter syntax)
+2. Using the actual WordPress conditional function names (more explicit)
+
+Here are examples of both approaches:
 
 ```php
-// Using wp (accepts all HTTP verbs)
+// Using aliases (shorter syntax)
 Route::wp('single', function () {
     return view('post');
 });
 
-// Using wpMatch with specific HTTP verbs
+// Using actual WordPress function names (more explicit)
+Route::wp('is_single', function () {
+    return view('post');
+});
+
+// Using wpMatch with aliases
 Route::wpMatch('GET', 'page', 'landing-page', function() {
     return view('pages.landing');
 });
 
-// Using wpMatch with multiple HTTP verbs
+// Using wpMatch with actual WordPress function names
+Route::wpMatch('GET', 'is_page', 'landing-page', function() {
+    return view('pages.landing');
+});
+
+// Using wpMatch with multiple HTTP verbs and aliases
 Route::wpMatch(['GET', 'POST'], 'page', ['contact', 'request-a-quote'], [FormController::class, 'index']);
 
-// Custom template route
-Route::wp('template', 'contact', function () {
-    return view('page');
-});
+// Using wpMatch with multiple HTTP verbs and actual WordPress function names
+Route::wpMatch(['GET', 'POST'], 'is_page', ['contact', 'request-a-quote'], [FormController::class, 'index']);
 ```
-
-The `wp` method is a convenient shortcut that accepts all HTTP verbs. If you need to restrict a route to specific HTTP methods, use `wpMatch` instead.
 
 Both methods accept a variable number of arguments:
 - For `wp`:
-  - First argument is the WordPress condition (e.g., 'single', 'page')
+  - First argument is the WordPress condition (either an alias or the actual function name)
   - Last argument is the callback function or controller action
   - Any arguments in between are passed as parameters to the WordPress condition function
 
 - For `wpMatch`:
   - First argument is the HTTP method(s) ('GET', 'POST', etc. or an array of methods)
-  - Second argument is the WordPress condition
+  - Second argument is the WordPress condition (either an alias or the actual function name)
   - Last argument is the callback function or controller action
   - Any arguments in between are passed as parameters to the WordPress condition function
 
 For example:
 ```php
-// Route for GET requests to a specific page
+// Route for GET requests to a specific page using alias
 Route::wpMatch('GET', 'page', 'landing-page', function() {
     return view('pages.landing');
 });
 
-// Route for POST requests to a form page
+// Route for GET requests to a specific page using actual function name
+Route::wpMatch('GET', 'is_page', 'landing-page', function() {
+    return view('pages.landing');
+});
+
+// Route for POST requests to a form page using alias
 Route::wpMatch('POST', 'page', 'contact', [FormController::class, 'submit']);
 
-// Route accepting both GET and POST for a product
+// Route for POST requests to a form page using actual function name
+Route::wpMatch('POST', 'is_page', 'contact', [FormController::class, 'submit']);
+
+// Route accepting both GET and POST for a product using alias
 Route::wpMatch(['GET', 'POST'], 'singular', 'product', 123, function() {
     return view('product.show');
 });
 
-// Route for all HTTP verbs using wp shortcut
+// Route accepting both GET and POST for a product using actual function name
+Route::wpMatch(['GET', 'POST'], 'is_singular', 'product', 123, function() {
+    return view('product.show');
+});
+
+// Route for all HTTP verbs using wp shortcut with alias
 Route::wp('tax', 'product_cat', 'electronics', function() {
+    return view('taxonomy.product-category');
+});
+
+// Route for all HTTP verbs using wp shortcut with actual function name
+Route::wp('is_tax', 'product_cat', 'electronics', function() {
     return view('taxonomy.product-category');
 });
 ```
