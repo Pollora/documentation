@@ -1,6 +1,38 @@
 # Routing
 
-Laravel's routing system offers a robust way to define URLs and their corresponding actions. By integrating WordPress-like route declarations, along with advanced concepts like route groups, middleware, and route naming, you can create a highly customizable and organized routing structure.
+The framework implements a hybrid routing system that combines Laravel's powerful routing capabilities with WordPress's template hierarchy. This system follows a clear priority order:
+
+1. **Laravel Routes First**: All routes defined in your `routes/web.php` file take precedence. This gives you full control over specific URLs and allows you to leverage Laravel's routing features when needed.
+
+2. **WordPress Template Hierarchy as Fallback**: If no Laravel route matches the current URL, the system falls back to WordPress's template hierarchy system, automatically mapping URLs to corresponding Blade views.
+
+This "Laravel-first, WordPress-fallback" approach provides the best of both worlds:
+- Full control and flexibility of Laravel routing when you need it
+- Automatic handling of standard WordPress content through the template hierarchy
+- No need to define routes for every WordPress page or post
+
+```
+Incoming Request
+       │
+       ▼
+┌──────────────┐
+│ Match Laravel│    Yes    ┌─────────────────┐
+│    Route?    ├──────────►│ Execute Laravel │
+└──────┬───────┘           │     Route       │
+       │                   └─────────────────┘
+       │ No
+       ▼
+┌──────────────┐
+│    Match     │    Yes    ┌─────────────────┐
+│   WordPress  ├──────────►│ Render Template │
+│  Template?   │           └─────────────────┘
+└──────┬───────┘
+       │ No
+       ▼
+┌──────────────┐
+│  Return 404  │
+└──────────────┘
+```
 
 ## Laravel Routing Basics
 
@@ -278,3 +310,44 @@ Route::wp('special-page', function() {
 ```
 
 This approach allows you to create highly customized routing logic while maintaining the clean syntax of WordPress-style routes.
+
+### Automatic Template Routing
+
+The framework implements a cascading routing system that works as follows:
+
+1. **Laravel Custom Routes**: The framework first checks if a matching route exists in your `routes/web.php` file. These routes have the highest priority and will be executed first if they match the requested URL.
+
+2. **WordPress Template Hierarchy**: If no custom route matches, the `FrontendController` takes over and:
+   - Determines the appropriate template hierarchy based on WordPress conditional tags
+   - Sequentially searches for matching Blade views in your views directory
+   - Returns the first view found in the hierarchy order
+
+3. **404 Error Handling**: If no custom route matches AND no appropriate view is found in the template hierarchy, a 404 error is returned.
+
+For example, for an "About" page, the process would be as follows:
+
+```php
+// 1. First checks if a custom route exists in routes/web.php
+Route::wp('page', 'about-us', function() {
+    return view('pages.about');
+});
+
+// 2. If no route matches, FrontendController checks the template hierarchy:
+// - page-about.blade.php
+// - page.blade.php
+// - singular.blade.php
+// - index.blade.php
+
+// 3. If no view is found, returns a 404
+```
+
+This approach offers several benefits:
+- Allows fine-grained customization via Laravel routes when needed
+- Maintains compatibility with WordPress template hierarchy
+- Provides automatic fallback to more generic templates
+- Reduces boilerplate code by automatically handling standard cases
+
+⚠️ **Important**: Routes defined in `routes/web.php` always take precedence over the automatic template system. Use this advantage to:
+- Add custom logic to specific pages
+- Inject specific data into your views
+- Handle special cases requiring processing before display
