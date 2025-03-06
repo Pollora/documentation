@@ -1,111 +1,22 @@
 # Hookable Hooks
 
-- [Overview](#overview)
-- [Lifecycle hooks](#lifecycle-hooks)
-- [Hookable declaration](#hookable-declaration)
-  - [Declarate with artisan](#declarate-with-artisan)
-  - [Manual declaration](#manual-declaration)
 - [Attribute-based hooks](#attribute-based-hooks)
   - [Declarate with artisan](#declarate-with-artisan-1)
   - [Action hooks](#action-hooks)
   - [Filter hooks](#filter-hooks)
-- [Facades](#facades)
-  - [Action Facade](#action-facade)
-  - [Filter Facade](#filter-facade)
+- [Facades](#action-and-filter-facades)
+  - [Registering an action or filter](#registering-an-action-or-filter)
+  - [Using functions, closures, or instances](#using-functions-closures-or-instances)
+  - [Constructor injection](#constructor-injection)
+  - [Executing actions and filters](executing-actions-and-filters)
+  - [Checking existence](#checking-existence)
+  - [Removing actions and filters](#removing-actions-and-filters)
+  - [Retrieving callbacks](#retrieving-callbacks)
 - [Singleton access](#singleton-access)
-
-## Overview
-
-The "hookable" class is a concept created by the [Themosis Framework](https://framework.themosis.com). Instead of using plugins to add functionalities to your WordPress application, "hookable" classes can be utilized.
-
-Using a "hookable" class provides access to all APIs specified by WordPress and your application packages. By default, "hookable" classes are initiated right before `mu-plugins`. The class code can also be executed at a specific WordPress action or filter hook with a defined priority.
-
-## Lifecycle hooks
-
-Hookable classes are not automatically enlisted in the application lifecycle. Whenever a new hookable class is created, it needs to be registered in the `config/app.php` file within the `hooks` property or in the `bootstrap/hooks.php` file. Both locations are merged into the application lifecycle during boot, ensuring that all declared hooks are properly loaded.
-
-## Hookable declaration
-
-### Declarate with artisan
-
-You can create a new hookable class using the `make:hook` artisan command:
-
-```bash
-# Create a basic hookable class
-php artisan make:hook MyHook
-
-# Create a hookable class with a specific WordPress hook
-php artisan make:hook MyHook --hook=init
-
-# Create a hookable class with a specific hook and priority
-php artisan make:hook MyHook --hook=init --priority=20
-
-# Create a hookable class in a subdirectory
-php artisan make:hook Admin/MyHook
-```
-
-The command will:
-1. Create a new hookable class in the `app/Hooks` directory
-2. Automatically register it in the `bootstrap/hooks.php` file
-
-Here is an example of a generated hookable class:
-
-```php
-<?php
-
-namespace App\Hooks;
-
-use Pollora\Hook\Hookable;
-
-class MyHook extends Hookable
-{
-    public $hook = 'init';
-    
-    public int $priority = 10;
-
-    /**
-     * Extend WordPress.
-     */
-    public function register()
-    {
-        // Code is executed on the "init" WordPress action only.
-    }
-}
-```
-
-Once generated, you can start implementing your hook logic in the `register()` method.
-
-### Manual declaration
-
-#### Declaring hooks in `bootstrap/hooks.php` (recommended)
-
-In addition to `config/app.php`, hookable classes can also be registered in the `bootstrap/hooks.php` file. The hooks declared in this file are merged with those in `config/app.php`. Here's an example:
-
-```php
-// bootstrap/hooks.php
-return [
-    App\Hooks\MySecondHook::class,
-];
-```
-
-#### Declaring hooks in `config/app.php`
-
-To register a hookable class, declare it in the `hooks` property of the `config/app.php` file:
-
-```php
-// config/app.php
-return [
-    'hooks' => [
-        App\Hooks\MyHook::class,
-    ],
-];
-```
-
-Both files will be merged during the boot process.
 
 ## Attribute-based hooks
 
-With the new attribute-based approach, you can define action and filter hooks using PHP attributes. This provides a more concise way to define hooks within your classes.
+You can define action and filter hooks using PHP attributes. This provides a more concise way to define hooks within your classes.
 
 ### Declarate with artisan
 
@@ -128,10 +39,10 @@ To define an action hook, use the `Action` attribute from the `Pollora\Attribute
 
 namespace App\Hooks;
 
-use Pollora\Attributes\Attributable;
 use Pollora\Attributes\Action;
+use Pollora\Hook\Contracts\Hooks;
 
-class MyAction implements Attributable
+class MyAction implements Hooks
 {
     #[Action('init', priority: 20)]
     public function handleInit(): void
@@ -161,10 +72,10 @@ To define a filter hook, use the `Filter` attribute from the `Pollora\Attributes
 
 namespace App\Hooks;
 
-use Pollora\Attributes\Attributable;
 use Pollora\Attributes\Filter;
+use Pollora\Hook\Contracts\Hooks;
 
-class MyFilter implements Attributable
+class MyFilter implements Hooks
 {
     #[Filter('the_content', priority: 10)]
     public function handleTheContent(string $content): string
@@ -174,29 +85,146 @@ class MyFilter implements Attributable
 }
 ```
 
-### Automatic Processing with Laravel
+All classes inside the `app/Hooks` folder and implementing `Hooks` are automatically resolved when instantiated by Laravel.
 
-All hookable classes implementing `Attributable` are automatically resolved when instantiated by Laravel. This is done in the service provider:
+## Action and Filter facades
+
+Pollora provides two powerful facades, `Action` and `Filter`, to interact with WordPress hooks in a structured and maintainable way. These facades simplify the registration, execution, and management of actions and filters, while ensuring dependency injection and class-based organization.
+
+### Registering an action or filter
+
+To register an action or filter, use the respective `add()` method:
 
 ```php
-$this->app->resolving(Attributable::class, function ($object, $app) {
-    \Pollora\Hook\AttributeProcessor::process($object);
-});
+use Pollora\Support\Facades\Action;
+use Pollora\Support\Facades\Filter;
+
+// Register an action
+Action::add('init', [App\Hooks\InitHandler::class, 'boot']);
+
+// Register a filter explicitly specifying the method
+Filter::add('the_content', [App\Hooks\ContentHandler::class, 'modify']);
+
+// Register a filter without specifying the method
+Filter::add('the_content', App\Hooks\ContentHandler::class);
 ```
 
-The `AttributeProcessor` dynamically finds and applies the correct registrars (`ActionRegistrar`, `FilterRegistrar`, etc.) based on the attributes present in a class.
+When passing a class reference alone, Pollora will automatically call a method following Laravel's naming conventions: it will look for `theContent()` inside `ContentHandler`. If a method is explicitly provided, that method will be called instead. If the method is not found, an exception is thrown, specifying the missing method.
 
+### Using functions, closures, or instances
+
+Actions and filters can also be registered using functions, closures, or object instances:
+
+```php
+// Function
+function custom_callback() {
+    // Code...
+}
+Action::add('init', 'custom_callback');
+
+// Closure
+Filter::add('the_content', function($content) {
+    return strtoupper($content);
+});
+
+// Object instance
+$handler = new App\Hooks\ContentHandler();
+Filter::add('the_content', [$handler, 'modify']);
+```
+
+### Constructor injection
+
+Pollora automatically resolves dependencies when registering actions and filters using a class reference. Dependencies are injected via the constructor:
+
+```php
+namespace App\Hooks;
+
+use Illuminate\Http\Request;
+use App\Services\ContentProcessor;
+
+class ContentHandler {
+    protected $request;
+    protected $processor;
+
+    public function __construct(Request $request, ContentProcessor $processor) {
+        $this->request = $request;
+        $this->processor = $processor;
+    }
+
+    public function theContent($content) {
+        return $this->processor->process($content);
+    }
+
+    public function modify($content) {
+        return strtoupper($content);
+    }
+}
+```
+
+This class can be registered in two ways:
+
+```php
+// Calls the `theContent` method automatically
+Filter::add('the_content', App\Hooks\ContentHandler::class);
+
+// Calls the `modify` method explicitly
+Filter::add('the_content', [App\Hooks\ContentHandler::class, 'modify']);
+```
+
+### Executing actions and filters
+
+To execute an action, use `do()`, which functions like `do_action()` in WordPress:
+
+```php
+Action::do('custom_event', $arg1, $arg2);
+```
+
+To apply a filter, use `apply()`, similar to `apply_filters()`:
+
+```php
+$modified_value = Filter::apply('custom_filter', $original_value, $arg1);
+```
+
+### Checking existence
+
+To verify if an action or filter is registered:
+
+```php
+if (Action::exists('custom_event')) {
+    // Code...
+}
+
+if (Filter::exists('custom_filter')) {
+    // Code...
+}
+```
+
+### Removing actions and filters
+
+Actions and filters can be removed using `remove()`:
+
+```php
+Action::remove('init', [App\Hooks\InitHandler::class, 'boot']);
+Filter::remove('the_content', [App\Hooks\ContentHandler::class, 'modify']);
+```
+
+> **Note:** If an action or filter was registered with a specific priority, the same priority must be specified when removing it.
+
+### Retrieving callbacks
+
+To get the registered callback for an action or filter:
+
+```php
+$callback = Action::getCallbacks('init');
+$filterCallback = Filter::getCallbacks('the_content');
+```
 
 ## Singleton access
 
-For optimized access and lifecycle management, all hookable classes are loaded into the application through a singleton named `wp.hooks`. This singleton centralizes access to all registered hooks from both the `bootstrap/hooks.php` and `config/app.php` files.
+For optimized access and lifecycle management, all hookable classes are loaded into the application through a singleton named `wp.hooks`. This singleton centralizes access to all registered hooks.
 
 You can access the hooks through the singleton as follows:
 
 ```php
 $hooks = app('wp.hooks');
 ```
-
-This singleton ensures that all hooks are loaded once and are available globally throughout the application. The `wp.hooks` singleton merges hooks from both `bootstrap/hooks.php` and `config/app.php`, providing a unified interface for managing hooks within your application.
-
-By centralizing hooks in a singleton, your application benefits from a streamlined access pattern and reduced duplication of configuration logic.
