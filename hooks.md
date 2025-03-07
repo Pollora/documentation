@@ -37,7 +37,7 @@ To define an action hook, use the `Action` attribute from the `Pollora\Attribute
 ```php
 <?php
 
-namespace App\Hooks;
+namespace App\Cms\Hooks;
 
 use Pollora\Attributes\Action;
 use Pollora\Hook\Contracts\Hooks;
@@ -70,7 +70,7 @@ To define a filter hook, use the `Filter` attribute from the `Pollora\Attributes
 ```php
 <?php
 
-namespace App\Hooks;
+namespace App\Cms\Hooks;
 
 use Pollora\Attributes\Filter;
 use Pollora\Hook\Contracts\Hooks;
@@ -85,7 +85,7 @@ class MyFilter implements Hooks
 }
 ```
 
-All classes inside the `app/Hooks` folder and implementing `Hooks` are automatically resolved when instantiated by Laravel.
+All classes inside the `app/Cms/Hooks` folder and implementing `Hooks` are automatically resolved when instantiated by Laravel.
 
 ## Action and Filter facades
 
@@ -137,7 +137,7 @@ Filter::add('the_content', [$handler, 'modify']);
 Pollora automatically resolves dependencies when registering actions and filters using a class reference. Dependencies are injected via the constructor:
 
 ```php
-namespace App\Hooks;
+namespace App\Cms\Hooks;
 
 use Illuminate\Http\Request;
 use App\Services\ContentProcessor;
