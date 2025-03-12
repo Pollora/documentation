@@ -16,6 +16,18 @@ Incoming Request
        │
        ▼
 ┌──────────────┐
+│ WordPress    │    Yes    ┌─────────────────┐
+│ Admin Area?  ├──────────►│ Handle via      │
+└──────┬───────┘           │ Admin Route     │
+       │ No                └─────────────────┘
+       ▼
+┌──────────────┐
+│ Special WP   │    Yes    ┌─────────────────┐
+│ Request?     ├──────────►│ Handle via      │
+└──────┬───────┘           │ Special Route   │
+       │ No                └─────────────────┘
+       ▼
+┌──────────────┐
 │ Match Laravel│    Yes    ┌─────────────────┐
 │    Route?    ├──────────►│ Execute Laravel │
 └──────┬───────┘           │     Route       │
@@ -30,7 +42,9 @@ Incoming Request
        │ No
        ▼
 ┌──────────────┐
-│  Return 404  │
+│  Fallback to │
+│ Frontend     │
+│ Controller   │
 └──────────────┘
 ```
 
@@ -315,14 +329,18 @@ This approach allows you to create highly customized routing logic while maintai
 
 The framework implements a cascading routing system that works as follows:
 
-1. **Laravel Custom Routes**: The framework first checks if a matching route exists in your `routes/web.php` file. These routes have the highest priority and will be executed first if they match the requested URL.
+1. **WordPress Admin Requests**: If the request is for the WordPress admin area, it is handled by a dedicated admin route.
 
-2. **WordPress Template Hierarchy**: If no custom route matches, the `FrontendController` takes over and:
+2. **Special WordPress Requests**: If the request is for a special WordPress feature (robots.txt, favicon, feeds, trackbacks), it is handled by a dedicated special route.
+
+3. **Laravel Custom Routes**: The framework checks if a matching route exists in your `routes/web.php` file. These routes have high priority and will be executed if they match the requested URL.
+
+4. **WordPress Template Hierarchy**: If no custom route matches, the `FrontendController` takes over and:
    - Determines the appropriate template hierarchy based on WordPress conditional tags
    - Sequentially searches for matching Blade views in your views directory
    - Returns the first view found in the hierarchy order
 
-3. **404 Error Handling**: If no custom route matches AND no appropriate view is found in the template hierarchy, a 404 error is returned.
+5. **Fallback Handling**: If no view is found in the template hierarchy, a 404 error is returned.
 
 For example, for an "About" page, the process would be as follows:
 
@@ -346,8 +364,44 @@ This approach offers several benefits:
 - Maintains compatibility with WordPress template hierarchy
 - Provides automatic fallback to more generic templates
 - Reduces boilerplate code by automatically handling standard cases
+- Ensures that all requests are handled appropriately, even special WordPress requests
 
 ⚠️ **Important**: Routes defined in `routes/web.php` always take precedence over the automatic template system. Use this advantage to:
 - Add custom logic to specific pages
 - Inject specific data into your views
 - Handle special cases requiring processing before display
+
+### Special WordPress Requests
+
+The framework automatically handles special WordPress request types, including:
+
+- **robots.txt**: Requests for `/robots.txt` are handled by WordPress's built-in `do_robots` action
+- **favicon.ico**: Requests for `/favicon.ico` are handled by WordPress's built-in `do_favicon` action
+- **Feeds**: RSS and Atom feed requests are handled by WordPress's built-in `do_feed` function
+- **Trackbacks**: Trackback requests are handled by WordPress's built-in trackback handler
+
+You can override these default handlers by defining your own routes for these special requests:
+
+```php
+// Override the default robots.txt handler
+Route::wp('is_robots', function() {
+    return response("User-agent: *\nDisallow: /wp-admin/\nAllow: /wp-admin/admin-ajax.php", 200)
+        ->header('Content-Type', 'text/plain');
+});
+
+// Override the default feed handler
+Route::wp('is_feed', function() {
+    return response()->view('custom-feed', ['posts' => Post::latest()->take(10)->get()])
+        ->header('Content-Type', 'application/rss+xml');
+});
+```
+
+### Fallback Routes
+
+When no route matches the current request, the framework automatically creates a fallback route that delegates to the `FrontendController`. This controller:
+
+1. Determines the appropriate template based on WordPress's template hierarchy
+2. Renders the corresponding Blade view
+3. Returns a 404 response if no appropriate view is found
+
+This ensures that all requests are handled appropriately, even if no explicit route is defined.
