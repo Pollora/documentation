@@ -46,13 +46,11 @@ class Event extends AbstractPostType
 }
 ```
 
-> **Note:** You don't need to define the `$slug` property anymore. If not explicitly set, the slug will be automatically generated from the class name using Laravel's `Str::kebab()` method. For example, the `Event` class will have a slug of `event`.
+> **Note:** You don't need to define the `$slug` property. If not explicitly set, the slug will be automatically generated from the class name using Laravel's `Str::kebab()` method. For example, the `Event` class will have a slug of `event`.
 
-> **Note:** You also don't need to define the `getName()` and `getPluralName()` methods anymore. If not explicitly overridden, these methods will automatically generate human-readable names from the class name. For example, the `Event` class will have a singular name of "Event" and a plural name of "Events". The `EventCategory` class will have a singular name of "Event Category" and a plural name of "Event Categories".
+> **Note:** You also don't need to define the `getName()` and `getPluralName()` methods. If not explicitly overridden, these methods will automatically generate human-readable names from the class name. For example, the `Event` class will have a singular name of "Event" and a plural name of "Events". The `EventCategory` class will have a singular name of "Event Category" and a plural name of "Event Categories".
 
-> **Note:** You don't need to define the `getLabels()` method anymore. If not explicitly overridden, a default set of labels will be generated based on the singular and plural names. You can still override this method if you need custom labels.
-
-> **Note:** You don't need to define the `withArgs()` method anymore. If you need to add custom arguments that aren't covered by attributes, you can still override this method.
+> **Note:** You don't need to define the `getLabels()` method. If not explicitly overridden, a default set of labels will be generated based on the singular and plural names. You can still override this method if you need custom labels.
 
 ### Available Attributes
 
