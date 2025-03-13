@@ -6,7 +6,7 @@ The Pollora framework offers a robust and flexible system for creating and manag
 
 ## Creating a New Theme
 
-## Generating a New Theme
+### Generating a New Theme
 
 To generate a new theme, run the following command:
 
@@ -60,6 +60,86 @@ theme-name/
 ├─ theme.json
 ├─ vite.config.json
 └─ vite.config.js
+```
+
+## Template Hierarchy
+
+Pollora extends WordPress's template hierarchy system to provide a more flexible and powerful theming experience. This system determines which template file should be used for the current request.
+
+### Understanding Template Hierarchy
+
+The template hierarchy is a list of possible template files arranged from most specific to most generic. The system searches through this list until it finds a matching template file.
+
+### Enhanced Template System
+
+Pollora's template system offers several advantages over WordPress's standard template hierarchy:
+
+1. **Blade Integration**: Templates can be written using Laravel's Blade templating engine, offering features like layouts, components, and directives.
+
+2. **Dynamic Registration**: Plugins can dynamically register custom template types through the `TemplateHierarchy` class.
+
+3. **Block Theme Support**: The system automatically checks for block theme templates (.html files) when appropriate.
+
+4. **Performance Optimization**: Templates can be cached for improved performance.
+
+### Accessing the Template Hierarchy
+
+You can access the current template hierarchy in your views or controllers:
+
+```php
+// In a controller
+use Pollora\Theme\TemplateHierarchy;
+
+public function show()
+{
+    $hierarchy = TemplateHierarchy::instance()->hierarchy();
+    
+    return view('page', ['templateHierarchy' => $hierarchy]);
+}
+```
+
+```blade
+{{-- In a Blade view --}}
+<div class="debug-info">
+    <h3>Template Hierarchy</h3>
+    <ul>
+        @foreach($templateHierarchy as $template)
+            <li>{{ $template }}</li>
+        @endforeach
+    </ul>
+</div>
+```
+
+### Extending the Template Hierarchy
+
+Plugins can extend the template hierarchy for specific content types:
+
+```php
+// In a plugin or theme service provider
+$templateHierarchy = \Pollora\Theme\TemplateHierarchy::instance();
+
+// Register a custom template handler for product pages on sale
+$templateHierarchy->registerTemplateHandler('product_on_sale', function($queriedObject) {
+    if (!$queriedObject || !function_exists('wc_get_product')) {
+        return [];
+    }
+    
+    $product = wc_get_product($queriedObject->ID);
+    if (!$product || !$product->is_on_sale()) {
+        return [];
+    }
+    
+    return [
+        "product-on-sale-{$product->get_slug()}.blade.php",
+        'product-on-sale.blade.php',
+    ];
+});
+
+// Add the corresponding condition
+add_filter('pollora/template_hierarchy/conditions', function($conditions) {
+    $conditions['is_product_on_sale'] = 'product_on_sale';
+    return $conditions;
+});
 ```
 
 ## Vite Configuration
@@ -203,10 +283,7 @@ Commands needs to be run inside the theme folder.
 - Take advantage of TailwindCSS for rapid and consistent CSS development
 - Use the `ThemeManager` methods for efficient theme management
 - Consider parent theme compatibility when developing
-
-## Conclusion
-
-The Pollora framework offers a powerful and flexible theme system, integrating modern tools like Vite and TailwindCSS. By following these guidelines, you can create robust and maintainable WordPress themes.
+- Leverage the template hierarchy to create structured and maintainable views
 
 ## Asset Management
 
@@ -269,3 +346,156 @@ You can use these macros in your Blade templates:
 ```
 
 These macros ensure that your asset references are consistent with your theme's configuration and take advantage of Vite's asset handling capabilities.
+
+## Theme Service Providers
+
+To register custom functionality for your theme, you can create service providers in the `config/providers.php` file:
+
+```php
+<?php
+// config/providers.php
+
+return [
+    // Your custom service providers
+    App\Providers\ThemeServiceProvider::class,
+    App\Providers\EventServiceProvider::class,
+];
+```
+
+Then, in your service provider, you can extend the template hierarchy:
+
+```php
+<?php
+
+namespace App\Providers;
+
+use Illuminate\Support\ServiceProvider;
+use Pollora\Theme\TemplateHierarchy;
+
+class ThemeServiceProvider extends ServiceProvider
+{
+    public function register()
+    {
+        // Register any theme-specific services
+    }
+
+    public function boot()
+    {
+        // Get template hierarchy instance
+        $templateHierarchy = TemplateHierarchy::instance();
+        
+        // Register template handlers
+        $templateHierarchy->registerTemplateHandler('featured_post', function($post) {
+            if (!$post || !has_term('featured', 'post_tag', $post)) {
+                return [];
+            }
+            
+            return [
+                'featured-post.blade.php',
+                'post-featured.blade.php',
+                'single-featured.blade.php',
+            ];
+        });
+        
+        // Add the corresponding condition
+        add_filter('pollora/template_hierarchy/conditions', function($conditions) {
+            $conditions['is_featured_post'] = 'featured_post';
+            return $conditions;
+        });
+        
+        // Define the conditional function
+        if (!function_exists('is_featured_post')) {
+            function is_featured_post() {
+                return is_single() && has_term('featured', 'post_tag');
+            }
+        }
+        
+        // Use the template hierarchy to share data with views
+        add_action('template_redirect', function() {
+            $templateHierarchy = TemplateHierarchy::instance();
+            
+            // Share the template hierarchy with all views
+            view()->share('templateHierarchy', $templateHierarchy->hierarchy());
+        });
+    }
+}
+```
+
+## Advanced Template Hierarchy Usage
+
+### Caching Template Hierarchy
+
+For performance optimization, you can cache the template hierarchy:
+
+```php
+// In a service provider
+public function boot()
+{
+    // Get template hierarchy instance
+    $templateHierarchy = TemplateHierarchy::instance();
+    
+    // Cache the hierarchy for performance (set to true)
+    add_action('template_redirect', function() use ($templateHierarchy) {
+        $shouldCache = config('wordpress.template_caching', false);
+        $templateHierarchy->finalizeHierarchy($shouldCache);
+    }, 999);
+}
+```
+
+### Modifying Template Priority
+
+You can change the order in which templates are checked:
+
+```php
+add_filter('pollora/template_hierarchy/order', function($hierarchyOrder) {
+    // Example: Give higher priority to is_author condition
+    if (($key = array_search('is_author', $hierarchyOrder)) !== false) {
+        unset($hierarchyOrder[$key]);
+        array_unshift($hierarchyOrder, 'is_author');
+    }
+    return $hierarchyOrder;
+});
+```
+
+### Debugging Template Hierarchy
+
+During development, you might want to see which templates are being checked:
+
+```php
+// In a development-only service provider
+public function boot()
+{
+    if (config('app.debug')) {
+        add_action('template_redirect', function() {
+            $templateHierarchy = TemplateHierarchy::instance();
+            
+            // Force refresh the hierarchy to ensure it's up to date
+            $hierarchy = $templateHierarchy->hierarchy(true);
+            
+            // Add debug information to footer
+            add_action('wp_footer', function() use ($hierarchy) {
+                echo '<div class="debug-hierarchy" style="background:#f1f1f1;padding:15px;margin-top:30px;border-top:1px solid #ddd;">';
+                echo '<h3>Template Hierarchy</h3>';
+                echo '<ol>';
+                foreach ($hierarchy as $template) {
+                    echo '<li>' . esc_html($template) . '</li>';
+                }
+                echo '</ol>';
+                echo '</div>';
+            }, 999);
+        });
+    }
+}
+```
+
+## Using Block Theme Templates
+
+Pollora supports WordPress block theme templates. When using a block theme, the template hierarchy automatically includes HTML templates from the block theme structure:
+
+```php
+// For a regular PHP template like 'page.php'
+// These templates will be checked:
+// - page.blade.php (Blade variant)
+// - page.php (PHP variant)
+// - wp-templates/page.html (Block theme variant)
+```

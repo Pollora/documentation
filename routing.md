@@ -94,19 +94,19 @@ Pollora Framework provides WordPress-specific routes that integrate with WordPre
 There are two main methods to define routes in your application:
 
 1. **Standard Laravel Routes** (`Route::get()`, `Route::post()`, `Route::any()`, etc.):
-   - These routes follow Laravel's standard routing behavior
-   - They do not interact with WordPress's conditional tags system
-   - They do not automatically receive WordPress-specific middleware
+    - These routes follow Laravel's standard routing behavior
+    - They do not interact with WordPress's conditional tags system
+    - They do not automatically receive WordPress-specific middleware
 
 2. **WordPress-Specific Routes** (`Route::wp()` and `Route::wpMatch()`):
-   - These routes integrate with WordPress's conditional tags system
-   - They automatically receive WordPress-specific middleware:
-     - `WordPressBindings`: Adds WordPress objects (post, query) to the route
-     - `WordPressHeaders`: Manages HTTP headers for WordPress responses
-     - `WordPressBodyClass`: Handles body classes for WordPress templates
-   - They are processed through WordPress's conditional logic
-   - `Route::wp()` accepts all HTTP verbs
-   - `Route::wpMatch()` allows specifying specific HTTP verbs
+    - These routes integrate with WordPress's conditional tags system
+    - They automatically receive WordPress-specific middleware:
+        - `WordPressBindings`: Adds WordPress objects (post, query) to the route
+        - `WordPressHeaders`: Manages HTTP headers for WordPress responses
+        - `WordPressBodyClass`: Handles body classes for WordPress templates
+    - They are processed through WordPress's conditional logic
+    - `Route::wp()` accepts all HTTP verbs
+    - `Route::wpMatch()` allows specifying specific HTTP verbs
 
 ### WordPress Route Conditions
 
@@ -131,9 +131,9 @@ return [
         'is_front_page' => ['/', 'front'],
         'is_home' => ['home', 'blog'],
         'is_month' => 'month',
+        'is_page_template' => 'template',
         'is_page' => 'page',
         'is_paged' => 'paged',
-        'is_page_template' => 'template',
         'is_post_type_archive' => ['post-type-archive', 'postTypeArchive'],
         'is_search' => 'search',
         'is_single' => 'single',
@@ -212,15 +212,15 @@ Route::wpMatch(['GET', 'POST'], 'is_page', ['contact', 'request-a-quote'], [Form
 
 Both methods accept a variable number of arguments:
 - For `wp`:
-  - First argument is the WordPress condition (either an alias or the actual function name)
-  - Last argument is the callback function or controller action
-  - Any arguments in between are passed as parameters to the WordPress condition function
+    - First argument is the WordPress condition (either an alias or the actual function name)
+    - Last argument is the callback function or controller action
+    - Any arguments in between are passed as parameters to the WordPress condition function
 
 - For `wpMatch`:
-  - First argument is the HTTP method(s) ('GET', 'POST', etc. or an array of methods)
-  - Second argument is the WordPress condition (either an alias or the actual function name)
-  - Last argument is the callback function or controller action
-  - Any arguments in between are passed as parameters to the WordPress condition function
+    - First argument is the HTTP method(s) ('GET', 'POST', etc. or an array of methods)
+    - Second argument is the WordPress condition (either an alias or the actual function name)
+    - Last argument is the callback function or controller action
+    - Any arguments in between are passed as parameters to the WordPress condition function
 
 For example:
 ```php
@@ -325,6 +325,79 @@ Route::wp('special-page', function() {
 
 This approach allows you to create highly customized routing logic while maintaining the clean syntax of WordPress-style routes.
 
+### Dynamic Template Hierarchy
+
+The framework uses an enhanced template hierarchy system that builds upon WordPress's native template hierarchy, but with several improvements:
+
+1. **Plugin Integration**: The system dynamically integrates with plugins that register custom template types or conditions through WordPress hooks.
+
+2. **Template Filter Hooks**: Plugins can filter the template hierarchy for each template type using hooks like `pollora/template_hierarchy/{type}_templates`.
+
+3. **Custom Template Handlers**: Developers can register custom template handlers for specific scenarios:
+
+```php
+// In a service provider or plugin
+$templateHierarchy = \Pollora\Theme\TemplateHierarchy::instance();
+
+// Register a custom template handler for product pages on sale
+$templateHierarchy->registerTemplateHandler('product_on_sale', function($queriedObject) {
+    if (!$queriedObject || !function_exists('wc_get_product')) {
+        return [];
+    }
+    
+    $product = wc_get_product($queriedObject->ID);
+    if (!$product || !$product->is_on_sale()) {
+        return [];
+    }
+    
+    return [
+        "product-on-sale-{$product->get_slug()}.php",
+        'product-on-sale.php',
+    ];
+});
+
+// Add the corresponding condition
+add_filter('pollora/template_hierarchy/conditions', function($conditions) {
+    $conditions['is_product_on_sale'] = 'product_on_sale';
+    return $conditions;
+});
+
+// Define the conditional function
+function is_product_on_sale() {
+    if (!function_exists('is_product') || !is_product()) {
+        return false;
+    }
+    
+    global $product;
+    if (!$product) {
+        $product = wc_get_product(get_queried_object_id());
+    }
+    
+    return $product && $product->is_on_sale();
+}
+```
+
+4. **Performance Optimization**: The template hierarchy can be cached to improve performance:
+
+```php
+// In a service provider
+$templateHierarchy = \Pollora\Theme\TemplateHierarchy::instance();
+$templateHierarchy->finalizeHierarchy(true); // true enables caching
+```
+
+5. **Adjusting Template Priority**: Plugins can modify the hierarchy order:
+
+```php
+add_filter('pollora/template_hierarchy/order', function($hierarchyOrder) {
+    // Move 'is_product' higher in priority
+    if (($key = array_search('is_product', $hierarchyOrder)) !== false) {
+        unset($hierarchyOrder[$key]);
+        array_unshift($hierarchyOrder, 'is_product');
+    }
+    return $hierarchyOrder;
+});
+```
+
 ### Automatic Template Routing
 
 The framework implements a cascading routing system that works as follows:
@@ -336,9 +409,9 @@ The framework implements a cascading routing system that works as follows:
 3. **Laravel Custom Routes**: The framework checks if a matching route exists in your `routes/web.php` file. These routes have high priority and will be executed if they match the requested URL.
 
 4. **WordPress Template Hierarchy**: If no custom route matches, the `FrontendController` takes over and:
-   - Determines the appropriate template hierarchy based on WordPress conditional tags
-   - Sequentially searches for matching Blade views in your views directory
-   - Returns the first view found in the hierarchy order
+    - Determines the appropriate template hierarchy based on WordPress conditional tags
+    - Sequentially searches for matching Blade views in your views directory
+    - Returns the first view found in the hierarchy order
 
 5. **Fallback Handling**: If no view is found in the template hierarchy, a 404 error is returned.
 
