@@ -15,19 +15,19 @@ The most elegant way to define custom taxonomies in Pollora is by using PHP 8 at
 You can generate a new taxonomy class using the Artisan command:
 
 ```bash
-php artisan make:taxonomy EventType
+php artisan pollora:make-taxonomy EventType
 ```
 
 By default, the taxonomy will be associated with the 'post' post type. If you want to associate it with a different post type, you can use the `--post-type` option:
 
 ```bash
-php artisan make:taxonomy EventType --post-type=event
+php artisan pollora:make-taxonomy EventType --post-type=event
 ```
 
 If you need to associate the taxonomy with multiple post types, you can use the `--object-type` option with comma-separated values:
 
 ```bash
-php artisan make:taxonomy EventType --object-type=post,event,product
+php artisan pollora:make-taxonomy EventType --object-type=post,event,product
 ```
 
 This will create a new class in `app/Cms/Taxonomies/EventType.php` with the following structure:

@@ -478,3 +478,44 @@ When no route matches the current request, the framework automatically creates a
 3. Returns a 404 response if no appropriate view is found
 
 This ensures that all requests are handled appropriately, even if no explicit route is defined.
+
+### Extending WordPress Routes
+
+You can extend WordPress routes by adding custom conditions and template handlers. This is typically done in a service provider:
+
+```php
+use Pollora\Theme\TemplateHierarchy;
+
+class RouteServiceProvider extends ServiceProvider
+{
+    public function boot(TemplateHierarchy $templateHierarchy)
+    {
+        // Register a custom template handler
+        $templateHierarchy->registerTemplateHandler('custom_post_type', function($post) {
+            if (!$post || $post->post_type !== 'custom_post_type') {
+                return [];
+            }
+            
+            return [
+                "custom-post-type-{$post->post_name}.blade.php",
+                'custom-post-type.blade.php',
+            ];
+        });
+
+        // Add custom condition
+        add_filter('pollora/template_hierarchy/conditions', function($conditions) {
+            $conditions['is_custom_post_type'] = 'custom_post_type';
+            return $conditions;
+        });
+
+        // Define custom conditional function
+        if (!function_exists('is_custom_post_type')) {
+            function is_custom_post_type() {
+                return is_singular('custom_post_type');
+            }
+        }
+    }
+}
+```
+
+This allows you to create custom routes that integrate seamlessly with both Laravel's routing system and WordPress's template hierarchy.

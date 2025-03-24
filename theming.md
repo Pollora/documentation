@@ -11,13 +11,13 @@ The Pollora framework offers a robust and flexible system for creating and manag
 To generate a new theme, run the following command:
 
 ```bash
-php artisan theme:make
+php artisan pollora:make-theme
 ```
 
 You'll be prompted to answer several questions to configure your theme. Optionally, you can define the theme's slug right away:
 
 ```bash
-php artisan theme:make {theme-name}
+php artisan pollora:make-theme {theme-name}
 ```
 
 This command creates a new theme with the necessary folder structure and base files.
@@ -84,17 +84,27 @@ Pollora's template system offers several advantages over WordPress's standard te
 
 ### Accessing the Template Hierarchy
 
-You can access the current template hierarchy in your views or controllers:
+You can access the template hierarchy in your views or controllers through dependency injection:
 
 ```php
 // In a controller
 use Pollora\Theme\TemplateHierarchy;
 
-public function show()
+class PageController extends Controller
 {
-    $hierarchy = TemplateHierarchy::instance()->hierarchy();
-    
-    return view('page', ['templateHierarchy' => $hierarchy]);
+    private TemplateHierarchy $templateHierarchy;
+
+    public function __construct(TemplateHierarchy $templateHierarchy)
+    {
+        $this->templateHierarchy = $templateHierarchy;
+    }
+
+    public function show()
+    {
+        $hierarchy = $this->templateHierarchy->hierarchy();
+        
+        return view('page', ['templateHierarchy' => $hierarchy]);
+    }
 }
 ```
 
@@ -112,34 +122,40 @@ public function show()
 
 ### Extending the Template Hierarchy
 
-Plugins can extend the template hierarchy for specific content types:
+Plugins can extend the template hierarchy for specific content types. You can inject the `TemplateHierarchy` class into your service providers or use the container to resolve it:
 
 ```php
 // In a plugin or theme service provider
-$templateHierarchy = \Pollora\Theme\TemplateHierarchy::instance();
+use Pollora\Theme\TemplateHierarchy;
 
-// Register a custom template handler for product pages on sale
-$templateHierarchy->registerTemplateHandler('product_on_sale', function($queriedObject) {
-    if (!$queriedObject || !function_exists('wc_get_product')) {
-        return [];
-    }
-    
-    $product = wc_get_product($queriedObject->ID);
-    if (!$product || !$product->is_on_sale()) {
-        return [];
-    }
-    
-    return [
-        "product-on-sale-{$product->get_slug()}.blade.php",
-        'product-on-sale.blade.php',
-    ];
-});
+class ThemeServiceProvider extends ServiceProvider
+{
+    public function boot(TemplateHierarchy $templateHierarchy)
+    {
+        // Register a custom template handler for product pages on sale
+        $templateHierarchy->registerTemplateHandler('product_on_sale', function($queriedObject) {
+            if (!$queriedObject || !function_exists('wc_get_product')) {
+                return [];
+            }
+            
+            $product = wc_get_product($queriedObject->ID);
+            if (!$product || !$product->is_on_sale()) {
+                return [];
+            }
+            
+            return [
+                "product-on-sale-{$product->get_slug()}.blade.php",
+                'product-on-sale.blade.php',
+            ];
+        });
 
-// Add the corresponding condition
-add_filter('pollora/template_hierarchy/conditions', function($conditions) {
-    $conditions['is_product_on_sale'] = 'product_on_sale';
-    return $conditions;
-});
+        // Add the corresponding condition
+        add_filter('pollora/template_hierarchy/conditions', function($conditions) {
+            $conditions['is_product_on_sale'] = 'product_on_sale';
+            return $conditions;
+        });
+    }
+}
 ```
 
 ## Vite Configuration
@@ -362,7 +378,7 @@ return [
 ];
 ```
 
-Then, in your service provider, you can extend the template hierarchy:
+Then, in your service provider, you can extend the template hierarchy using dependency injection:
 
 ```php
 <?php
@@ -379,11 +395,8 @@ class ThemeServiceProvider extends ServiceProvider
         // Register any theme-specific services
     }
 
-    public function boot()
+    public function boot(TemplateHierarchy $templateHierarchy)
     {
-        // Get template hierarchy instance
-        $templateHierarchy = TemplateHierarchy::instance();
-        
         // Register template handlers
         $templateHierarchy->registerTemplateHandler('featured_post', function($post) {
             if (!$post || !has_term('featured', 'post_tag', $post)) {
@@ -411,9 +424,7 @@ class ThemeServiceProvider extends ServiceProvider
         }
         
         // Use the template hierarchy to share data with views
-        add_action('template_redirect', function() {
-            $templateHierarchy = TemplateHierarchy::instance();
-            
+        add_action('template_redirect', function() use ($templateHierarchy) {
             // Share the template hierarchy with all views
             view()->share('templateHierarchy', $templateHierarchy->hierarchy());
         });
@@ -429,11 +440,8 @@ For performance optimization, you can cache the template hierarchy:
 
 ```php
 // In a service provider
-public function boot()
+public function boot(TemplateHierarchy $templateHierarchy)
 {
-    // Get template hierarchy instance
-    $templateHierarchy = TemplateHierarchy::instance();
-    
     // Cache the hierarchy for performance (set to true)
     add_action('template_redirect', function() use ($templateHierarchy) {
         $shouldCache = config('wordpress.template_caching', false);
@@ -463,12 +471,10 @@ During development, you might want to see which templates are being checked:
 
 ```php
 // In a development-only service provider
-public function boot()
+public function boot(TemplateHierarchy $templateHierarchy)
 {
     if (config('app.debug')) {
-        add_action('template_redirect', function() {
-            $templateHierarchy = TemplateHierarchy::instance();
-            
+        add_action('template_redirect', function() use ($templateHierarchy) {
             // Force refresh the hierarchy to ensure it's up to date
             $hierarchy = $templateHierarchy->hierarchy(true);
             

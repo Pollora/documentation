@@ -27,7 +27,7 @@ Asset Containers allow you to group and manage assets with specific configuratio
 You can configure Asset Containers in your service provider or configuration file:
 
 ```php
-app('asset.container')->addContainer('my-plugin', [
+app(\Pollora\Asset\AssetContainerManager::class)->addContainer('my-plugin', [
     'hot_file' => public_path("my-plugin.hot"),
     'build_directory' => "build/my-plugin",
     'manifest_path' => public_path("build/my-plugin/manifest.json"),

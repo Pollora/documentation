@@ -15,7 +15,7 @@ The most elegant way to define custom post types in Pollora is by using PHP 8 at
 You can generate a new post type class using the Artisan command:
 
 ```bash
-php artisan make:posttype Event
+php artisan pollora:make-posttype Event
 ```
 
 This will create a new class in `app/Cms/PostTypes/Event.php` with the following structure:
