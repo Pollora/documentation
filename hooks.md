@@ -24,10 +24,10 @@ You can create a new attribute-based hook class using the `pollora:make-action` 
 
 ```bash
 # Create a new action hook class
-php artisan pollora:make-action MyAction
+php artisan pollora:make-action MyActionClass
 
 # Create a new filter hook class
-php artisan pollora:make-filter MyFilter
+php artisan pollora:make-filter MyFilterClass
 ```
 
 ### Action hooks
@@ -40,9 +40,9 @@ To define an action hook, use the `Action` attribute from the `Pollora\Attribute
 namespace App\Cms\Hooks;
 
 use Pollora\Attributes\Action;
-use Pollora\Hook\Contracts\Hooks;
+use Pollora\Hook\Domain\Contracts\Hooks;
 
-class MyAction implements Hooks
+class MyActionClass implements Hooks
 {
     #[Action('init', priority: 20)]
     public function handleInit(): void
@@ -73,9 +73,9 @@ To define a filter hook, use the `Filter` attribute from the `Pollora\Attributes
 namespace App\Cms\Hooks;
 
 use Pollora\Attributes\Filter;
-use Pollora\Hook\Contracts\Hooks;
+use Pollora\Hook\Domain\Contracts\Hooks;
 
-class MyFilter implements Hooks
+class MyFilterClass implements Hooks
 {
     #[Filter('the_content', priority: 10)]
     public function handleTheContent(string $content): string
