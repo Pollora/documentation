@@ -41,22 +41,34 @@ The Pollora plugin system extends WordPress plugin development by providing:
 Generate a new plugin using the Artisan command:
 
 ```bash
+# Create a plugin with modern asset management (recommended for frontend-heavy plugins)
 php artisan pollora:make-plugin my-awesome-plugin \
     --plugin-author="John Doe" \
     --plugin-author-uri="https://johndoe.com" \
     --plugin-uri="https://github.com/johndoe/my-awesome-plugin" \
     --plugin-description="An awesome plugin built with Pollora" \
-    --plugin-version="1.0.0"
+    --plugin-version="1.0.0" \
+    --asset=true
+
+# Or create a minimal plugin without assets (good for backend-focused plugins)
+php artisan pollora:make-plugin my-awesome-plugin \
+    --plugin-author="John Doe" \
+    --plugin-author-uri="https://johndoe.com" \
+    --plugin-uri="https://github.com/johndoe/my-awesome-plugin" \
+    --plugin-description="An awesome plugin built with Pollora" \
+    --plugin-version="1.0.0" \
+    --asset=false
 ```
 
 This creates a complete plugin structure with:
 - Main plugin file with WordPress headers
 - Service provider for dependency injection
-- Configuration files with Vite support
-- Asset directories with Tailwind CSS
-- JavaScript and CSS files with modern tooling
+- Configuration files
 - View templates with Blade support
-- Package.json with development dependencies
+- Asset directories with Tailwind CSS (if `--asset=true` is used)
+- JavaScript and CSS files with modern tooling (if `--asset=true` is used)
+- Package.json with development dependencies (if `--asset=true` is used)
+- Vite configuration for asset compilation (if `--asset=true` is used)
 
 ### Plugin Registration
 
@@ -182,6 +194,24 @@ php artisan pollora:make-plugin my-plugin \
     --plugin-description="Description" \
     --plugin-version="1.0.0"
 
+# Create plugin with assets (JS/CSS with ViteJS compilation)
+php artisan pollora:make-plugin my-plugin \
+    --plugin-author="Author" \
+    --plugin-author-uri="https://author.com" \
+    --plugin-uri="https://plugin.com" \
+    --plugin-description="Description" \
+    --plugin-version="1.0.0" \
+    --asset=true
+
+# Create plugin without assets (minimal structure)
+php artisan pollora:make-plugin my-plugin \
+    --plugin-author="Author" \
+    --plugin-author-uri="https://author.com" \
+    --plugin-uri="https://plugin.com" \
+    --plugin-description="Description" \
+    --plugin-version="1.0.0" \
+    --asset=false
+
 # Create from GitHub repository
 php artisan pollora:make-plugin my-plugin \
     --plugin-author="Author" \
@@ -210,9 +240,19 @@ php artisan pollora:make-plugin my-plugin \
 - `--plugin-version` : Plugin version
 - `--repository` : GitHub repository to download (owner/repo format)
 - `--repo-version` : Specific version/tag to download
+- `--asset=true/false` : Include asset files (JS/CSS) with ViteJS compilation (default: false)
 - `--force` : Force create plugin with same name
 
-After plugin creation, install and build assets:
+### Asset Management
+
+When creating a plugin with the `--asset=true` option, the following files are included:
+- `vite.config.js` - Vite configuration for asset compilation
+- `tailwind.config.js` - Tailwind CSS configuration
+- `postcss.config.mjs` - PostCSS configuration
+- `app/Providers/AssetServiceProvider.php` - Asset service provider
+- `resources/assets/` - Directory containing CSS and JS files
+
+After plugin creation with assets, install and build them:
 
 ```bash
 cd public/content/plugins/my-plugin
@@ -221,7 +261,52 @@ npm run dev    # For development with hot reload
 npm run build  # For production build
 ```
 
+> **Note**: If you create a plugin with `--asset=false` or without the `--asset` option, these files will be excluded and no npm commands will be run during plugin creation.
+
 ## Plugin Structure
+
+### Plugin Types
+
+Pollora supports two types of plugin structures depending on your needs:
+
+#### With Assets (`--asset=true`)
+For plugins that require modern frontend development with JavaScript, CSS, and build tools:
+
+```
+public/content/plugins/my-awesome-plugin/
+├── app/                          # PSR-4 autoloaded application code
+│   ├── Providers/               # Service providers (auto-discovered)
+│   │   ├── AssetServiceProvider.php  # Asset management
+│   │   └── PluginServiceProvider.php # Plugin services
+│   └── MyAwesomePluginPlugin.php # Main plugin class
+├── resources/                   # Laravel-style resources
+│   ├── assets/                 # Vite-managed assets
+│   │   ├── app.js             # Main JavaScript file
+│   │   ├── admin.js           # Admin JavaScript
+│   │   └── app.css            # Main CSS with Tailwind
+│   └── views/                  # Blade templates
+├── vite.config.js              # Vite configuration
+├── tailwind.config.js          # Tailwind CSS configuration
+├── postcss.config.mjs          # PostCSS configuration
+├── package.json                # NPM dependencies
+└── my-awesome-plugin.php        # Main plugin file
+```
+
+#### Without Assets (`--asset=false` or default)
+For plugins that focus on backend functionality without complex frontend requirements:
+
+```
+public/content/plugins/my-awesome-plugin/
+├── app/                          # PSR-4 autoloaded application code
+│   ├── Providers/               # Service providers (auto-discovered)
+│   │   └── PluginServiceProvider.php # Plugin services only
+│   └── MyAwesomePluginPlugin.php # Main plugin class
+├── resources/                   # Laravel-style resources
+│   └── views/                  # Blade templates only
+├── config/                      # Configuration files
+│   └── plugin.php              # Plugin configuration
+└── my-awesome-plugin.php        # Main plugin file
+```
 
 ### Main Plugin Class with Attributes
 
