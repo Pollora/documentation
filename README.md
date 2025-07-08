@@ -71,7 +71,7 @@ Pollora automatically discovers and registers:
 - WordPress hooks and filters
 
 #### Modern Development Stack
-- **PHP 8.1+**: Latest PHP features and performance
+- **PHP 8.2+**: Latest PHP features and performance
 - **Laravel Components**: Illuminate packages for modern development
 - **Vite**: Fast build tool with hot module replacement
 - **Tailwind CSS**: Utility-first CSS framework
@@ -117,7 +117,7 @@ All documentation includes practical code examples that you can copy and adapt f
 
 ## Contributing
 
-We welcome contributions to both the framework and documentation! Please see our [Contributing Guide](../CONTRIBUTING.md) for details on:
+We welcome contributions to both the framework and documentation! Please see our [Contributing Guide](https://github.com/Pollora/pollora/blob/main/CONTRIBUTE.md) for details on:
 - Code standards and conventions
 - Testing requirements
 - Pull request process
@@ -125,7 +125,7 @@ We welcome contributions to both the framework and documentation! Please see our
 
 ## License
 
-The Pollora Framework is open-source software licensed under the MIT License. See the [LICENSE](../LICENSE) file for details.
+The Pollora Framework is open-source software licensed under the MIT License.
 
 ---
 
