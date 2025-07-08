@@ -14,11 +14,27 @@ To generate a new theme, run the following command:
 php artisan pollora:make-theme
 ```
 
-You'll be prompted to answer several questions to configure your theme. Optionally, you can define the theme's slug right away:
+You'll be prompted to answer several questions to configure your theme. Alternatively, you can pass the configuration as options:
 
 ```bash
-php artisan pollora:make-theme {theme-name}
+php artisan pollora:make-theme {theme-name} \
+  --theme-author="Author Name" \
+  --theme-author-uri="https://author.com" \
+  --theme-uri="https://theme.com" \
+  --theme-description="Theme description" \
+  --theme-version="1.0.0"
 ```
+
+### Command Options
+
+- `--theme-author` : Theme author name
+- `--theme-author-uri` : Theme author URI
+- `--theme-uri` : Theme URI
+- `--theme-description` : Theme description
+- `--theme-version` : Theme version
+- `--repository` : GitHub repository to download (owner/repo format)
+- `--repo-version` : Specific version/tag to download
+- `--force` : Force create theme with same name
 
 This command creates a new theme with the necessary folder structure and base files.
 

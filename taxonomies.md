@@ -1,10 +1,9 @@
 # Taxonomies
 
-Pollora offers three different ways to create custom taxonomies:
+Pollora offers two different ways to create custom taxonomies:
 
 1. **Using PHP Attributes (Recommended)** - A modern, declarative approach using PHP 8 attributes
 2. **Using the Configuration File** - Define taxonomies in the `config/taxonomies.php` file
-3. **Using the Taxonomy Class** - A fluent, object-oriented approach
 
 ## 1. Using PHP Attributes (Recommended)
 
@@ -12,32 +11,14 @@ The most elegant way to define custom taxonomies in Pollora is by using PHP 8 at
 
 ### Creating a Taxonomy with Attributes
 
-You can generate a new taxonomy class using the Artisan command:
-
-```bash
-php artisan pollora:make-taxonomy EventType
-```
-
-By default, the taxonomy will be associated with the 'post' post type. If you want to associate it with a different post type, you can use the `--post-type` option:
-
-```bash
-php artisan pollora:make-taxonomy EventType --post-type=event
-```
-
-If you need to associate the taxonomy with multiple post types, you can use the `--object-type` option with comma-separated values:
-
-```bash
-php artisan pollora:make-taxonomy EventType --object-type=post,event,product
-```
-
-This will create a new class in `app/Cms/Taxonomies/EventType.php` with the following structure:
+You can create a taxonomy class anywhere in your application. The simplest approach is to create a class with the `#[Taxonomy]` attribute:
 
 ```php
 <?php
 
 namespace App\Cms\Taxonomies;
 
-use Pollora\Taxonomy\AbstractTaxonomy;
+use Pollora\Attributes\Taxonomy;
 use Pollora\Attributes\Taxonomy\ShowTagcloud;
 use Pollora\Attributes\Taxonomy\ShowInQuickEdit;
 use Pollora\Attributes\Taxonomy\ShowAdminColumn;
@@ -50,20 +31,14 @@ use Pollora\Attributes\Taxonomy\ShowInRest;
  * This class defines the EventType custom taxonomy using PHP attributes
  * for WordPress registration.
  */
+#[Taxonomy(objectType: ['event', 'post'])]
 #[ShowTagcloud]
 #[ShowInQuickEdit]
 #[ShowAdminColumn]
 #[Hierarchical]
 #[ShowInRest]
-class EventType extends AbstractTaxonomy
+class EventType
 {
-    /**
-     * The post types this taxonomy is associated with.
-     *
-     * @var array<string>|string
-     */
-    protected array|string $objectType = ['event'];
-
     #[MetaBoxCb]
     public function customMetaBox($post, $box): void
     {
@@ -89,11 +64,47 @@ class EventType extends AbstractTaxonomy
 }
 ```
 
-> **Note:** You don't need to define the `$slug` property. If not explicitly set, the slug will be automatically generated from the class name using Laravel's `Str::kebab()` method. For example, the `EventType` class will have a slug of `event-type`.
+### The `#[Taxonomy]` Attribute
 
-> **Note:** You also don't need to define the `getName()` and `getPluralName()` methods. If not explicitly overridden, these methods will automatically generate human-readable names from the class name. For example, the `EventType` class will have a singular name of "Event Type" and a plural name of "Event Types". The `ProductCategory` class will have a singular name of "Product Category" and a plural name of "Product Categories".
+The `#[Taxonomy]` attribute is the foundation for defining custom taxonomies. It accepts optional parameters:
 
-> **Note:** You don't need to define the `getLabels()` method. If not explicitly overridden, a default set of labels will be generated based on the singular and plural names. You can still override this method if you need custom labels.
+```php
+#[Taxonomy]                                          // Auto-generated slug, singular, and plural; defaults to 'post'
+#[Taxonomy('product-type')]                          // Custom slug, auto-generated names; defaults to 'post'
+#[Taxonomy('event-category', singular: 'Event Category', plural: 'Event Categories')]  // Custom names; defaults to 'post'
+#[Taxonomy(objectType: ['post', 'page'])]           // Auto-generated names; custom object types
+#[Taxonomy('genre', singular: 'Genre', plural: 'Genres', objectType: 'book')]  // All custom
+```
+
+**Parameters:**
+- `$slug` (optional): The taxonomy slug. If not provided, automatically generated from class name using kebab-case
+- `$singular` (optional): The singular name. If not provided, automatically generated from class name
+- `$plural` (optional): The plural name. If not provided, automatically pluralized from singular name
+- `$objectType` (optional): The post types this taxonomy applies to. Can be a string or array. Defaults to `['post']`
+
+### Auto-Generation Examples
+
+When you don't specify parameters, Pollora automatically generates them from your class name:
+
+```php
+#[Taxonomy]
+class Category {}
+// Generates: slug="category", singular="Category", plural="Categories", objectType=['post']
+
+#[Taxonomy]
+class EventType {}
+// Generates: slug="event-type", singular="Event Type", plural="Event Types", objectType=['post']
+
+#[Taxonomy]
+class ProductCategory {}
+// Generates: slug="product-category", singular="Product Category", plural="Product Categories", objectType=['post']
+
+#[Taxonomy(objectType: ['book', 'review'])]
+class BookGenre {}
+// Generates: slug="book-genre", singular="Book Genre", plural="Book Genres", objectType=['book', 'review']
+```
+
+All labels (menu names, descriptions, etc.) are automatically generated based on the singular and plural names, providing a complete WordPress taxonomy configuration with minimal code.
 
 ### Available Attributes
 
@@ -365,7 +376,42 @@ Makes the taxonomy hierarchical like categories, allowing for parent/child relat
 
 ### Automatic Registration
 
-Taxonomies defined with attributes are automatically discovered and registered with WordPress. You don't need to manually register them or add them to a configuration file.
+Taxonomies defined with the `#[Taxonomy]` attribute are automatically discovered and registered with WordPress. You don't need to manually register them or add them to a configuration file.
+
+### Advanced Usage
+
+For more complex scenarios, you can add additional methods to your taxonomy classes:
+
+```php
+#[Taxonomy('book-genre', objectType: 'book')]
+#[Hierarchical]
+#[ShowInRest]
+class BookGenre
+{
+    /**
+     * Add custom arguments to the taxonomy registration.
+     * This method will be called automatically if it exists.
+     */
+    public function withArgs(): array
+    {
+        return [
+            'description' => 'A custom genre taxonomy for our book library',
+            'show_in_nav_menus' => true,
+        ];
+    }
+    
+    /**
+     * Custom method for additional functionality.
+     */
+    public function getGenreDetails(): array
+    {
+        // Your custom logic here
+        return [];
+    }
+}
+```
+
+The `withArgs()` method, if present, allows you to provide additional WordPress taxonomy arguments that will be merged with those generated from attributes.
 
 ## 2. Using the Configuration File
 
@@ -396,24 +442,4 @@ return [
 ];
 ```
 
-## 3. Using the Taxonomy Class
-
-Instead of using the configuration file, you can also use the fluent Taxonomy class. This approach is more readable and provides an object-oriented method to declaratively set taxonomies.
-
-Each method has been designed to be easy to write and understand, based on the naming conventions of WordPress parameters and the Extended CPT package. Additional methods have been introduced to enhance clarity.
-
-Here's an example:
-
-```php
-Taxonomy::make('product_cat', 'Product Category', 'Product Categories')
-    ->showInQuickEdit()
-    ->showTagcloud()
-    ->sort()
-    ->showInAdminBar();
-```
-
-In this example, we're creating a custom taxonomy with the slug 'product_cat', the singular label 'Product Category', and the plural label 'Product Categories'. Further configurations indicate that it should appear in quick edits, be part of the tag cloud, have sorting capabilities, and be visible in the admin menu bar.
-
-### Important: Use of the Service Provider
-
-It is essential that the declaration of taxonomies is not done in a **Hookable** class but rather in a **Service Provider**. The service provider is responsible for attaching the taxonomy declaration via the WordPress `init` hook. If the declaration is made in a hookable class without using a service provider, the taxonomy arguments might not be properly registered. 
+For projects that prefer configuration over attributes, you can define taxonomies in the `config/taxonomies.php` file. Please refer to the configuration documentation for details on this approach. 

@@ -1,10 +1,9 @@
 # Post Types
 
-Pollora offers three different ways to create custom post types:
+Pollora offers two different ways to create custom post types:
 
 1. **Using PHP Attributes (Recommended)** - A modern, declarative approach using PHP 8 attributes
 2. **Using the Configuration File** - Define post types in the `config/post-types.php` file
-3. **Using the PostType Class** - A fluent, object-oriented approach
 
 ## 1. Using PHP Attributes (Recommended)
 
@@ -12,20 +11,14 @@ The most elegant way to define custom post types in Pollora is by using PHP 8 at
 
 ### Creating a Post Type with Attributes
 
-You can generate a new post type class using the Artisan command:
-
-```bash
-php artisan pollora:make-posttype Event
-```
-
-This will create a new class in `app/Cms/PostTypes/Event.php` with the following structure:
+You can create a post type class anywhere in your application. The simplest approach is to create a class with the `#[PostType]` attribute:
 
 ```php
 <?php
 
 namespace App\Cms\PostTypes;
 
-use Pollora\PostType\AbstractPostType;
+use Pollora\Attributes\PostType;
 use Pollora\Attributes\PostType\PubliclyQueryable;
 use Pollora\Attributes\PostType\HasArchive;
 use Pollora\Attributes\PostType\Supports;
@@ -37,20 +30,50 @@ use Pollora\Attributes\PostType\MenuIcon;
  * This class defines the Event custom post type using PHP attributes
  * for WordPress registration.
  */
+#[PostType]
 #[PubliclyQueryable]
 #[HasArchive]
 #[Supports(['title', 'editor', 'thumbnail'])]
-#[MenuIcon('dashicons-admin-post')]
-class Event extends AbstractPostType
+#[MenuIcon('dashicons-calendar')]
+class Event
 {
 }
 ```
 
-> **Note:** You don't need to define the `$slug` property. If not explicitly set, the slug will be automatically generated from the class name using Laravel's `Str::kebab()` method. For example, the `Event` class will have a slug of `event`.
+### The `#[PostType]` Attribute
 
-> **Note:** You also don't need to define the `getName()` and `getPluralName()` methods. If not explicitly overridden, these methods will automatically generate human-readable names from the class name. For example, the `Event` class will have a singular name of "Event" and a plural name of "Events". The `EventCategory` class will have a singular name of "Event Category" and a plural name of "Event Categories".
+The `#[PostType]` attribute is the foundation for defining custom post types. It accepts optional parameters:
 
-> **Note:** You don't need to define the `getLabels()` method. If not explicitly overridden, a default set of labels will be generated based on the singular and plural names. You can still override this method if you need custom labels.
+```php
+#[PostType]                                          // Auto-generated slug, singular, and plural
+#[PostType('book')]                                  // Custom slug, auto-generated names
+#[PostType('product', singular: 'Product', plural: 'Products')]  // All custom
+```
+
+**Parameters:**
+- `$slug` (optional): The post type slug. If not provided, automatically generated from class name using kebab-case
+- `$singular` (optional): The singular name. If not provided, automatically generated from class name
+- `$plural` (optional): The plural name. If not provided, automatically pluralized from singular name
+
+### Auto-Generation Examples
+
+When you don't specify parameters, Pollora automatically generates them from your class name:
+
+```php
+#[PostType]
+class Event {}
+// Generates: slug="event", singular="Event", plural="Events"
+
+#[PostType]
+class EventCategory {}
+// Generates: slug="event-category", singular="Event Category", plural="Event Categories"
+
+#[PostType]
+class BookReview {}
+// Generates: slug="book-review", singular="Book Review", plural="Book Reviews"
+```
+
+All labels (menu names, descriptions, etc.) are automatically generated based on the singular and plural names, providing a complete WordPress post type configuration with minimal code.
 
 ### Available Attributes
 
@@ -413,10 +436,9 @@ Sets the description for the post type. This is shown in the admin UI.
 Defines a callback function that will be called when setting up meta boxes for the edit form. This attribute is applied to methods that will be used as callbacks.
 
 ```php
-class Event extends AbstractPostType
+#[PostType]
+class Event
 {
-    // ... other methods ...
-    
     #[RegisterMetaBoxCb]
     public function registerEventMetaBoxes($post): void
     {
@@ -551,28 +573,118 @@ Configures the columns displayed in the admin list table for this post type.
 
 #### `AdminCol`
 
-Defines an admin column for a post type. This attribute is applied to methods that generate the content for the column.
+Defines an admin column for a post type. This attribute is applied to methods that generate the content for the column. It supports all the features provided by the [Extended CPTs library](https://github.com/johnbillion/extended-cpts/wiki/Admin-columns).
 
 ```php
-class Event extends AbstractPostType
+#[PostType]
+class Event
 {
-    // ... other methods ...
-    
     #[AdminCol('title', 'Event Title')]
     public function formatTitle($postId): void
     {
         echo get_the_title($postId);
     }
     
-    #[AdminCol('featured_image', 'Featured Image')]
+    #[AdminCol('featured_image', 'Featured Image', width: 80)]
     public function displayImage($postId): void
     {
         echo get_the_post_thumbnail($postId, [50, 50]);
     }
+    
+    #[AdminCol('event_date', 'Event Date', sortable: true, dateFormat: 'd/m/Y')]
+    public function displayEventDate($postId): void
+    {
+        $date = get_post_meta($postId, 'event_date', true);
+        echo date('d/m/Y', strtotime($date));
+    }
+    
+    #[AdminCol('price', 'Price', sortable: 'meta_value_num', metaKey: 'event_price')]
+    public function displayPrice($postId): void
+    {
+        $price = get_post_meta($postId, 'event_price', true);
+        echo '$' . number_format($price, 2);
+    }
 }
 ```
 
-The first parameter is the column key, the second is the column title.
+**Parameters:**
+
+- `$key` (string): The column key
+- `$title` (string): The column title
+- `$sortable` (bool|string, optional): Enable sorting. Use `true` for basic sorting, or specify a field like `'meta_value_num'` for custom sorting
+- `$titleIcon` (string|null, optional): Dashicon for column header (e.g., `'dashicons-calendar'`)
+- `$dateFormat` (string|null, optional): Date format for date-based fields (e.g., `'d/m/Y'`)
+- `$link` (string|null, optional): Link behavior: `'view'`, `'edit'`, `'list'`, or `'none'`
+- `$cap` (string|null, optional): User capability required to view column
+- `$postCap` (string|null, optional): Capability required to view column content
+- `$default` (string|null, optional): Set as default sorting column (`'ASC'` or `'DESC'`)
+- `$metaKey` (string|null, optional): For meta field columns
+- `$taxonomy` (string|null, optional): For taxonomy columns
+- `$featuredImage` (string|null, optional): Featured image size (e.g., `'thumbnail'`)
+- `$postField` (string|null, optional): Standard post table field
+- `$width` (int|null, optional): Column width in pixels
+
+**Extended CPT Features:**
+
+You can also use specialized column types without custom methods:
+
+```php
+#[PostType]
+class Product
+{
+    // Meta field column with automatic sorting
+    #[AdminCol('price', 'Price', sortable: 'meta_value_num', metaKey: 'product_price')]
+    public function dummyPrice() {} // Method name doesn't matter for meta columns
+    
+    // Taxonomy column
+    #[AdminCol('categories', 'Categories', taxonomy: 'product_category')]
+    public function dummyCategories() {}
+    
+    // Featured image column
+    #[AdminCol('image', 'Image', featuredImage: 'thumbnail', width: 80)]
+    public function dummyImage() {}
+    
+    // Post field column (built-in WordPress fields)
+    #[AdminCol('author', 'Author', postField: 'post_author', link: 'edit')]
+    public function dummyAuthor() {}
+}
+```
+
+**Advanced Examples:**
+
+```php
+#[PostType]
+class Event
+{
+    // Column with custom icon and capability restriction
+    #[AdminCol(
+        'vip_status',
+        'VIP Event',
+        titleIcon: 'dashicons-star-filled',
+        cap: 'manage_options',
+        sortable: true
+    )]
+    public function displayVipStatus($postId): void
+    {
+        $isVip = get_post_meta($postId, 'is_vip_event', true);
+        echo $isVip ? '★ VIP' : 'Regular';
+    }
+    
+    // Date column with custom format and default sorting
+    #[AdminCol(
+        'start_date',
+        'Start Date',
+        dateFormat: 'M j, Y',
+        default: 'ASC',
+        sortable: true
+    )]
+    public function displayStartDate($postId): void
+    {
+        $date = get_post_meta($postId, 'event_start_date', true);
+        echo date('M j, Y', strtotime($date));
+    }
+}
+```
 
 #### `Chronological`
 
@@ -588,4 +700,43 @@ This is a convenience attribute that sets the default ordering to date, in desce
 
 ### Automatic Registration
 
-Post types defined with attributes are automatically discovered and registered with WordPress. You don't need to manually register them or add them to a configuration file. 
+Post types defined with the `#[PostType]` attribute are automatically discovered and registered with WordPress. You don't need to manually register them or add them to a configuration file.
+
+### Advanced Usage
+
+For more complex scenarios, you can add additional methods to your post type classes:
+
+```php
+#[PostType('book')]
+#[PubliclyQueryable]
+#[HasArchive]
+class Book
+{
+    /**
+     * Add custom arguments to the post type registration.
+     * This method will be called automatically if it exists.
+     */
+    public function withArgs(): array
+    {
+        return [
+            'description' => 'A custom book post type for our library',
+            'show_in_rest' => true,
+        ];
+    }
+    
+    /**
+     * Custom method for additional functionality.
+     */
+    public function getBookDetails(): array
+    {
+        // Your custom logic here
+        return [];
+    }
+}
+```
+
+The `withArgs()` method, if present, allows you to provide additional WordPress post type arguments that will be merged with those generated from attributes.
+
+## 2. Using the Configuration File
+
+For projects that prefer configuration over attributes, you can define post types in the `config/post-types.php` file. Please refer to the configuration documentation for details on this approach. 
