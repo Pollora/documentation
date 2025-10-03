@@ -22,9 +22,40 @@ $js = Asset::add('theme-script', 'js/mythemescript.js')
 
 Asset Containers allow you to group and manage assets with specific configurations:
 
-### Configuring Asset Containers
+### Root Container for Native Laravel Assets
 
-You can configure Asset Containers in your service provider or configuration file:
+The framework automatically registers a `root` container for native Laravel assets. This container is configured to work with Laravel's default asset structure and Vite configuration:
+
+```php
+// The root container is automatically registered and set as default
+// It looks for assets in the standard Laravel locations:
+// - resources/css/app.css
+// - resources/js/app.js
+```
+
+To use native Laravel assets with the root container:
+
+```php
+Asset::add('root/styles', 'resources/css/app.css')
+    ->container('root')
+    ->toBackend()
+    ->useVite();
+
+Asset::add('root/scripts', 'resources/js/app.js')
+    ->container('root')
+    ->toBackend()
+    ->useVite();
+```
+
+The root container configuration:
+- **Hot file**: `public/hot`
+- **Build directory**: `build`
+- **Manifest path**: `manifest.json`
+- **Base path**: Empty (assets are at the root level)
+
+### Configuring Custom Asset Containers
+
+You can configure additional Asset Containers in your service provider or configuration file:
 
 ```php
 app(\Pollora\Asset\AssetContainerManager::class)->addContainer('my-plugin', [
@@ -90,15 +121,28 @@ Asset::add('typekit', 'https://use.typekit.net/fdsjhizo.js')
 
 ### Default Container
 
-A default container is automatically set for the theme. If you don't specify a container, the default will be used:
+The framework automatically sets `root` as the default container for native Laravel assets. This means if you don't specify a container, the root container will be used:
 
 ```php
-Asset::add('default/script', Theme::path('assets/app.js'))
+// These two are equivalent when root is the default container
+Asset::add('app-styles', 'resources/css/app.css')
+    ->useVite()
+    ->toBackend();
+
+Asset::add('app-styles', 'resources/css/app.css')
+    ->container('root')
+    ->useVite()
+    ->toBackend();
+```
+
+For theme-specific assets, you should explicitly specify the theme container:
+
+```php
+Asset::add('theme/script', Theme::path('assets/app.js'))
+    ->container('theme')
     ->toFrontend()
     ->useVite();
 ```
-
-This will use the default theme container configuration.
 
 ### Non-Vite Assets
 
@@ -134,7 +178,7 @@ $fontUrl = Asset::url('assets/fonts/myfont.woff2');
 
 ### Using a Specific Asset Container
 
-By default, the framework uses the **active theme's asset container**. If you want to explicitly reference assets from a different container, use the `from()` method:
+By default, the framework uses the **root container** for native Laravel assets. If you want to explicitly reference assets from a different container, use the `from()` method:
 
 ```php
 use Pollora\Support\Facades\Asset;
@@ -142,8 +186,11 @@ use Pollora\Support\Facades\Asset;
 // Reference an image from the "admin" container
 $imageUrl = Asset::url('assets/images/logo.png')->from('admin');
 
-// Reference a CSS file from the "shared" container
-$cssUrl = Asset::url('assets/css/styles.css')->from('shared');
+// Reference a CSS file from the "theme" container
+$cssUrl = Asset::url('assets/css/styles.css')->from('theme');
+
+// Reference native Laravel assets from the root container
+$appCss = Asset::url('resources/css/app.css')->from('root');
 ```
 
 ### Inline Usage in Blade Templates
@@ -159,15 +206,18 @@ You can also use the `Asset` facade directly within your Blade templates for dyn
 
 ### How It Works
 
-The `Asset` facade leverages an internal `AssetFile` class that dynamically resolves the correct URL based on the specified asset path and container. The default container is set to `theme`, which corresponds to the assets of the active theme. 
+The `Asset` facade leverages an internal `AssetFile` class that dynamically resolves the correct URL based on the specified asset path and container. The default container is now set to `root`, which handles native Laravel assets. 
 
-If no container is specified, the framework falls back to the default container automatically.
+If no container is specified, the framework falls back to the default container automatically. This means native Laravel assets can be referenced without specifying a container.
 
 ### Examples
 
 ```php
-// Using the default "theme" container
-$imageUrl = Asset::url('assets/images/theme-logo.png');
+// Using the default root container for Laravel assets
+$appStyles = Asset::url('resources/css/app.css');
+
+// Using a specific container for theme assets
+$themeImage = Asset::url('assets/images/logo.png')->from('theme');
 
 // Switching to another container
 $sharedCss = Asset::url('assets/css/shared-styles.css')->from('shared');
