@@ -19,7 +19,7 @@ The logging system follows a strict DDD architecture with clear separation of co
 
 #### Contracts
 - **`WordPressErrorLoggerInterface`**: Defines the contract for logging WordPress errors
-- **`WordPressHookRegistrarInterface`**: Defines the contract for registering WordPress hooks
+- **`WordPressErrorHookRegistrarInterface`**: Defines the contract for registering WordPress hooks
 
 #### Models
 - **`WordPressError`**: Domain entity representing a WordPress error with contextual information
@@ -39,7 +39,7 @@ The logging system follows a strict DDD architecture with clear separation of co
 - **`LaravelWordPressErrorLogger`**: Adapts domain logging interface to Laravel's logging system
 
 #### Services
-- **`WordPressHookRegistrar`**: Registers WordPress hooks and filters using the container pattern
+- **`WordPressErrorHookRegistrar`**: Registers WordPress hooks and filters using the container pattern
 
 #### Providers
 - **`LoggingServiceProvider`**: Configures dependency injection and initializes the logging system
@@ -255,12 +255,12 @@ $this->app->bind(
 
 ### Custom Hook Registration
 
-Implement custom hook registration by implementing `WordPressHookRegistrarInterface`:
+Implement custom hook registration by implementing `WordPressErrorHookRegistrarInterface`:
 
 ```php
-use Pollora\Logging\Domain\Contracts\WordPressHookRegistrarInterface;
+use Pollora\Logging\Domain\Contracts\WordPressErrorHookRegistrarInterface;
 
-class CustomWordPressHookRegistrar implements WordPressHookRegistrarInterface
+class CustomWordPressErrorHookRegistrar implements WordPressErrorHookRegistrarInterface
 {
     public function registerErrorHandlers(): void
     {
