@@ -234,6 +234,21 @@ Makes the taxonomy exclusive, meaning a post can only have one term from this ta
 #[Exclusive(false)]
 ```
 
+#### `Priority`
+
+Sets the priority for the taxonomy registration during WordPress initialization. Lower numbers execute earlier.
+
+```php
+#[Priority(10)]  // Registers later
+#[Priority(5)]   // Default priority
+#[Priority(1)]   // Registers early
+```
+
+**Parameters:**
+- `$priority` (int): The registration priority (default: 5)
+
+This determines when the taxonomy is registered during WordPress initialization. Use lower priorities for foundation taxonomies that other taxonomies depend on, and higher priorities for extended taxonomies.
+
 #### `AllowHierarchy`
 
 Allows hierarchy in the taxonomy's rewrite rules.

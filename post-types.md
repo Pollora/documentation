@@ -686,6 +686,21 @@ class Event
 }
 ```
 
+#### `Priority`
+
+Sets the priority for the post type registration during WordPress initialization. Lower numbers execute earlier.
+
+```php
+#[Priority(10)]  // Registers later
+#[Priority(5)]   // Default priority
+#[Priority(1)]   // Registers early
+```
+
+**Parameters:**
+- `$priority` (int): The registration priority (default: 5)
+
+This determines when the post type is registered during WordPress initialization. Use lower priorities for foundation types that other types depend on, and higher priorities for extended types.
+
 #### `Chronological`
 
 Sets the post type to be displayed in chronological order (newest first) in admin lists and queries.
