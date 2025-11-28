@@ -809,9 +809,6 @@ Generate new command classes using Artisan:
 # Generate simple command (auto slug: test-command)
 php artisan pollora:make-wp-cli TestCommand --description="Test command"
 
-# Generate command with subcommands  
-php artisan pollora:make-wp-cli UserCommand --subcommands --description="User management"
-
 # Generate in specific locations
 php artisan pollora:make-wp-cli ThemeCommand --theme=mytheme --description="Theme utilities"
 php artisan pollora:make-wp-cli PluginCommand --plugin=myplugin --description="Plugin tools"
@@ -820,7 +817,6 @@ php artisan pollora:make-wp-cli PluginCommand --plugin=myplugin --description="P
 ### Generator Options
 
 - `--description, -d`: Command description (required)
-- `--subcommands, -s`: Generate with subcommands template
 - `--force, -f`: Overwrite existing files
 - `--theme`: Generate in specific theme
 - `--plugin`: Generate in specific plugin
