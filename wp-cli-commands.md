@@ -171,52 +171,7 @@ class UserManagementCommand
 }
 ```
 
-**Option 2: Using #[Command] for custom naming**
-```php
-<?php
-
-namespace App\Commands;
-
-use Pollora\Attributes\WpCli;
-use Pollora\Attributes\WpCli\Command;
-use WP_CLI;
-
-#[WpCli]
-/**
- * User management commands
- */
-class UserManagementCommand
-{
-    #[Command('create')]  // Custom name: 'create' instead of 'create-user'
-    /**
-     * Create a new user
-     */
-    public function createUser(array $arguments, array $options): void
-    {
-        // Implementation...
-    }
-    
-    #[Command('remove')]  // Custom name: 'remove' instead of 'delete'
-    /**
-     * Delete a user
-     */
-    public function delete(array $arguments, array $options): void
-    {
-        // Implementation...
-    }
-    
-    #[Command('list')]    // Custom name: 'list' instead of 'list-users'
-    /**
-     * List users
-     */
-    public function listUsers(array $arguments, array $options): void
-    {
-        // Implementation...
-    }
-}
-```
-
-**Option 3: Private methods with #[Command] (explicit control)**
+**Option 2: Private methods with #[Command] (explicit control)**
 ```php
 <?php
 
@@ -265,7 +220,7 @@ wp user-management create-user john john@example.com
 wp user-management delete 123
 wp user-management list-users
 
-# Option 2 & 3: Custom command names
+# Option 2 : Custom command names
 wp user-management create john john@example.com
 wp user-management remove 123
 wp user-management list
@@ -282,7 +237,7 @@ use Pollora\Attributes\WpCli;
 use WP_CLI;
 
 // Auto-generated slug: user-create-command → user-create
-#[WpCli('Create a new user')]
+#[WpCli]
 class UserCreateCommand {
     public function __invoke(array $arguments, array $options): void
     {
@@ -344,15 +299,24 @@ You can override auto-generation by providing custom slugs:
 
 ```php
 // Custom command slug
-#[WpCli('User management commands', 'users')]
+#[WpCli('users')]
+/**
+ * User management commands
+ */
 class UserManagementCommand
 {
     // Custom subcommand slug
-    #[Command('Create a new user', 'new')]
+    #[Command('new')]
+    /**
+     * Create a new user
+     */
     private function createUser(): void { /* wp users new */ }
     
     // Auto-generated subcommand slug: delete-user
-    #[Command('Delete a user')]
+    #[Command]
+    /**
+     * Delete a user
+     */
     private function deleteUser(): void { /* wp users delete-user */ }
 }
 ```
@@ -362,19 +326,22 @@ class UserManagementCommand
 **Important**: When creating command suites with subcommands, declare your `#[Command]` methods as `private` to ensure only the explicitly defined subcommands are exposed:
 
 ```php
-#[WpCli('Hello command suite', 'hello')]
+#[WpCli('hello')]
+/**
+ * Hello command suite
+ */
 class HelloWorldCommand
 {
     // These methods are private, so they won't be auto-exposed by WP CLI
     // Only explicitly registered through #[Command] attributes
     
-    #[Command('Say hello to the world', 'world')]
+    #[Command('world')]
     private function showWorld(array $arguments, array $options): void
     {
         WP_CLI::success('Hello, World!');
     }
 
-    #[Command('Say hello to a user')]
+    #[Command]
     private function user(array $arguments, array $options): void
     {
         $name = $arguments[0] ?? 'there';
@@ -384,7 +351,7 @@ class HelloWorldCommand
 ```
 
 **Why use private methods?**
-- `wp help hello` shows the main command description "Hello command suite"
+- `wp help hello` shows the main command description from PHPDoc
 - Only the subcommands you explicitly define with `#[Command]` are registered
 - No unwanted method exposure (like `show-world` from method name `showWorld`)
 - Clean command structure with proper aliases (`world` instead of `show-world`)
@@ -470,31 +437,31 @@ class HelloWorldCommand
 #### Main Command Attribute
 
 ```php
-#[WpCli(description: string, ?commandName: string)]
+#[WpCli(?string $commandName = null)]
 ```
 
-- **`description`** (required): The command description shown in help
 - **`commandName`** (optional): Custom slug. If null, generated from class name
+- **Description**: Extracted from PHPDoc comment
 
 **Examples:**
 ```php
-#[WpCli('User management commands')]                    // Auto: user-management
-#[WpCli('Cache management commands', 'cache')]          // Custom: cache
+#[WpCli]                    // Auto: user-management (from UserManagementCommand)
+#[WpCli('cache')]          // Custom: cache
 ```
 
 #### Subcommand Attribute
 
 ```php
-#[Command(description: string, ?commandName: string)]
+#[Command(?string $commandName = null)]
 ```
 
-- **`description`** (required): The subcommand description shown in help
 - **`commandName`** (optional): Custom slug. If null, generated from method name
+- **Description**: Extracted from method PHPDoc comment
 
 **Examples:**
 ```php
-#[Command('Create a new user')]                         // Auto: create-user (from createUser method)
-#[Command('Delete a user', 'remove')]                   // Custom: remove
+#[Command]                         // Auto: create-user (from createUser method)
+#[Command('remove')]                   // Custom: remove
 ```
 
 ## WP CLI Attribute Configuration
@@ -742,12 +709,18 @@ For command suites with subcommands, attributes can also be applied to individua
 
 ```php
 #[WpCli('user')]
+/**
+ * User management commands
+ */
 class UserCommand
 {
     #[Command('create')]
     #[Synopsis('<username> <email> [--role=<role>]')]
     #[BeforeInvoke([self::class, 'validateUserData'])]
     #[AfterInvoke([self::class, 'logUserCreation'])]
+    /**
+     * Create a new user
+     */
     private function createUser(array $arguments, array $options): void
     {
         // Subcommand implementation
@@ -756,6 +729,9 @@ class UserCommand
     #[Command('delete')]
     #[Synopsis('<user_id> [--reassign=<user_id>]')]
     #[BeforeInvoke([self::class, 'confirmDeletion'])]
+    /**
+     * Delete a user
+     */
     private function deleteUser(array $arguments, array $options): void
     {
         // Subcommand implementation
@@ -780,11 +756,17 @@ Method-level attributes override class-level attributes:
 #[WpCli('base')]
 #[When('before_wp_load')]           // Class-level: before_wp_load
 #[BeforeInvoke([self::class, 'classCallback'])]
+/**
+ * Base command
+ */
 class MyCommand
 {
     #[Command('sub')]
     #[When('after_wp_load')]        // Method override: after_wp_load
     #[BeforeInvoke([self::class, 'methodCallback'])]  // Method override
+    /**
+     * Sub command
+     */
     private function subCommand(): void
     {
         // This method uses:
@@ -849,7 +831,10 @@ php artisan pollora:make-wp-cli PluginCommand --plugin=myplugin --description="P
 
 **Simple Command:**
 ```php
-#[WpCli('Test command description')]
+#[WpCli]
+/**
+ * Test command description
+ */
 class TestCommand
 {
     public function __invoke(array $arguments, array $options): void
@@ -861,16 +846,28 @@ class TestCommand
 
 **Subcommands Template:**
 ```php
-#[WpCli('User management commands')]
+#[WpCli]
+/**
+ * User management commands
+ */
 class UserCommand
 {
-    #[Command('Create a new item')]
+    #[Command]
+    /**
+     * Create a new item
+     */
     public function create(array $arguments, array $options): void { ... }
     
-    #[Command('List all items')]  
+    #[Command]
+    /**
+     * List all items
+     */  
     public function list(array $arguments, array $options): void { ... }
     
-    #[Command('Delete an item')]
+    #[Command]
+    /**
+     * Delete an item
+     */
     public function delete(array $arguments, array $options): void { ... }
 }
 ```
@@ -923,7 +920,10 @@ use Pollora\Attributes\WpCli;
 use WP_CLI;
 
 // Auto-generated slug: database-cleanup
-#[WpCli('Clean up database by removing spam and trash')]
+#[WpCli]
+/**
+ * Clean up database by removing spam and trash
+ */
 class DatabaseCleanupCommand {
     public function __invoke(array $arguments, array $options): void
     {
@@ -987,7 +987,10 @@ use Pollora\Attributes\WpCli;
 use WP_CLI;
 
 // Auto-generated slug: content-import
-#[WpCli('Import content from JSON file')]
+#[WpCli]
+/**
+ * Import content from JSON file
+ */
 class ContentImportCommand {
     public function __invoke(array $arguments, array $options): void
     {
@@ -1047,11 +1050,17 @@ use Pollora\Attributes\WpCli\Command;
 use WP_CLI;
 
 // Auto-generated slug: cache-management
-#[WpCli('Cache management commands')]
+#[WpCli]
+/**
+ * Cache management commands
+ */
 class CacheManagementCommand {
     
     // Auto-generated slug: clear-cache → wp cache-management clear-cache
-    #[Command('Clear various types of cache')]
+    #[Command]
+    /**
+     * Clear various types of cache
+     */
     public function clearCache(array $arguments, array $options): void
     {
         $type = $arguments[0] ?? 'all';
@@ -1066,14 +1075,20 @@ class CacheManagementCommand {
     }
     
     // Auto-generated slug: flush-object-cache → wp cache-management flush-object-cache
-    #[Command('Flush object cache only')]
+    #[Command]
+    /**
+     * Flush object cache only
+     */
     public function flushObjectCache(array $arguments, array $options): void
     {
         $this->clearObjectCache();
     }
     
     // Auto-generated slug: warmup → wp cache-management warmup
-    #[Command('Warm up cache with common queries')]
+    #[Command]
+    /**
+     * Warm up cache with common queries
+     */
     public function warmup(array $arguments, array $options): void
     {
         // Warm up common queries
@@ -1138,19 +1153,31 @@ use Pollora\Attributes\WpCli\Command;
 use WP_CLI;
 
 // Custom command slug
-#[WpCli('Development utilities', 'dev')]
+#[WpCli('dev')]
+/**
+ * Development utilities
+ */
 class DevelopmentUtilitiesCommand {
     
     // Auto-generated: clear-logs → wp dev clear-logs
-    #[Command('Clear application logs')]
+    #[Command]
+    /**
+     * Clear application logs
+     */
     public function clearLogs(): void { ... }
     
     // Custom slug → wp dev reset
-    #[Command('Reset development environment', 'reset')]
+    #[Command('reset')]
+    /**
+     * Reset development environment
+     */
     public function resetEnvironment(): void { ... }
     
     // Auto-generated: generate-test-data → wp dev generate-test-data
-    #[Command('Generate test data')]
+    #[Command]
+    /**
+     * Generate test data
+     */
     public function generateTestData(): void { ... }
 }
 ```
@@ -1222,11 +1249,11 @@ class UserCommand {
 
 ```php
 // Leverage auto-generation
-#[WpCli('User management commands')]           // ✅ Auto: user-management
+#[WpCli]           // ✅ Auto: user-management (from UserManagementCommand)
 class UserManagementCommand { ... }
 
 // Use custom slug when needed  
-#[WpCli('Development tools', 'dev')]           // ✅ Custom: dev (shorter)
+#[WpCli('dev')]           // ✅ Custom: dev (shorter)
 class DevelopmentToolsCommand { ... }
 ```
 
@@ -1313,10 +1340,14 @@ public function __invoke(array $arguments, array $options): void
 
 ### 7. Documentation
 
-Always provide clear descriptions in the attribute:
+Always provide clear descriptions in the PHPDoc comment:
 
 ```php
-#[WpCli('Performs complex data migration with validation and rollback support')]
+#[WpCli]
+/**
+ * Performs complex data migration with validation and rollback support
+ */
+class DataMigrationCommand { ... }
 ```
 
 ### 8. Service Injection
@@ -1354,7 +1385,10 @@ use Pollora\Attributes\WpCli;
 use WP_CLI;
 
 // Auto-generated slug: newsletter-sender
-#[WpCli('Send newsletter to subscribers')]
+#[WpCli]
+/**
+ * Send newsletter to subscribers
+ */
 class NewsletterSenderCommand {
     public function __invoke(array $arguments, array $options): void
     {
