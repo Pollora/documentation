@@ -87,13 +87,18 @@ class MyCommand
 
 #### Command Suite with Subcommands
 
+WP-CLI automatically registers all **public methods** as subcommands. The `#[Command]` attribute is **optional** and mainly useful for:
+- Custom subcommand names (different from method names)
+- Adding attributes to private/protected methods
+- Better organization and explicit declaration
+
+**Option 1: Public methods (automatic registration)**
 ```php
 <?php
 
 namespace App\Commands;
 
 use Pollora\Attributes\WpCli;
-use Pollora\Attributes\WpCli\Command;
 use WP_CLI;
 
 #[WpCli]
@@ -102,7 +107,6 @@ use WP_CLI;
  */
 class UserManagementCommand
 {
-    #[Command]
     /**
      * Create a new user
      *
@@ -118,7 +122,7 @@ class UserManagementCommand
      *
      *     wp user-management create-user john john@example.com
      */
-    private function createUser(array $arguments, array $options): void
+    public function createUser(array $arguments, array $options): void
     {
         $username = $arguments[0] ?? null;
         $email = $arguments[1] ?? null;
@@ -132,7 +136,6 @@ class UserManagementCommand
         WP_CLI::success("User '{$username}' created with ID {$userId}");
     }
     
-    #[Command]
     /**
      * Delete a user
      *
@@ -141,7 +144,7 @@ class UserManagementCommand
      * <user_id>
      * : The ID of the user to delete
      */
-    private function delete(array $arguments, array $options): void
+    public function delete(array $arguments, array $options): void
     {
         $userId = $arguments[0] ?? null;
         
@@ -154,11 +157,10 @@ class UserManagementCommand
         WP_CLI::success("User with ID {$userId} deleted.");
     }
     
-    #[Command]
     /**
      * List users
      */
-    private function listUsers(array $arguments, array $options): void
+    public function listUsers(array $arguments, array $options): void
     {
         $users = get_users(['number' => 10]);
         
@@ -169,12 +171,104 @@ class UserManagementCommand
 }
 ```
 
-**Usage:**
+**Option 2: Using #[Command] for custom naming**
+```php
+<?php
+
+namespace App\Commands;
+
+use Pollora\Attributes\WpCli;
+use Pollora\Attributes\WpCli\Command;
+use WP_CLI;
+
+#[WpCli]
+/**
+ * User management commands
+ */
+class UserManagementCommand
+{
+    #[Command('create')]  // Custom name: 'create' instead of 'create-user'
+    /**
+     * Create a new user
+     */
+    public function createUser(array $arguments, array $options): void
+    {
+        // Implementation...
+    }
+    
+    #[Command('remove')]  // Custom name: 'remove' instead of 'delete'
+    /**
+     * Delete a user
+     */
+    public function delete(array $arguments, array $options): void
+    {
+        // Implementation...
+    }
+    
+    #[Command('list')]    // Custom name: 'list' instead of 'list-users'
+    /**
+     * List users
+     */
+    public function listUsers(array $arguments, array $options): void
+    {
+        // Implementation...
+    }
+}
+```
+
+**Option 3: Private methods with #[Command] (explicit control)**
+```php
+<?php
+
+namespace App\Commands;
+
+use Pollora\Attributes\WpCli;
+use Pollora\Attributes\WpCli\Command;
+use WP_CLI;
+
+#[WpCli]
+/**
+ * User management commands
+ */
+class UserManagementCommand
+{
+    #[Command('create')]
+    /**
+     * Create a new user
+     */
+    private function createUser(array $arguments, array $options): void
+    {
+        // Only this method is registered, not auto-discovered
+    }
+    
+    #[Command('delete')]
+    /**
+     * Delete a user
+     */
+    private function deleteUser(array $arguments, array $options): void
+    {
+        // Explicit registration required
+    }
+    
+    // This method is NOT registered (private without #[Command])
+    private function helperMethod(): void
+    {
+        // Internal helper, not exposed as subcommand
+    }
+}
+```
+
+**Usage (all options produce similar results):**
 ```bash
-wp help user-management                               # Shows main command description
-wp user-management create-user john john@example.com # Create user
-wp user-management delete 123                        # Delete user  
-wp user-management list-users                        # List users
+# Option 1: Auto-generated names from method names
+wp user-management create-user john john@example.com
+wp user-management delete 123
+wp user-management list-users
+
+# Option 2 & 3: Custom command names
+wp user-management create john john@example.com
+wp user-management remove 123
+wp user-management list
 ```
 
 ### Working with Arguments and Options
@@ -1079,7 +1173,47 @@ class UserManagementCommand    // → user-management
 }
 ```
 
-### 2. Slug Generation Guidelines
+### 2. When to Use #[Command] Attribute
+
+The `#[Command]` attribute is **optional** for subcommands. Use it when you need:
+
+**✅ When to use `#[Command]`:**
+- Custom subcommand names different from method names
+- Adding WP-CLI attributes (Synopsis, BeforeInvoke, etc.) to private/protected methods
+- Explicit control over which methods are exposed as subcommands
+- Better code organization with descriptive method names
+
+**❌ When NOT to use `#[Command]`:**
+- Public methods with good auto-generated names (WP-CLI handles them automatically)
+- Simple command structures where method names already match desired command names
+
+```php
+// ✅ Good: Use #[Command] for custom naming
+class UserCommand {
+    #[Command('create')]        // Short name instead of 'show-users'
+    public function showUsers() { ... }
+    
+    #[Command('remove')]        // Better name than 'delete'
+    public function delete() { ... }
+}
+
+// ✅ Also Good: Let WP-CLI auto-register public methods
+class UserCommand {
+    public function create() { ... }     // Auto: wp user create
+    public function delete() { ... }     // Auto: wp user delete  
+    public function listUsers() { ... }  // Auto: wp user list-users
+}
+
+// ✅ Best: Private methods with explicit control
+class UserCommand {
+    #[Command('create')]
+    private function createUser() { ... }    // Only this is registered
+    
+    private function helperMethod() { ... }  // Not exposed (no #[Command])
+}
+```
+
+### 3. Slug Generation Guidelines
 
 - **Let auto-generation work**: Use descriptive class and method names
 - **Use custom slugs sparingly**: Only when auto-generation doesn't fit
