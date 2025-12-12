@@ -428,6 +428,206 @@ class BookGenre
 
 The `withArgs()` method, if present, allows you to provide additional WordPress taxonomy arguments that will be merged with those generated from attributes.
 
+### The `configuring()` Lifecycle Hook
+
+The `configuring()` method provides a powerful way to programmatically configure your taxonomy before registration. This method receives an Entity Taxonomy instance that gives you access to the full Entity API for dynamic configuration.
+
+```php
+#[Taxonomy('product-category', objectType: ['product'])]
+#[Hierarchical]
+#[ShowInRest]
+class ProductCategory
+{
+    /**
+     * Configure the taxonomy before registration.
+     * This method is called automatically during discovery.
+     */
+    public function configuring(\Pollora\Entity\Domain\Model\Taxonomy $taxonomy): void
+    {
+        // Set custom labels
+        $taxonomy->labels([
+            'name' => 'Product Categories',
+            'singular_name' => 'Product Category',
+            'add_new_item' => 'Add New Category',
+            'edit_item' => 'Edit Category',
+            'all_items' => 'All Product Categories',
+        ]);
+        
+        // Configure rewrite rules
+        $taxonomy->rewrite([
+            'slug' => 'shop/categories',
+            'with_front' => false,
+            'hierarchical' => true,
+        ]);
+        
+        // REST API configuration
+        $taxonomy->showInRest(true);
+        $taxonomy->restBase('product-categories');
+        
+        // Set custom capabilities
+        $taxonomy->capabilityType('manage_categories');
+        
+        // Configure meta box behavior
+        $taxonomy->showInQuickEdit(true);
+        $taxonomy->showAdminColumn(true);
+    }
+}
+```
+
+**Key Features:**
+
+- **Entity API Access**: The `configuring()` method receives a full Entity Taxonomy instance, giving you access to all Entity methods like `labels()`, `rewrite()`, `showInRest()`, etc.
+- **Priority Over Attributes**: Configurations made in `configuring()` take priority over attribute configurations. However, attributes still provide missing values.
+- **Smart Merging**: Labels are intelligently merged - your custom labels are used as the base, with missing labels automatically filled from attribute configurations.
+
+**Available Entity Methods:**
+
+The Entity Taxonomy instance provides methods for all WordPress taxonomy arguments:
+
+```php
+public function configuring(\Pollora\Entity\Domain\Model\Taxonomy $taxonomy): void
+{
+    // Labels and descriptions
+    $taxonomy->label('Custom Label');
+    $taxonomy->labels(['name' => 'Categories', 'singular_name' => 'Category']);
+    $taxonomy->description('A custom category taxonomy');
+    
+    // Visibility and UI
+    $taxonomy->public(true);
+    $taxonomy->publiclyQueryable(true);
+    $taxonomy->showUi(true);
+    $taxonomy->showInMenu(true);
+    $taxonomy->showInNavMenus(true);
+    $taxonomy->showInAdminBar(true);
+    
+    // Hierarchy and structure
+    $taxonomy->hierarchical(true);
+    $taxonomy->sort(false);
+    
+    // Admin interface
+    $taxonomy->showAdminColumn(true);
+    $taxonomy->showInQuickEdit(true);
+    $taxonomy->showTagcloud(true);
+    
+    // REST API
+    $taxonomy->showInRest(true);
+    $taxonomy->restBase('categories');
+    $taxonomy->restNamespace('wp/v2');
+    $taxonomy->restControllerClass('WP_REST_Terms_Controller');
+    
+    // URL rewriting
+    $taxonomy->rewrite([
+        'slug' => 'categories',
+        'with_front' => false,
+        'hierarchical' => true
+    ]);
+    $taxonomy->queryVar(true);
+    
+    // Advanced features
+    $taxonomy->updateCountCallback([$this, 'updateTermCount']);
+    $taxonomy->metaBoxCb([$this, 'renderMetaBox']);
+}
+```
+
+**Taxonomy-Specific Methods:**
+
+```php
+public function configuring(\Pollora\Entity\Domain\Model\Taxonomy $taxonomy): void
+{
+    // Object type association
+    $taxonomy->objectType(['post', 'page', 'product']);
+    
+    // Default term
+    $taxonomy->defaultTerm([
+        'name' => 'Uncategorized',
+        'slug' => 'uncategorized',
+        'description' => 'Default category'
+    ]);
+    
+    // Query arguments
+    $taxonomy->args(['orderby' => 'name', 'order' => 'ASC']);
+    
+    // Meta box behavior
+    $taxonomy->checkedOntop(true);
+    $taxonomy->exclusive(false); // Allow multiple terms
+    
+    // Callback functions
+    $taxonomy->metaBoxCb([$this, 'customMetaBox']);
+    $taxonomy->metaBoxSanitizeCb([$this, 'sanitizeCallback']);
+    $taxonomy->updateCountCallback([$this, 'updateCount']);
+}
+```
+
+**Use Cases:**
+
+1. **Dynamic Labels**: Configure labels based on user locale or site settings
+2. **Conditional Object Types**: Associate with different post types based on site configuration
+3. **Complex Rewrite Rules**: Set up sophisticated URL structures
+4. **Integration Setup**: Configure REST API endpoints or custom capabilities
+5. **Custom Meta Boxes**: Set up specialized admin interfaces
+6. **Multi-language Support**: Configure taxonomy behavior for different languages
+
+**Advanced Example:**
+
+```php
+#[Taxonomy('event-category', objectType: ['event'])]
+#[Hierarchical]
+class EventCategory
+{
+    public function configuring(\Pollora\Entity\Domain\Model\Taxonomy $taxonomy): void
+    {
+        // Dynamic labels based on site language
+        $locale = get_locale();
+        if ($locale === 'fr_FR') {
+            $taxonomy->labels([
+                'name' => 'Catégories d\'événements',
+                'singular_name' => 'Catégorie d\'événement',
+                'add_new_item' => 'Ajouter une nouvelle catégorie',
+            ]);
+        } else {
+            $taxonomy->labels([
+                'name' => 'Event Categories',
+                'singular_name' => 'Event Category',
+                'add_new_item' => 'Add New Category',
+            ]);
+        }
+        
+        // Conditional object types based on site features
+        $objectTypes = ['event'];
+        if (class_exists('WooCommerce')) {
+            $objectTypes[] = 'product';
+        }
+        $taxonomy->objectType($objectTypes);
+        
+        // Custom rewrite structure
+        $taxonomy->rewrite([
+            'slug' => 'events/category',
+            'with_front' => false,
+            'hierarchical' => true,
+        ]);
+        
+        // Custom meta box with color picker
+        $taxonomy->metaBoxCb([$this, 'colorPickerMetaBox']);
+    }
+    
+    public function colorPickerMetaBox($post, $box): void
+    {
+        // Custom meta box with category color selection
+        echo '<div class="category-color-picker">';
+        // ... color picker implementation ...
+        echo '</div>';
+    }
+}
+```
+
+**Best Practices:**
+
+- Use attributes for static configuration and `configuring()` for dynamic behavior
+- Leverage the smart merging - define base labels in `configuring()` and let attributes fill gaps
+- Keep the method focused on configuration logic, avoid business logic
+- Use type hints for better IDE support: `\Pollora\Entity\Domain\Model\Taxonomy $taxonomy`
+- Consider caching for expensive dynamic configurations
+
 ## 2. Using the Configuration File
 
 The `config/taxonomies.php` file allows you to create your own custom taxonomies.

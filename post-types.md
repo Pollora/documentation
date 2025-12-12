@@ -752,6 +752,119 @@ class Book
 
 The `withArgs()` method, if present, allows you to provide additional WordPress post type arguments that will be merged with those generated from attributes.
 
+### The `configuring()` Lifecycle Hook
+
+The `configuring()` method provides a powerful way to programmatically configure your post type before registration. This method receives an Entity PostType instance that gives you access to the full Entity API for dynamic configuration.
+
+```php
+#[PostType('book')]
+#[PubliclyQueryable]
+#[HasArchive]
+class Book
+{
+    /**
+     * Configure the post type before registration.
+     * This method is called automatically during discovery.
+     */
+    public function configuring(\Pollora\Entity\Domain\Model\PostType $postType): void
+    {
+        // Set custom labels
+        $postType->labels([
+            'name' => 'Library Books',
+            'singular_name' => 'Library Book',
+            'add_new_item' => 'Add New Book to Library',
+            'edit_item' => 'Edit Library Book',
+        ]);
+        
+        // Configure supports
+        $postType->supports(['title', 'editor', 'thumbnail', 'custom-fields']);
+        
+        // Set custom capabilities
+        $postType->capabilityType('book');
+        
+        // Configure REST API
+        $postType->showInRest(true);
+        $postType->restBase('library-books');
+        
+        // Set custom rewrite rules
+        $postType->rewrite([
+            'slug' => 'library/books',
+            'with_front' => false,
+        ]);
+    }
+}
+```
+
+**Key Features:**
+
+- **Entity API Access**: The `configuring()` method receives a full Entity PostType instance, giving you access to all Entity methods like `labels()`, `supports()`, `capabilityType()`, etc.
+- **Priority Over Attributes**: Configurations made in `configuring()` take priority over attribute configurations. However, attributes still provide missing values.
+- **Smart Merging**: Labels are intelligently merged - your custom labels are used as the base, with missing labels automatically filled from attribute configurations.
+
+**Available Entity Methods:**
+
+The Entity PostType instance provides methods for all WordPress post type arguments:
+
+```php
+public function configuring(\Pollora\Entity\Domain\Model\PostType $postType): void
+{
+    // Labels and descriptions
+    $postType->label('Custom Label');
+    $postType->labels(['name' => 'Books', 'singular_name' => 'Book']);
+    $postType->description('A custom book post type');
+    
+    // Visibility and UI
+    $postType->public(true);
+    $postType->publiclyQueryable(true);
+    $postType->showUi(true);
+    $postType->showInMenu(true);
+    $postType->showInNavMenus(true);
+    $postType->showInAdminBar(true);
+    
+    // Features and capabilities
+    $postType->supports(['title', 'editor', 'thumbnail']);
+    $postType->capabilityType('post');
+    $postType->mapMetaCap(true);
+    
+    // Archive and hierarchical
+    $postType->hasArchive(true);
+    $postType->hierarchical(false);
+    
+    // REST API
+    $postType->showInRest(true);
+    $postType->restBase('books');
+    $postType->restNamespace('wp/v2');
+    
+    // URL rewriting
+    $postType->rewrite(['slug' => 'books', 'with_front' => false]);
+    $postType->queryVar(true);
+    
+    // Menu configuration
+    $postType->menuPosition(5);
+    $postType->menuIcon('dashicons-book');
+    
+    // Search and export
+    $postType->excludeFromSearch(false);
+    $postType->canExport(true);
+    $postType->deleteWithUser(false);
+}
+```
+
+**Use Cases:**
+
+1. **Dynamic Labels**: Configure labels based on user locale or site settings
+2. **Conditional Features**: Enable/disable features based on site configuration
+3. **Complex Rewrite Rules**: Set up sophisticated URL structures
+4. **Integration Setup**: Configure REST API endpoints or custom capabilities
+5. **Theme-Specific Configuration**: Adjust post type behavior based on active theme
+
+**Best Practices:**
+
+- Use attributes for static configuration and `configuring()` for dynamic behavior
+- Leverage the smart merging - define base labels in `configuring()` and let attributes fill gaps
+- Keep the method focused on configuration logic, avoid business logic
+- Use type hints for better IDE support: `\Pollora\Entity\Domain\Model\PostType $postType`
+
 ## 2. Using the Configuration File
 
 For projects that prefer configuration over attributes, you can define post types in the `config/post-types.php` file. Please refer to the configuration documentation for details on this approach. 
