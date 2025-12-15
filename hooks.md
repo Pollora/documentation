@@ -40,9 +40,8 @@ To define an action hook, use the `Action` attribute from the `Pollora\Attribute
 namespace App\Cms\Hooks;
 
 use Pollora\Attributes\Action;
-use Pollora\Hook\Domain\Contracts\Hooks;
 
-class MyActionClass implements Hooks
+class MyActionClass
 {
     #[Action('init', priority: 20)]
     public function handleInit(): void
@@ -73,9 +72,8 @@ To define a filter hook, use the `Filter` attribute from the `Pollora\Attributes
 namespace App\Cms\Hooks;
 
 use Pollora\Attributes\Filter;
-use Pollora\Hook\Domain\Contracts\Hooks;
 
-class MyFilterClass implements Hooks
+class MyFilterClass
 {
     #[Filter('the_content', priority: 10)]
     public function handleTheContent(string $content): string
@@ -85,7 +83,7 @@ class MyFilterClass implements Hooks
 }
 ```
 
-All classes inside the `app/Cms/Hooks` folder and implementing `Hooks` are automatically resolved when instantiated by Laravel.
+All classes inside the `app/Cms/Hooks` folder with hook attributes are automatically discovered and registered.
 
 ## Action and Filter facades
 

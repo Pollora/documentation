@@ -9,7 +9,7 @@ To schedule a recurring task, simply add the `Schedule` attribute to your method
 ```php
 use Pollora\Attributes\Schedule;
 
-class Maintenance implements Attributable
+class Maintenance
 {
     #[Schedule('daily')]
     public function cleanupDatabase(): void
@@ -28,7 +28,7 @@ The framework provides an `Every` enum for type-safe scheduling with predefined 
 use Pollora\Attributes\Schedule;
 use Pollora\Schedule\Every;
 
-class Maintenance implements Attributable
+class Maintenance
 {
     #[Schedule(Every::HOUR)]
     public function pingSlack(): void
@@ -88,7 +88,7 @@ For precise timing control, use the `Interval` class which provides a fluent API
 use Pollora\Attributes\Schedule;
 use Pollora\Schedule\Interval;
 
-class Maintenance implements Attributable
+class Maintenance
 {
     #[Schedule(new Interval(hours: 3, minutes: 30))]
     public function checkFeeds(): void
@@ -129,7 +129,7 @@ class Maintenance implements Attributable
 For backward compatibility, you can still create custom schedules using arrays:
 
 ```php
-class Maintenance implements Attributable
+class Maintenance
 {
     #[Schedule(
         ['interval' => 3600 * 6, 'display' => '6 hours']
@@ -153,7 +153,7 @@ By default, the hook name is generated from the class and method names, but you 
 use Pollora\Schedule\Every;
 use Pollora\Schedule\Interval;
 
-class Maintenance implements Attributable
+class Maintenance
 {
     // With string schedule
     #[Schedule('hourly', hook: 'custom_maintenance_hook')]
@@ -186,7 +186,7 @@ You can pass additional arguments to your scheduled function with any schedule t
 use Pollora\Schedule\Every;
 use Pollora\Schedule\Interval;
 
-class Maintenance implements Attributable
+class Maintenance
 {
     // With string schedule
     #[Schedule(
@@ -231,7 +231,7 @@ use Pollora\Attributes\Schedule;
 use Pollora\Schedule\Every;
 use Pollora\Schedule\Interval;
 
-class SystemMaintenance implements Attributable
+class SystemMaintenance
 {
     // Using Every enum (recommended)
     #[Schedule(Every::DAY)]
@@ -295,35 +295,17 @@ class SystemMaintenance implements Attributable
 
 ## Important Notes
 
-1. **The class must implement the `Attributable` interface:**
-```php
-use Pollora\Attributes\Attributable;
-
-class YourClass implements Attributable
-{
-    // Your scheduled methods here
-}
-```
-
-2. **After setting up your scheduled tasks, you need to process them:**
-```php
-use Pollora\Attributes\AttributeProcessor;
-
-$maintenance = new SystemMaintenance();
-AttributeProcessor::process($maintenance);
-```
-
-3. **Hook names are automatically generated in snake_case format if not specified:**
+1. **Hook names are automatically generated in snake_case format if not specified:**
    - For a class `DatabaseMaintenance` with method `cleanupOldRecords`
    - The generated hook name would be `database_maintenance_cleanup_old_records`
 
-4. **The Schedule attribute ensures that events are only registered once**, even if the processor is called multiple times.
+2. **The Schedule attribute ensures that events are only registered once** through automatic discovery.
 
-5. **Custom schedules are automatically registered** when using:
+3. **Custom schedules are automatically registered** when using:
    - `Every::MONTH` and `Every::YEAR` enum values
    - `Interval` class instances
    - Legacy array syntax with custom intervals
 
-6. **All syntax variations support the same parameters:**
+4. **All syntax variations support the same parameters:**
    - `hook: string` - Custom hook name
    - `args: array` - Arguments passed to the scheduled method
