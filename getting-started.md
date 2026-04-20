@@ -31,7 +31,7 @@ This command will:
 
 During the setup, you'll be prompted for:
 
-#### Environment Configuration (wp:env-setup)
+#### Environment Configuration (pollora:env-setup)
 
 - **Site URL**: Your site's URL (e.g., https://example.com)
 - **Database Configuration**:
@@ -43,7 +43,7 @@ During the setup, you'll be prompted for:
 
 The system will test the database connection. If it fails, you'll have the option to retry with different credentials.
 
-#### WordPress Installation (wp:install)
+#### WordPress Installation (pollora:install)
 
 - **Site Information**:
     - Site title
@@ -62,13 +62,43 @@ If you prefer to run the installation steps manually, you can use the following 
 
 ```bash
 # Configure environment
-php artisan wp:env-setup
+php artisan pollora:env-setup
 
 # Install WordPress
-php artisan wp:install
+php artisan pollora:install
 ```
 
 These commands will guide you through the same interactive setup process as the automatic installation.
+
+#### Non-Interactive Installation
+
+For automated deployments, CI/CD pipelines, or scripted setups, you can bypass the interactive prompts by passing all required options directly:
+
+```bash
+php artisan pollora:install \
+    --title="My Site" \
+    --description="A Pollora-powered site" \
+    --admin-user=admin \
+    --admin-email=admin@example.com \
+    --admin-password=secretpassword \
+    --locale=en_US \
+    --public=true
+```
+
+Available options:
+
+| Option | Description |
+|---|---|
+| `--title` | Site title |
+| `--description` | Site description |
+| `--admin-user` | Admin username |
+| `--admin-email` | Admin email address |
+| `--admin-password` | Admin password (min. 8 characters) |
+| `--locale` | Site locale (e.g. `en_US`, `fr_FR`) |
+| `--public` | Allow search engine indexing (`true` or `false`) |
+| `--install` | Suppress informational output for automated runs |
+
+Any option that is omitted will trigger its corresponding interactive prompt. This means you can mix CLI options and prompts — for example, provide the title and admin credentials via options while being prompted for language selection.
 
 ### 3. Web-based Installation
 
@@ -76,7 +106,7 @@ If you prefer the traditional WordPress installation interface, you can:
 
 1. Run the environment setup:
 ```bash
-php artisan wp:env-setup
+php artisan pollora:env-setup
 ```
 
 2. Once the `.env` file is configured, visit your site's URL and follow the WordPress installation wizard.
@@ -273,7 +303,7 @@ If you encounter database connection issues:
 1. Verify your database credentials
 2. Ensure your database server is running
 3. Check if the database exists and is accessible
-4. Run `php artisan wp:env-setup` to reconfigure database settings
+4. Run `php artisan pollora:env-setup` to reconfigure database settings
 
 ### Installation Failed
 
@@ -282,7 +312,7 @@ If the WordPress installation fails:
 1. Check the error message
 2. Verify database permissions
 3. Ensure all required PHP extensions are installed
-4. Run `php artisan wp:install` to retry the installation
+4. Run `php artisan pollora:install` to retry the installation
 
 ## Development Environments
 
