@@ -1,132 +1,78 @@
-# Pollora Framework Documentation
+<p align="center">
+  <a href="https://github.com/Pollora/framework">
+    <img src="https://raw.githubusercontent.com/Pollora/framework/main/resources/images/pollora-logo.svg" width="400" alt="Pollora">
+  </a>
+</p>
 
-Welcome to the Pollora Framework documentation! Pollora is a modern Laravel & WordPress integration framework that creates a "sweet blend" between the two platforms, allowing developers to use Laravel's architecture patterns while maintaining WordPress functionality and compatibility.
+<h3 align="center">Documentation</h3>
 
-## Table of Contents
-
-### Getting Started
-- [Installation](installation.md) - Complete installation guide and setup instructions
-- [Getting Started](getting-started.md) - Quick start guide to build your first application
-- [IDE Integration](ide.md) - Configure your IDE for optimal development experience
-
-### Core Concepts
-- [Modules](modules.md) - Understanding the modular architecture and auto-discovery system
-- [Discovery](discovery.md) - How Pollora automatically discovers and registers components
-- [Routing](routing.md) - Modern routing system with Laravel-style controllers
-- [Controllers](controllers.md) - Building controllers with dependency injection
-- [Middleware](middleware.md) - Request/response middleware for authentication and filtering
-
-### WordPress Integration
-- [Hooks](hooks.md) - Attribute-based WordPress hooks system
-- [Post Types](post-types.md) - Creating custom post types with attributes
-- [Taxonomies](taxonomies.md) - Managing custom taxonomies
-- [WP REST API](wp-rest-api.md) - Building REST endpoints with WordPress API
-- [Authentication](auth.md) - WordPress authentication integration
-
-### Frontend Development
-- [Assets](assets.md) - Modern asset management with Vite and Tailwind CSS
-- [Theming](theming.md) - Theme development with Blade templates and Laravel patterns
-- [Patterns](patterns.md) - WordPress block patterns and categories
-
-### Advanced Features
-- [Plugins](plugins.md) - Complete plugin development guide with modern tooling
-- [Events & Listeners](events-listeners.md) - Event-driven programming patterns
-- [Schedule Events](schedule-events.md) - Cron jobs and scheduled tasks
-- [AJAX](ajax.md) - Handling AJAX requests with modern patterns
-- [Admin Pages](admin-pages.md) - Creating WordPress admin interfaces
-- [Menu](menu.md) - Admin menu management and navigation
-
-### Development Tools
-- [Documentation](documentation.md) - Documentation standards and guidelines
-
-## Framework Overview
-
-### What is Pollora?
-
-Pollora bridges the gap between WordPress and Laravel by providing:
-
-- **Laravel-style Architecture**: Service providers, dependency injection, and modern PHP patterns
-- **PSR-4 Autoloading**: Automatic class loading with namespace conventions
-- **Attribute-driven Configuration**: PHP 8 attributes for declarative programming
-- **Modern Asset Management**: Vite integration with hot reload and Tailwind CSS
-- **Command-line Tools**: Artisan commands for scaffolding and management
-- **Comprehensive Testing**: Built-in testing support with PHPUnit
-
-### Architecture Highlights
-
-#### Domain-Driven Design
-The framework follows a strict DDD architecture with clear separation of concerns:
-- **Application Layer**: Use cases and orchestration
-- **Domain Layer**: Business logic and entities
-- **Infrastructure Layer**: External concerns and adapters
-- **UI Layer**: Controllers and console commands
-
-#### Automatic Discovery
-Pollora automatically discovers and registers:
-- Service providers
-- Views and templates
-- Routes and controllers
-- Translations
-- Database migrations
-- WordPress hooks and filters
-
-#### Modern Development Stack
-- **PHP 8.2+**: Latest PHP features and performance
-- **Laravel Components**: Illuminate packages for modern development
-- **Vite**: Fast build tool with hot module replacement
-- **Tailwind CSS**: Utility-first CSS framework
-- **Blade Templates**: Powerful templating engine
-
-### Key Features
-
-#### For WordPress Developers
-- Familiar WordPress hooks and filters
-- Seamless integration with existing WordPress sites
-- Compatible with WordPress plugins and themes
-- Maintains WordPress coding standards where appropriate
-
-#### For Laravel Developers
-- Service container and dependency injection
-- Eloquent ORM for database operations
-- Artisan commands for common tasks
-- Modern PHP patterns and practices
-
-#### For Both
-- Automatic component discovery
-- Attribute-based configuration
-- Modern asset compilation
-- Comprehensive testing tools
-- Clean, maintainable code structure
-
-## Getting Help
-
-### Documentation Structure
-Each documentation file covers specific aspects of the framework:
-- **Conceptual guides** explain how things work
-- **Step-by-step tutorials** guide you through common tasks
-- **Reference materials** provide detailed API information
-- **Best practices** share recommended approaches
-
-### Code Examples
-All documentation includes practical code examples that you can copy and adapt for your projects. Examples are tested and maintained to ensure they work with the latest version of the framework.
-
-### Community Resources
-- **GitHub Repository**: Report issues and contribute to the framework
-- **Discussions**: Community Q&A and feature discussions
-- **Examples**: Sample projects and implementations
-
-## Contributing
-
-We welcome contributions to both the framework and documentation! Please see our [Contributing Guide](https://github.com/Pollora/pollora/blob/main/CONTRIBUTE.md) for details on:
-- Code standards and conventions
-- Testing requirements
-- Pull request process
-- Documentation guidelines
-
-## License
-
-The Pollora Framework is open-source software licensed under the MIT License.
+<p align="center">
+  The Laravel & WordPress integration framework.
+  <br>
+  <a href="https://github.com/Pollora/framework"><strong>Framework</strong></a> &middot;
+  <a href="https://github.com/Pollora/pollora"><strong>Skeleton</strong></a> &middot;
+  <a href="https://github.com/Pollora/framework/blob/main/CHANGELOG.md"><strong>Changelog</strong></a>
+</p>
 
 ---
 
-**Ready to get started?** Begin with the [Installation Guide](installation.md) and then follow the [Getting Started](getting-started.md) tutorial to build your first Pollora application.
+## Getting Started
+
+- [Installation](installation.md) — Setup with Composer, DDEV, and environment configuration
+- [Getting Started](getting-started.md) — Build your first Pollora application
+- [IDE Integration](ide.md) — Configure your editor for optimal DX
+- [Environment Management](environment-management.md) — Managing WordPress constants and `.env`
+
+## Routing & Controllers
+
+- [Routing](routing.md) — `Route::wp()`, WordPress conditions, and hybrid Laravel+WP routing
+- [Controllers](controllers.md) — Controllers with dependency injection
+- [Middleware](middleware.md) — Request/response filtering and authentication
+
+## Content Management
+
+- [Post Types](post-types.md) — `#[PostType]` attribute, config-based registration
+- [Taxonomies](taxonomies.md) — `#[Taxonomy]` attribute, custom taxonomies
+- [Options](options.md) — WordPress options with Laravel's fluent API
+
+## WordPress Integration
+
+- [Hooks](hooks.md) — `#[Action]` / `#[Filter]` attributes, hookable classes
+- [Authentication](auth.md) — WordPress authentication guard
+- [WP REST API](wp-rest-api.md) — `#[WpRestRoute]` attribute, custom REST endpoints
+- [WP-CLI Commands](wp-cli-commands.md) — Custom Artisan-style WP-CLI commands
+- [WordPress Config](wordpress-config.md) — Managing WordPress constants via Laravel config
+- [WordPress Logging](wordpress-logging.md) — WordPress error logging through Laravel
+
+## Frontend & Theming
+
+- [Theming](theming.md) — Theme structure, Blade templates, parent/child themes
+- [Assets](assets.md) — Vite integration, HMR, Tailwind CSS
+- [Patterns](patterns.md) — Gutenberg block patterns and categories
+
+## Advanced Features
+
+- [Discovery](discovery.md) — Auto-discovery system for PHP attributes
+- [Modules](modules.md) — Modular architecture with nwidart/laravel-modules
+- [Plugins](plugins.md) — Plugin development with modern tooling
+- [Events & Listeners](events-listeners.md) — WordPress event dispatching and Laravel listeners
+- [Scheduling](schedule-events.md) — `#[Schedule]` attribute, WordPress cron management
+- [AJAX](ajax.md) — Handling AJAX requests
+- [Admin Pages](admin-pages.md) — WordPress admin interfaces
+- [Menu](menu.md) — Admin menu management
+
+## Requirements
+
+| Dependency | Version |
+|---|---|
+| PHP | ^8.3 |
+| Laravel | 13.x |
+| WordPress | 6.9+ |
+
+## Contributing
+
+We welcome contributions to both the framework and documentation. See the [Contributing Guide](https://github.com/Pollora/framework/blob/main/CONTRIBUTING.md) for details.
+
+## License
+
+Pollora is open-source software licensed under the [GPL-2.0-or-later](https://github.com/Pollora/framework/blob/main/LICENSE) license.
