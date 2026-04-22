@@ -259,7 +259,7 @@ class PostCreatedListener
 2. **Event Properties**
    - Make properties public for easy access
    - Use type hints for better IDE support
-   - Consider making properties readonly in PHP 8.1+
+   - Use `readonly` properties for immutable event data
 
 ```php
 class PostPublished

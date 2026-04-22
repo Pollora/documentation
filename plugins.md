@@ -85,9 +85,9 @@ Plugins are automatically discovered and registered when they contain a valid ma
  * Author URI: https://johndoe.com
  * Text Domain: my-awesome-plugin
  * Domain Path: /languages
- * Requires at least: 5.0
- * Tested up to: 6.3
- * Requires PHP: 8.1
+ * Requires at least: 6.0
+ * Tested up to: 6.9
+ * Requires PHP: 8.3
  */
 
 declare(strict_types=1);

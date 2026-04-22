@@ -1,61 +1,83 @@
-# Middlewares
+# Middleware
 
-Middleware is a powerful feature in Laravel that sits between a request and a response, allowing you to filter and manipulate incoming requests before they reach your application's logic. This guide provides a general overview of middleware in Laravel and directs you to the [official Laravel documentation](https://laravel.com/docs/middleware) for more detailed information.
+Middleware sits between a request and a response, allowing you to filter and manipulate HTTP requests. Pollora uses standard Laravel middleware and adds WordPress-specific middleware for seamless integration.
 
-## What is Middleware?
+For general Laravel middleware concepts, see the [official Laravel documentation](https://laravel.com/docs/13.x/middleware).
 
-Middleware acts as a series of filters that can modify, authenticate, or otherwise process an incoming HTTP request. It can intercept requests at different points of the application's request lifecycle and perform actions such as authentication, authorization, logging, and more.
+## Pollora Middleware
 
-## Key Concepts
+Pollora includes four WordPress-specific middleware that are automatically applied to WordPress routes:
 
-### Middleware Groups
+### WordPressBindings
 
-Middleware can be grouped together for convenience. For instance, you can create a middleware group that includes several authentication-related middleware. This allows you to apply a set of middleware to multiple routes at once.
-
-### Creating Middleware
-
-You can create custom middleware using the `artisan` command-line tool. For example, to create a `LogRequests` middleware, you would run:
-
-```sh
-php artisan make:middleware LogRequests
-```
-
-This command generates a new middleware file in the `app/Http/Middleware` directory.
-
-### Applying Middleware
-
-Middleware can be applied globally to all routes, to specific routes, or even to groups of routes. You can specify middleware in your route definitions or use the `middleware` method within a controller constructor.
-
-### Ordering Middleware
-
-The order in which middleware is applied matters. Middleware applied earlier in the list will be executed before middleware applied later. You can control the order of execution by adjusting the order in which you add middleware to the `Http/Kernel.php` file.
-
-## Example
-
-Here's a simple example to illustrate how middleware works:
+Injects WordPress objects (`WP_Post`, `WP_Query`, `WP_User`, etc.) into route closures and controller methods based on type hints.
 
 ```php
-// LogRequests.php (Middleware)
+// The $post parameter is automatically resolved from the current WordPress context
+Route::wp('single', function (WP_Post $post) {
+    return view('post', compact('post'));
+});
+```
 
+### WordPressHeaders
+
+Manages HTTP headers for WordPress responses:
+- Adds `X-Powered-By: Pollora` header
+- Controls cache headers
+- Removes unnecessary WordPress headers for unauthenticated requests
+
+### WordPressBodyClass
+
+Adds route-based CSS classes to the WordPress `body_class` output, allowing you to style pages based on the matched route condition.
+
+### WordPressShutdown
+
+Ensures WordPress shutdown hooks (`shutdown` action, output buffer flushing) are properly executed after the Laravel response is sent.
+
+## Creating Custom Middleware
+
+Use Artisan to generate a new middleware:
+
+```bash
+php artisan make:middleware CheckWordPressCapability
+```
+
+```php
 namespace App\Http\Middleware;
 
 use Closure;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Http\Request;
 
-class LogRequests
+class CheckWordPressCapability
 {
-    public function handle($request, Closure $next)
+    public function handle(Request $request, Closure $next, string $capability = 'edit_posts')
     {
-        Log::info('Request received:', ['path' => $request->path()]);
+        if (! current_user_can($capability)) {
+            abort(403);
+        }
+
         return $next($request);
     }
 }
 ```
 
-In this example, the `LogRequests` middleware logs information about incoming requests. It then passes the request to the next middleware or controller action in the pipeline.
+## Applying Middleware to WordPress Routes
 
-## Further Reading
+```php
+Route::wp('page', fn () => view('page'))
+    ->middleware('auth');
 
-This overview introduces the basic concepts of middleware in Laravel. To dive deeper into middleware, explore the [official Laravel documentation on Middleware](https://laravel.com/docs/middleware).
+Route::wp('single', fn () => view('post'))
+    ->middleware(CheckWordPressCapability::class . ':publish_posts');
+```
 
-Laravel's official documentation provides comprehensive explanations, code examples, and best practices for working with middleware in your Laravel applications.
+## Middleware Groups
+
+You can group WordPress routes with shared middleware:
+
+```php
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::wp('page', fn () => view('page'));
+    Route::wp('single', fn () => view('post'));
+});
+```

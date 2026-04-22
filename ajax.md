@@ -1,55 +1,82 @@
-# Ajax
+# AJAX
 
-The `Ajax` facade simplifies the management of AJAX calls in your Laravel application by providing a simple and configurable abstraction.
+The `Ajax` facade simplifies the management of WordPress AJAX calls by providing a fluent, chainable API.
 
-The `Ajax` class allows you to manage AJAX calls using chainable configuration methods.
+## Basic Usage
 
-### Example Usage
-
-Here's an example of using the `Ajax` class with the fluent syntax:
+Use the `listen()` method to register an AJAX handler:
 
 ```php
+use Pollora\Support\Facades\Ajax;
+
 Ajax::listen('my_action', function () {
-    // AJAX handling logic here
-})->forLoggedUsers();
-```
-
-### Instance Creation and Configuration
-
-To start, you can use the `listen()` method of the `Ajax` Facade to create an instance and configure the action and associated callback:
-
-```php
-Ajax::listen('my_action', function () {
-    // AJAX handling logic here
+    wp_send_json_success(['message' => 'It works!']);
 });
 ```
 
-### Configuration for Target Users
+This automatically registers WordPress hooks on `wp_ajax_my_action` and `wp_ajax_nopriv_my_action`.
 
-Use the `forLoggedUsers()` and `forGuestUsers()` methods to specify the target users for the AJAX call:
+## Targeting Users
+
+By default, AJAX handlers are available to all users. You can restrict access:
 
 ```php
+// Only logged-in users
 Ajax::listen('my_action', function () {
-    // AJAX handling logic here
+    wp_send_json_success(['user' => wp_get_current_user()->display_name]);
 })->forLoggedUsers();
-// or
+
+// Only guest users (not logged in)
 Ajax::listen('my_action', function () {
-    // AJAX handling logic here
+    wp_send_json_success(['message' => 'Hello guest!']);
 })->forGuestUsers();
 ```
 
-### Complete Example
+## Using a Controller Method
 
-Here's a complete example of using the `Ajax` class:
+You can reference a controller instead of a closure:
 
 ```php
-$response = Ajax::listen('my_action', function () {
-    // AJAX handling logic here
-})->forLoggedUsers();
+Ajax::listen('load_more_posts', [PostController::class, 'loadMore'])
+    ->forLoggedUsers();
 ```
 
-The above example configures an action, a callback, and target users, and then executes the AJAX call. The server response is stored in the `$response` variable.
+## Frontend JavaScript
 
-### Important: Automatic Hook Declaration
+Send AJAX requests from JavaScript using the `ajaxurl` global provided by WordPress:
 
-By default, this will automatically declare hooks on the WordPress actions `wp_ajax_{action}` and/or `wp_ajax_nopriv_{action}`. This ensures the proper routing of the AJAX request based on the user's login status.
+```javascript
+jQuery.post(ajaxurl, {
+    action: 'my_action',
+    _wpnonce: myApp.nonce,
+    data: 'some data'
+}, function (response) {
+    if (response.success) {
+        console.log(response.data);
+    }
+});
+```
+
+Make sure to localize your script with the nonce:
+
+```php
+use Pollora\Support\Facades\Asset;
+
+Asset::add('my-script', 'assets/js/app.js')
+    ->toFrontend()
+    ->localize('myApp', [
+        'nonce' => wp_create_nonce('wp_rest'),
+    ]);
+```
+
+## How It Works
+
+When you call `Ajax::listen()`, Pollora registers WordPress action hooks:
+
+| Method | WordPress Hook |
+|---|---|
+| Default (both) | `wp_ajax_{action}` + `wp_ajax_nopriv_{action}` |
+| `forLoggedUsers()` | `wp_ajax_{action}` only |
+| `forGuestUsers()` | `wp_ajax_nopriv_{action}` only |
+
+The callback receives the standard WordPress AJAX context. Use `wp_send_json_success()` / `wp_send_json_error()` to send responses.

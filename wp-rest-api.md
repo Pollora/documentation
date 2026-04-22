@@ -128,7 +128,7 @@ If a method has its own permission callback, it **overrides** the class-level pe
 
 ## Custom Permission Classes
 
-A permission class must implement `Pollora\WpRest\Permission` and define an `allow()` method that returns `true`, `false`, or a `WP_Error`.
+A permission class must implement `Pollora\Attributes\WpRestRoute\Permission` and define an `allow()` method that returns `true`, `false`, or a `WP_Error`.
 
 ### Example: Restrict to Administrators
 ```php

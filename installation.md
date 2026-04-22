@@ -57,7 +57,7 @@ Configuration values in Pollora can vary depending on the environment (local vs.
 For security reasons, never commit your `.env` file to source control. Different developers or servers might need different configurations, and exposing sensitive credentials would pose a significant risk.
 
 > **Note**  
-> For a deep dive into the `.env` file and environment configurations, peruse the full [configuration documentation](https://laravel.com/docs/{{version}}/configuration#environment-configuration).
+> For a deep dive into the `.env` file and environment configurations, peruse the full [configuration documentation](https://laravel.com/docs/13.x/configuration#environment-configuration).
 
 <a name="databases-and-migrations"></a>
 ### Databases & Migrations
@@ -72,7 +72,7 @@ touch database/database.sqlite
 
 Then, adjust your `.env` file to utilize Pollora's `sqlite` database driver. Unneeded configurations can be removed.
 
-Finally, run your application's [database migrations](https://laravel.com/docs/{{version}}/migrations) to establish your database tables:
+Finally, run your application's [database migrations](https://laravel.com/docs/13.x/migrations) to establish your database tables:
 
 ```shell
 php artisan migrate
@@ -86,17 +86,11 @@ Always serve Pollora from the root of the "web directory" set for your server. A
 <a name="next-steps"></a>
 ## Next Steps
 
-With your Pollora project set up, you might be pondering your next steps. We recommend the following documentation of Laravel:
+With your Pollora project set up, here are the recommended next steps:
 
-<div class="content-list" markdown="1">
+- [Getting Started with Pollora](getting-started.md) — Build your first application
+- [Routing](routing.md) — Learn WordPress routing with `Route::wp()`
+- [Theming](theming.md) — Create your first theme with Blade templates
+- [Post Types](post-types.md) — Register custom post types with PHP attributes
 
-- [Request Lifecycle](https://laravel.com/docs/{{version}}/lifecycle)
-- [Configuration](https://laravel.com/docs/{{version}}/configuration)
-- [Directory Structure](https://laravel.com/docs/{{version}}/structure)
-- [Integration Mechanics](https://laravel.com/docs/{{version}}/integration)
-- [Data Management](https://laravel.com/docs/{{version}}/data-management)
-- [Content Delivery](https://laravel.com/docs/{{version}}/content)
-
-</div>
-
-How you wish to utilize Pollora will also influence your learning trajectory. Below, we delve into two primary uses for this powerful integration tool.
+For Laravel-specific concepts, see the [Laravel documentation](https://laravel.com/docs/13.x).

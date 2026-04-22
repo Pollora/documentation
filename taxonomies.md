@@ -112,11 +112,11 @@ Pollora provides several attributes to configure your taxonomies:
 
 #### `ObjectType`
 
-Définit les types de posts auxquels cette taxonomie est associée.
+Defines the post types this taxonomy is associated with.
 
 ```php
 #[ObjectType('post')]
-// ou avec plusieurs types de posts
+// or with multiple post types
 #[ObjectType(['post', 'page', 'product'])]
 ```
 

@@ -4,9 +4,9 @@ Welcome to Pollora! This guide will help you get started with a working installa
 
 ## Requirements
 
-- PHP 8.2 or higher
-- Composer
-- MySQL 5.7 or higher
+- PHP 8.3 or higher
+- Composer 2.x
+- MySQL 5.7+ / MariaDB 10.3+ / SQLite
 
 ## Installation Methods
 
