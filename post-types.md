@@ -1,11 +1,8 @@
 # Post Types
 
-Pollora offers two different ways to create custom post types:
+Pollora uses PHP 8 attributes to declare custom post types. This approach provides a clean, declarative syntax and better organization of your post types.
 
-1. **Using PHP Attributes (Recommended)** - A modern, declarative approach using PHP 8 attributes
-2. **Using the Configuration File** - Define post types in the `config/post-types.php` file
-
-## 1. Using PHP Attributes (Recommended)
+## Using PHP Attributes
 
 The most elegant way to define custom post types in Pollora is by using PHP 8 attributes. This approach provides a clean, declarative syntax and better organization of your post types.
 
@@ -960,6 +957,3 @@ class Event
 | `withArgs()` | Yes | Yes | Full i18n support |
 | `configuring()` | Yes | Yes | Dynamic + i18n support |
 
-## 2. Using the Configuration File
-
-For projects that prefer configuration over attributes, you can define post types in the `config/post-types.php` file. Please refer to the configuration documentation for details on this approach. 

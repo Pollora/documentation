@@ -1,13 +1,8 @@
 # Taxonomies
 
-Pollora offers two different ways to create custom taxonomies:
+Pollora uses PHP 8 attributes to declare custom taxonomies. This approach provides a clean, declarative syntax and better organization of your taxonomies.
 
-1. **Using PHP Attributes (Recommended)** - A modern, declarative approach using PHP 8 attributes
-2. **Using the Configuration File** - Define taxonomies in the `config/taxonomies.php` file
-
-## 1. Using PHP Attributes (Recommended)
-
-The most elegant way to define custom taxonomies in Pollora is by using PHP 8 attributes. This approach provides a clean, declarative syntax and better organization of your taxonomies.
+## Using PHP Attributes
 
 ### Creating a Taxonomy with Attributes
 
@@ -722,33 +717,3 @@ class EventCategory
 | `withArgs()` | Yes | Yes | Full i18n support |
 | `configuring()` | Yes | Yes | Dynamic + i18n support |
 
-## 2. Using the Configuration File
-
-The `config/taxonomies.php` file allows you to create your own custom taxonomies.
-
-Pollora integrates the [Extended CPTs](https://github.com/johnbillion/extended-cpts) library and a dedicated taxonomies service provider. This setup allows you to configure taxonomies directly from a config file.
-
-By default, there is a taxonomy called `customer_type`. You can delete or replace it with a type that better suits your needs.
-
-All [parameters provided by Extended CPTs](https://github.com/johnbillion/extended-cpts/wiki/Registering-taxonomies) can be used. An example taxonomy included in Pollora demonstrates how to change the names associated with `singular`, `plural`, and `slug`.
-
-Here's an example configuration:
-
-```php
-return [
-    'customer_type' => [
-        'labels' => [
-            'singular' => 'Customer Type',
-            'plural' => 'Customer Types',
-        ],
-        'links' => ['supplier'],
-        'meta_box' => 'radio',
-        'names' => [
-            'singular' => 'Customer Type',
-            'plural' => 'Customer Types',
-        ],
-    ],
-];
-```
-
-For projects that prefer configuration over attributes, you can define taxonomies in the `config/taxonomies.php` file. Please refer to the configuration documentation for details on this approach. 
