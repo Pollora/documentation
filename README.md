@@ -50,6 +50,10 @@
 - [Assets](assets.md) — Vite integration, HMR, Tailwind CSS
 - [Patterns](patterns.md) — Gutenberg block patterns and categories
 
+## Monitoring & Tooling
+
+- [Dashboard & Status](dashboard.md) — Admin dashboard, `pollora:status` command, `--json` output
+
 ## Advanced Features
 
 - [Discovery](discovery.md) — Auto-discovery system for PHP attributes
