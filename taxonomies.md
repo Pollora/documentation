@@ -81,6 +81,7 @@ The `#[Taxonomy]` attribute is the foundation for defining custom taxonomies. It
 - `$singular` (optional): The singular name. If not provided, automatically generated from class name
 - `$plural` (optional): The plural name. If not provided, automatically pluralized from singular name
 - `$objectType` (optional): The post types this taxonomy applies to. Can be a string or array. Defaults to `['post']`
+- `$textDomain` (optional): The text domain for auto-generated label translations. Defaults to `'pollora'`
 
 ### Auto-Generation Examples
 
@@ -274,6 +275,22 @@ Sets the taxonomy as public, making it visible in the admin UI and on the front 
 // or to make private
 #[PublicTaxonomy(false)]
 ```
+
+#### `Labels`
+
+Overrides specific labels with named parameters. Only the labels you provide are overridden; the rest keep their auto-generated values.
+
+```php
+#[Labels(
+    name: 'Project Categories',
+    singularName: 'Project Category',
+    addNewItem: 'Add New Category',
+)]
+```
+
+Available parameters: `name`, `singularName`, `menuName`, `allItems`, `editItem`, `viewItem`, `updateItem`, `addNewItem`, `newItemName`, `searchItems`, `popularItems`, `separateItemsWithCommas`, `addOrRemoveItems`, `chooseFromMostUsed`, `notFound`, `parentItem`, `parentItemColon`, `noTerms`, `filterByItem`, `itemsListNavigation`, `itemsList`, `backToItems`.
+
+> **Note:** PHP attributes only accept constant expressions, so `__()` cannot be used here. For translatable labels, use `withArgs()` or `configuring()` instead (see [Internationalization](#internationalization) below).
 
 #### `Label`
 
@@ -627,6 +644,83 @@ class EventCategory
 - Keep the method focused on configuration logic, avoid business logic
 - Use type hints for better IDE support: `\Pollora\Entity\Domain\Model\Taxonomy $taxonomy`
 - Consider caching for expensive dynamic configurations
+
+### Internationalization
+
+Pollora provides three approaches for translatable taxonomy labels, depending on your needs:
+
+#### Auto-Generated Labels (Default)
+
+When no labels are specified, Pollora auto-generates them using `sprintf(__('Edit %s', 'pollora'), $singular)`. These patterns are extractible and included in the framework's `.pot` file. The `textDomain` parameter lets you use your own domain:
+
+```php
+#[Taxonomy('genre', objectType: 'book', textDomain: 'my-theme')]
+```
+
+#### Static Overrides with `#[Labels]`
+
+The `#[Labels]` attribute provides partial label overrides using named parameters. However, PHP attributes only accept constant expressions — `__()` calls are not allowed in attributes.
+
+```php
+#[Taxonomy(objectType: 'project')]
+#[Labels(
+    name: 'Project Categories',
+    singularName: 'Project Category',
+)]
+class ProjectCategory {}
+```
+
+#### Translatable Labels with `withArgs()`
+
+For fully translatable labels, use `withArgs()` where `__()` calls are evaluated at runtime and extractible by `wp i18n make-pot`:
+
+```php
+#[Taxonomy(objectType: 'project')]
+#[Hierarchical(true)]
+class ProjectCategory
+{
+    public function withArgs(): array
+    {
+        return [
+            'labels' => [
+                'name' => __('Project Categories', 'my-theme'),
+                'singular_name' => __('Project Category', 'my-theme'),
+                'all_items' => __('All Categories', 'my-theme'),
+                'edit_item' => __('Edit Category', 'my-theme'),
+                'add_new_item' => __('Add New Category', 'my-theme'),
+            ],
+        ];
+    }
+}
+```
+
+#### Translatable Labels with `configuring()`
+
+The `configuring()` hook also supports `__()` for translatable labels with access to the full Entity API:
+
+```php
+#[Taxonomy(objectType: 'event')]
+class EventCategory
+{
+    public function configuring(\Pollora\Entity\Domain\Model\Taxonomy $taxonomy): void
+    {
+        $taxonomy->labels([
+            'name' => __('Event Categories', 'my-theme'),
+            'singular_name' => __('Event Category', 'my-theme'),
+            'add_new_item' => __('Add New Category', 'my-theme'),
+        ]);
+    }
+}
+```
+
+**Summary:**
+
+| Approach | Translatable | Extractible by `make-pot` | Use case |
+|----------|-------------|---------------------------|----------|
+| Auto-generated | Yes (via framework `.pot`) | Yes | Default behavior, no code needed |
+| `#[Labels]` | No | No | Quick static overrides |
+| `withArgs()` | Yes | Yes | Full i18n support |
+| `configuring()` | Yes | Yes | Dynamic + i18n support |
 
 ## 2. Using the Configuration File
 

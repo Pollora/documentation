@@ -54,6 +54,7 @@ The `#[PostType]` attribute is the foundation for defining custom post types. It
 - `$slug` (optional): The post type slug. If not provided, automatically generated from class name using kebab-case
 - `$singular` (optional): The singular name. If not provided, automatically generated from class name
 - `$plural` (optional): The plural name. If not provided, automatically pluralized from singular name
+- `$textDomain` (optional): The text domain for auto-generated label translations. Defaults to `'pollora'`
 
 ### Auto-Generation Examples
 
@@ -414,6 +415,22 @@ Provides an array of custom capabilities for this post type.
     'edit_others_posts' => 'edit_others_events'
 ])]
 ```
+
+#### `Labels`
+
+Overrides specific labels with named parameters. Only the labels you provide are overridden; the rest keep their auto-generated values.
+
+```php
+#[Labels(
+    addNew: 'New Project',
+    notFound: 'No projects found.',
+    notFoundInTrash: 'No projects found in trash.',
+)]
+```
+
+Available parameters: `name`, `singularName`, `menuName`, `allItems`, `addNew`, `addNewItem`, `editItem`, `newItem`, `viewItem`, `viewItems`, `searchItems`, `notFound`, `notFoundInTrash`, `parentItemColon`, `archives`, `attributes`, `insertIntoItem`, `uploadedToThisItem`, `featuredImage`, `setFeaturedImage`, `removeFeaturedImage`, `useFeaturedImage`, `filterItemsList`, `itemsListNavigation`, `itemsList`, `itemPublished`, `itemUpdated`, `itemScheduled`, `itemReverted`.
+
+> **Note:** PHP attributes only accept constant expressions, so `__()` cannot be used here. For translatable labels, use `withArgs()` or `configuring()` instead (see [Internationalization](#internationalization) below).
 
 #### `Label`
 
@@ -864,6 +881,84 @@ public function configuring(\Pollora\Entity\Domain\Model\PostType $postType): vo
 - Leverage the smart merging - define base labels in `configuring()` and let attributes fill gaps
 - Keep the method focused on configuration logic, avoid business logic
 - Use type hints for better IDE support: `\Pollora\Entity\Domain\Model\PostType $postType`
+
+### Internationalization
+
+Pollora provides three approaches for translatable post type labels, depending on your needs:
+
+#### Auto-Generated Labels (Default)
+
+When no labels are specified, Pollora auto-generates them using `sprintf(__('Edit %s', 'pollora'), $singular)`. These patterns are extractible and included in the framework's `.pot` file. The `textDomain` parameter lets you use your own domain:
+
+```php
+#[PostType('project', textDomain: 'my-theme')]
+```
+
+#### Static Overrides with `#[Labels]`
+
+The `#[Labels]` attribute provides partial label overrides using named parameters. However, PHP attributes only accept constant expressions — `__()` calls are not allowed in attributes.
+
+```php
+#[PostType]
+#[Labels(
+    addNew: 'New Project',
+    notFound: 'No projects found.',
+)]
+class Project {}
+```
+
+#### Translatable Labels with `withArgs()`
+
+For fully translatable labels, use `withArgs()` where `__()` calls are evaluated at runtime and extractible by `wp i18n make-pot`:
+
+```php
+#[PostType]
+#[HasArchive]
+class Service
+{
+    public function withArgs(): array
+    {
+        return [
+            'labels' => [
+                'name' => __('Services', 'my-theme'),
+                'singular_name' => __('Service', 'my-theme'),
+                'add_new' => __('Add New', 'my-theme'),
+                'add_new_item' => __('Add New Service', 'my-theme'),
+                'edit_item' => __('Edit Service', 'my-theme'),
+                'all_items' => __('All Services', 'my-theme'),
+            ],
+        ];
+    }
+}
+```
+
+#### Translatable Labels with `configuring()`
+
+The `configuring()` hook also supports `__()` for translatable labels with access to the full Entity API:
+
+```php
+#[PostType]
+class Event
+{
+    public function configuring(\Pollora\Entity\Domain\Model\PostType $postType): void
+    {
+        $postType->labels([
+            'name' => __('Events', 'my-theme'),
+            'singular_name' => __('Event', 'my-theme'),
+            'add_new_item' => __('Add New Event', 'my-theme'),
+        ]);
+    }
+}
+```
+
+**Summary:**
+
+| Approach | Translatable | Extractible by `make-pot` | Use case |
+|----------|-------------|---------------------------|----------|
+| Auto-generated | Yes (via framework `.pot`) | Yes | Default behavior, no code needed |
+| `#[Labels]` | No | No | Quick static overrides |
+| `withArgs()` | Yes | Yes | Full i18n support |
+| `configuring()` | Yes | Yes | Dynamic + i18n support |
 
 ## 2. Using the Configuration File
 
