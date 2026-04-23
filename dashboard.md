@@ -126,24 +126,9 @@ Pollora dev-develop (latest stable: v13.4.0)
 
 No misleading "update available" warning is shown for development installations.
 
-## Architecture
+## Programmatic Access
 
-The dashboard module follows the same DDD structure as other framework components:
-
-```
-src/Dashboard/
-├── Domain/Services/
-│   └── SystemInfoCollector.php    # Collects all system data
-├── Infrastructure/Providers/
-│   └── DashboardServiceProvider.php  # Registers page, command, badge
-└── UI/
-    ├── Console/
-    │   └── StatusCommand.php      # pollora:status Artisan command
-    └── Http/
-        └── DashboardController.php   # Admin page renderer
-```
-
-The `SystemInfoCollector` service is registered as a singleton and can be injected into your own code if needed:
+The `SystemInfoCollector` service is registered as a singleton and can be injected into your own code to access system information programmatically:
 
 ```php
 use Pollora\Dashboard\Domain\Services\SystemInfoCollector;
