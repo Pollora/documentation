@@ -203,25 +203,65 @@ export default defineConfig({
 });
 ```
 
-## TailwindCSS Integration
+## Tailwind CSS Integration
 
-Each Pollora theme is pre-configured with TailwindCSS. The `package.json` file includes the necessary dependencies:
+Pollora themes use **Tailwind CSS v4** with the `@tailwindcss/vite` plugin. No `tailwind.config.js` or `postcss.config.mjs` is needed — Tailwind v4 auto-detects source files from the Vite module graph.
+
+### Setup
+
+The `package.json` includes the necessary dependencies:
 
 ```json
 {
     "devDependencies": {
-        "@tailwindcss/forms": "^0.5.6",
-        "@tailwindcss/typography": "^0.5.9",
-        "tailwindcss": "^3.3.3",
-        // ... (other dependencies)
-    },
-    "dependencies": {
-        "@tailwindcss/aspect-ratio": "^0.4.2"
+        "@tailwindcss/vite": "^4.2.3",
+        "tailwindcss": "^4.2.3",
+        "vite": "^8.0.9"
     }
 }
 ```
 
-To use TailwindCSS in your theme, make sure to include the necessary directives in your main CSS file.
+The Vite plugin handles everything — add it in `vite.config.js`:
+
+```js
+import tailwindcss from '@tailwindcss/vite';
+
+export default defineConfig({
+    plugins: [
+        tailwindcss(),
+        // ...
+    ],
+});
+```
+
+### CSS Entry Point
+
+Your main CSS file uses a single import:
+
+```css
+/* resources/assets/app.css */
+@import "tailwindcss";
+```
+
+Tailwind v4 automatically scans all project files (HTML, PHP, JSX, Blade templates) for utility classes and generates only the CSS needed.
+
+### Tailwind in Gutenberg Blocks
+
+Block CSS files (`style.css`, `editor.css`) support Tailwind via two directives:
+
+- **`@import "tailwindcss" source(".")`** in `style.css` — imports Tailwind scoped to the block's directory. This generates utility classes found in the block's JSX files, ensuring they work both on the frontend and in the block editor.
+- **`@reference "tailwindcss"`** in `editor.css` — gives access to `@apply` without generating utilities (editor-only styles typically use `@apply`, not utility classes in JSX).
+
+```css
+/* resources/blocks/hero/style.css */
+@import "tailwindcss" source(".");
+
+.wp-block-my-theme-hero {
+    @apply relative py-24 px-8 overflow-hidden;
+}
+```
+
+> See [blocks.md](blocks.md) for detailed examples of Tailwind usage in Gutenberg blocks.
 
 ## Theme Management
 

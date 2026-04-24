@@ -163,9 +163,7 @@ public/content/plugins/my-awesome-plugin/
 │   └── admin.php
 ├── database/                    # Database migrations (auto-discovered)
 ├── tests/                       # Plugin tests
-├── vite.config.js              # Vite configuration
-├── tailwind.config.js          # Tailwind CSS configuration
-├── postcss.config.mjs          # PostCSS configuration
+├── vite.config.js              # Vite configuration (with Gutenberg block support)
 ├── package.json                # NPM dependencies
 └── my-awesome-plugin.php        # Main plugin file
 ```
@@ -247,8 +245,6 @@ php artisan pollora:make-plugin my-plugin \
 
 When creating a plugin with the `--asset=true` option, the following files are included:
 - `vite.config.js` - Vite configuration with Gutenberg block support built-in
-- `tailwind.config.js` - Tailwind CSS configuration
-- `postcss.config.mjs` - PostCSS configuration
 - `app/Providers/AssetServiceProvider.php` - Asset service provider
 - `resources/assets/` - Directory containing CSS and JS files
 - `package.json` - NPM dependencies including `@wordpress/*` packages for block development
@@ -291,9 +287,7 @@ public/content/plugins/my-awesome-plugin/
 │   │   ├── admin.js           # Admin JavaScript
 │   │   └── app.css            # Main CSS with Tailwind
 │   └── views/                  # Blade templates
-├── vite.config.js              # Vite configuration
-├── tailwind.config.js          # Tailwind CSS configuration
-├── postcss.config.mjs          # PostCSS configuration
+├── vite.config.js              # Vite configuration (with Gutenberg block support)
 ├── package.json                # NPM dependencies
 └── my-awesome-plugin.php        # Main plugin file
 ```
@@ -808,14 +802,13 @@ The plugin template includes all dependencies needed for modern asset compilatio
         "postcss": "^8.5.6",
         "tailwindcss": "^4.2.3",
         "vite": "^8.0.9"
-    },
-    "dependencies": {
-        "@tailwindcss/postcss": "^4.2.3"
     }
 }
 ```
 
 > The `@wordpress/*` and `@roots/vite-plugin` packages are included by default so plugins are ready for Gutenberg block development without additional setup. If your plugin doesn't use blocks, these packages are simply unused — no performance impact.
+>
+> **Note:** No `tailwind.config.js` or `postcss.config.mjs` is needed — Tailwind v4 auto-detects source files via the `@tailwindcss/vite` plugin. See [blocks.md](blocks.md) for using Tailwind in Gutenberg blocks.
 
 ### Asset Container
 
@@ -988,27 +981,20 @@ new MyAwesomePluginPlugin();
 }
 ```
 
-### Tailwind Configuration
+### Tailwind CSS in Blocks
 
-```javascript
-// tailwind.config.js
-export default {
-    content: [
-        "./resources/**/*.blade.php",
-        "./resources/assets/**/*.{js,css}",
-        "./app/**/*.php",
-        "./resources/views/**/*.blade.php"
-    ],
-    theme: {
-        extend: {
-            // Plugin-specific theme extensions
-        },
-    },
-    plugins: [
-        // Add Tailwind plugins here if needed
-    ],
+Tailwind v4 auto-detects source files — no `tailwind.config.js` needed. For Gutenberg blocks, use `@import "tailwindcss" source(".")` in the block's `style.css` to scope Tailwind scanning to the block directory:
+
+```css
+/* resources/blocks/my-block/style.css */
+@import "tailwindcss" source(".");
+
+.wp-block-my-plugin-my-block {
+    @apply p-6 bg-white rounded-xl shadow-sm;
 }
 ```
+
+This ensures utility classes from block JSX are generated and available in both the editor and frontend. See [blocks.md](blocks.md) for full details.
 
 ## Translations
 

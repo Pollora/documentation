@@ -166,6 +166,71 @@ plugins: [
 
 The `@roots/vite-plugin` provides the `wordpressPlugin()` which generates `editor.deps.json` with WordPress script dependencies.
 
+## Tailwind CSS in Blocks
+
+Pollora uses **Tailwind CSS v4** with automatic source detection. No `tailwind.config.js` is needed. Tailwind utilities work in blocks via two approaches:
+
+### Utility Classes in JSX
+
+Use Tailwind classes directly in your block JSX — they work on both frontend and editor:
+
+```jsx
+// edit.jsx
+export default function Edit() {
+    const blockProps = useBlockProps();
+    return (
+        <div {...blockProps}>
+            <h2 className="text-3xl font-bold text-white mb-4">
+                {__('Hello World', 'my-theme')}
+            </h2>
+            <p className="text-lg text-indigo-100/80 max-w-2xl mx-auto">
+                {__('A description', 'my-theme')}
+            </p>
+        </div>
+    );
+}
+```
+
+### `@apply` in Block CSS
+
+Use `@apply` in `style.css` and `editor.css` for component-level styles:
+
+```css
+/* style.css — loaded on frontend AND in editor */
+@import "tailwindcss" source(".");
+
+.wp-block-my-theme-hero {
+    @apply relative py-24 px-8 rounded-xl overflow-hidden;
+    background: linear-gradient(135deg,
+        theme(--color-indigo-950) 0%,
+        theme(--color-violet-900) 100%
+    );
+}
+```
+
+```css
+/* editor.css — loaded only in editor */
+@reference "tailwindcss";
+
+.wp-block-my-theme-hero {
+    @apply border-2 border-dashed border-black/15 min-h-[300px];
+}
+```
+
+### Key Directives
+
+| Directive | Use in | Purpose |
+|---|---|---|
+| `@import "tailwindcss" source(".")` | `style.css` | Full Tailwind import, scoped to the block's directory. Generates utility classes from JSX files. |
+| `@reference "tailwindcss"` | `editor.css` | Access to `@apply` and `theme()` without generating utilities. |
+| `theme(--color-*)` | Any CSS | Access Tailwind theme values as CSS functions. |
+
+### Why `source(".")`?
+
+The `source(".")` parameter tells Tailwind to scan **only the block's directory** for utility classes, not the entire project. This keeps the generated CSS small while ensuring all classes used in `edit.jsx`, `save.jsx`, and `index.jsx` are available in the editor iframe.
+
+Without `source(".")`, the block's CSS would include utilities from the entire project — much larger than necessary.
+
 ## `pollora:make-block` Command
 
 ### Usage
