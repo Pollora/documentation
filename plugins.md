@@ -246,11 +246,17 @@ php artisan pollora:make-plugin my-plugin \
 ### Asset Management
 
 When creating a plugin with the `--asset=true` option, the following files are included:
-- `vite.config.js` - Vite configuration for asset compilation
+- `vite.config.js` - Vite configuration with Gutenberg block support built-in
 - `tailwind.config.js` - Tailwind CSS configuration
 - `postcss.config.mjs` - PostCSS configuration
 - `app/Providers/AssetServiceProvider.php` - Asset service provider
 - `resources/assets/` - Directory containing CSS and JS files
+- `package.json` - NPM dependencies including `@wordpress/*` packages for block development
+
+The Vite configuration comes pre-configured with:
+- **`@roots/vite-plugin`** for WordPress dependency extraction (`editor.deps.json`)
+- **Block auto-discovery** via `globSync` for `resources/blocks/*/` entries
+- **Docker/DDEV detection** for seamless local development
 
 After plugin creation with assets, install and build them:
 
@@ -705,46 +711,79 @@ Pollora plugins support modern asset management with Vite, including hot reload 
 
 ### Vite Configuration
 
+The plugin Vite configuration includes **Gutenberg block support** out of the box. Block entries in `resources/blocks/` are automatically discovered and compiled alongside regular assets:
+
 ```javascript
 // vite.config.js
 import { defineConfig } from "vite";
 import laravel, { refreshPaths } from 'laravel-vite-plugin';
+import { wordpressPlugin } from '@roots/vite-plugin';
+import { globSync } from 'glob';
 import path from 'path';
 import tailwindcss from '@tailwindcss/vite';
 
 const pluginName = path.basename(__dirname);
-const port = 5174; // Different port for plugins
+const port = 5174; // Different port for plugins (5173 for themes)
+const publicDirectory = "../../../../public";
+
+// Auto-discover Gutenberg block entries
+const blockEntries = globSync('./resources/blocks/*/{index,view}.{js,jsx,ts,tsx}')
+    .concat(globSync('./resources/blocks/*/{editor,style}.css'))
+    .reduce((acc, file) => {
+        const slug = path.basename(path.dirname(file));
+        const name = path.basename(file, path.extname(file));
+        acc[`blocks/${slug}/${name}`] = file;
+        return acc;
+    }, {});
+const hasBlocks = Object.keys(blockEntries).length > 0;
 
 const getPluginConfig = () => ({
-    base: "/build/plugins/" + pluginName,
-    input: ["./resources/assets/app.js"],
-    publicDirectory: "../../public",
-    hotFile: path.join("../../public", `${pluginName}.hot`),
+    base: "/build/plugin/" + pluginName,
+    input: ["./resources/assets/app.js", ...Object.values(blockEntries)],
+    publicDirectory,
+    hotFile: path.join(publicDirectory, `${pluginName}.hot`),
     buildDirectory: path.join("build", "plugins", pluginName),
     refresh: [
         ...refreshPaths,
         'public/content/plugins/'+pluginName+'/resources/views/**',
         'public/content/plugins/'+pluginName+'/app/**/*.php',
+        'resources/blocks/**',
     ],
 });
 
 export default defineConfig({
-    base: "/build/plugins/" + pluginName,
+    base: "/build/plugin/" + pluginName,
     build: {
         emptyOutDir: false,
     },
     plugins: [
         tailwindcss(),
         laravel(getPluginConfig()),
+        ...(hasBlocks ? [wordpressPlugin()] : []),
+        {
+            name: "blade",
+            handleHotUpdate({ file, server }) {
+                if (file.endsWith(".blade.php") || file.endsWith(".php")) {
+                    server.ws.send({ type: "full-reload", path: "*" });
+                }
+            },
+        },
     ],
-    server: {
-        port,
-        // Additional server configuration for Docker/DDEV
-    }
+    // Server configuration with Docker/DDEV detection...
 });
 ```
 
+Key points:
+- **Block auto-discovery**: `globSync` scans `resources/blocks/*/` for entry files
+- **Conditional `wordpressPlugin()`**: Only loaded when blocks exist (generates `editor.deps.json` for WordPress dependencies)
+- **Blade/PHP HMR**: Full reload on PHP/Blade file changes
+- **Docker/DDEV aware**: Automatic detection of container environments with proper HMR configuration
+
+> See [blocks.md](blocks.md) for detailed documentation on creating Gutenberg blocks.
+
 ### Package.json
+
+The plugin template includes all dependencies needed for modern asset compilation and Gutenberg block development:
 
 ```json
 {
@@ -754,19 +793,29 @@ export default defineConfig({
     "type": "module",
     "scripts": {
         "dev": "vite",
-        "build": "vite build",
-        "preview": "vite preview"
+        "build": "vite build"
     },
     "devDependencies": {
-        "@tailwindcss/postcss": "^4.0.0",
-        "@tailwindcss/vite": "^4.0.0",
-        "laravel-vite-plugin": "^1.0.0",
-        "postcss": "^8.4.49",
-        "tailwindcss": "^4.0.0",
-        "vite": "^6.0.0"
+        "@roots/vite-plugin": "^2.0.0",
+        "@tailwindcss/vite": "^4.2.3",
+        "@wordpress/block-editor": "^14.0.0",
+        "@wordpress/blocks": "^14.0.0",
+        "@wordpress/components": "^29.0.0",
+        "@wordpress/element": "^6.0.0",
+        "@wordpress/i18n": "^5.0.0",
+        "glob": "^11.0.0",
+        "laravel-vite-plugin": "^3.0.1",
+        "postcss": "^8.5.6",
+        "tailwindcss": "^4.2.3",
+        "vite": "^8.0.9"
+    },
+    "dependencies": {
+        "@tailwindcss/postcss": "^4.2.3"
     }
 }
 ```
+
+> The `@wordpress/*` and `@roots/vite-plugin` packages are included by default so plugins are ready for Gutenberg block development without additional setup. If your plugin doesn't use blocks, these packages are simply unused — no performance impact.
 
 ### Asset Container
 
