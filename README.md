@@ -48,6 +48,7 @@
 
 - [Theming](theming.md) — Theme structure, Blade templates, parent/child themes
 - [Assets](assets.md) — Vite integration, HMR, Tailwind CSS
+- [Blocks](blocks.md) — Custom Gutenberg blocks with Vite and JSX
 - [Patterns](patterns.md) — Gutenberg block patterns and categories
 
 ## Monitoring & Tooling
