@@ -797,7 +797,7 @@ class Book
         $postType->capabilityType('book');
         
         // Configure REST API
-        $postType->showInRest(true);
+        $postType->showInRest();
         $postType->restBase('library-books');
         
         // Set custom rewrite rules
@@ -827,40 +827,40 @@ public function configuring(\Pollora\Entity\Domain\Model\PostType $postType): vo
     $postType->labels(['name' => 'Books', 'singular_name' => 'Book']);
     $postType->description('A custom book post type');
     
-    // Visibility and UI
-    $postType->public(true);
-    $postType->publiclyQueryable(true);
-    $postType->showUi(true);
-    $postType->showInMenu(true);
-    $postType->showInNavMenus(true);
-    $postType->showInAdminBar(true);
+    // Visibility and UI (parameterless = true, use inverse methods for false)
+    $postType->public();             // or ->private()
+    $postType->publiclyQueryable();  // or ->notPubliclyQueryable()
+    $postType->showUi();             // or ->hideUi()
+    $postType->showInMenu();         // or ->hideFromMenu()
+    $postType->showInNavMenus();     // or ->hideFromNavMenus()
+    $postType->showInAdminBar();     // or ->hideFromAdminBar()
     
     // Features and capabilities
     $postType->supports(['title', 'editor', 'thumbnail']);
     $postType->capabilityType('post');
-    $postType->mapMetaCap(true);
+    $postType->mapMetaCap();         // or ->withoutMetaCap()
     
     // Archive and hierarchical
-    $postType->hasArchive(true);
-    $postType->hierarchical(false);
+    $postType->hasArchive(true);     // accepts bool|string
+    $postType->nonHierarchical();    // or ->hierarchical()
     
     // REST API
-    $postType->showInRest(true);
+    $postType->showInRest();         // or ->hideFromRest()
     $postType->restBase('books');
     $postType->restNamespace('wp/v2');
     
     // URL rewriting
     $postType->rewrite(['slug' => 'books', 'with_front' => false]);
-    $postType->queryVar(true);
+    $postType->queryVar(true);       // accepts bool|string
     
     // Menu configuration
     $postType->menuPosition(5);
     $postType->menuIcon('dashicons-book');
     
     // Search and export
-    $postType->excludeFromSearch(false);
-    $postType->canExport(true);
-    $postType->deleteWithUser(false);
+    $postType->includeInSearch();    // or ->excludeFromSearch()
+    $postType->canExport();          // or ->cannotExport()
+    $postType->keepOnUserDelete();   // or ->deleteWithUser()
 }
 ```
 

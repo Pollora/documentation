@@ -473,15 +473,12 @@ class ProductCategory
         ]);
         
         // REST API configuration
-        $taxonomy->showInRest(true);
+        $taxonomy->showInRest();
         $taxonomy->restBase('product-categories');
         
-        // Set custom capabilities
-        $taxonomy->capabilityType('manage_categories');
-        
         // Configure meta box behavior
-        $taxonomy->showInQuickEdit(true);
-        $taxonomy->showAdminColumn(true);
+        $taxonomy->showInQuickEdit();
+        $taxonomy->showAdminColumn();
     }
 }
 ```
@@ -504,25 +501,24 @@ public function configuring(\Pollora\Entity\Domain\Model\Taxonomy $taxonomy): vo
     $taxonomy->labels(['name' => 'Categories', 'singular_name' => 'Category']);
     $taxonomy->description('A custom category taxonomy');
     
-    // Visibility and UI
-    $taxonomy->public(true);
-    $taxonomy->publiclyQueryable(true);
-    $taxonomy->showUi(true);
-    $taxonomy->showInMenu(true);
-    $taxonomy->showInNavMenus(true);
-    $taxonomy->showInAdminBar(true);
+    // Visibility and UI (parameterless = true, use inverse methods for false)
+    $taxonomy->public();             // or ->private()
+    $taxonomy->publiclyQueryable();  // or ->notPubliclyQueryable()
+    $taxonomy->showUi();             // or ->hideUi()
+    $taxonomy->showInMenu();         // or ->hideFromMenu()
+    $taxonomy->showInNavMenus();     // or ->hideFromNavMenus()
     
     // Hierarchy and structure
-    $taxonomy->hierarchical(true);
-    $taxonomy->sort(false);
+    $taxonomy->hierarchical();       // or ->nonHierarchical()
+    $taxonomy->sort();               // or ->unsort()
     
     // Admin interface
-    $taxonomy->showAdminColumn(true);
-    $taxonomy->showInQuickEdit(true);
-    $taxonomy->showTagcloud(true);
+    $taxonomy->showAdminColumn();    // or ->hideAdminColumn()
+    $taxonomy->showInQuickEdit();    // or ->hideFromQuickEdit()
+    $taxonomy->showTagcloud();       // or ->hideFromTagcloud()
     
     // REST API
-    $taxonomy->showInRest(true);
+    $taxonomy->showInRest();         // or ->hideFromRest()
     $taxonomy->restBase('categories');
     $taxonomy->restNamespace('wp/v2');
     $taxonomy->restControllerClass('WP_REST_Terms_Controller');
@@ -546,8 +542,8 @@ public function configuring(\Pollora\Entity\Domain\Model\Taxonomy $taxonomy): vo
 ```php
 public function configuring(\Pollora\Entity\Domain\Model\Taxonomy $taxonomy): void
 {
-    // Object type association
-    $taxonomy->objectType(['post', 'page', 'product']);
+    // Note: objectType is set via the #[Taxonomy] attribute, not in configuring()
+    // e.g. #[Taxonomy(objectType: ['post', 'page', 'product'])]
     
     // Default term
     $taxonomy->defaultTerm([
@@ -560,8 +556,8 @@ public function configuring(\Pollora\Entity\Domain\Model\Taxonomy $taxonomy): vo
     $taxonomy->args(['orderby' => 'name', 'order' => 'ASC']);
     
     // Meta box behavior
-    $taxonomy->checkedOntop(true);
-    $taxonomy->exclusive(false); // Allow multiple terms
+    $taxonomy->checkedOntop();       // or ->uncheckedOntop()
+    $taxonomy->nonExclusive();       // or ->exclusive()
     
     // Callback functions
     $taxonomy->metaBoxCb([$this, 'customMetaBox']);

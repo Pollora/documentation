@@ -24,13 +24,13 @@ It consists of three key components:
 To create a new API route, use the `#[WpRestRoute]` attribute on a class.
 
 ```php
-use Pollora\WpRest\AbstractWpRestRoute;
+use Pollora\Attributes\WpRestRoute;
 
 #[WpRestRoute(
     namespace: 'app/v2',
     route: 'document/(?P<documentId>\\d+)'
 )]
-class DocumentAPI extends AbstractWpRestRoute {}
+class DocumentAPI {}
 ```
 
 ### Route Structure
@@ -47,24 +47,23 @@ GET wp-json/app/v2/document/18
 Use the `#[Method]` attribute on methods inside the class to define HTTP methods:
 
 ```php
-use Pollora\WpRest\AbstractWpRestRoute;
 use Pollora\Attributes\WpRestRoute\Method;
 use WP_REST_Request;
-use Illuminate\Http\JsonResponse;
+use WP_REST_Response;
 
-class DocumentAPI extends AbstractWpRestRoute
+class DocumentAPI
 {
     #[Method('GET')]
-    public function get(int $documentId): JsonResponse
+    public function get(int $documentId): WP_REST_Response
     {
-        return response()->json([
+        return new WP_REST_Response([
             'success' => true,
             'documentId' => $documentId,
         ]);
     }
 
     #[Method(['POST', 'DELETE'])]
-    public function delete(WP_REST_Request $request, int $documentId): JsonResponse
+    public function delete(WP_REST_Request $request, int $documentId): WP_REST_Response
     {
         return new WP_REST_Response([
             'success' => true,
@@ -93,7 +92,7 @@ Pollora allows defining **permissions** at both the class and method level.
 Permissions can be applied globally to all methods within a class:
 
 ```php
-use Pollora\WpRest\AbstractWpRestRoute;
+use Pollora\Attributes\WpRestRoute;
 use Pollora\Attributes\WpRestRoute;
 use Pollora\Attributes\WpRestRoute\Permissions\IsAdmin;
 
@@ -102,19 +101,19 @@ use Pollora\Attributes\WpRestRoute\Permissions\IsAdmin;
     route: 'document/(?P<documentId>\\d+)',
     permissionCallback: IsAdmin::class
 )]
-class AdminDocumentAPI extends AbstractWpRestRoute {}
+class AdminDocumentAPI {}
 ```
 
 ### Method-Level Permission
 Permissions can also be set for specific HTTP methods:
 ```php
-use Pollora\WpRest\AbstractWpRestRoute;
+use Pollora\Attributes\WpRestRoute;
 use Pollora\Attributes\WpRestRoute\Method;
 use WP_REST_Response;
 use Pollora\Attributes\WpRestRoute\Permissions\IsAdmin;
 use Pollora\Attributes\WpRestRoute\Permissions\IsAuthor;
 
-class AdminDocumentAPI extends AbstractWpRestRoute
+class AdminDocumentAPI
 {
     #[Method('GET', permissionCallback: IsAdmin::class)]
     public function get(): WP_REST_Response {}
@@ -151,7 +150,7 @@ class IsAdmin implements Permission
 
 ## Example Usage
 ```php
-use Pollora\WpRest\AbstractWpRestRoute;
+use Pollora\Attributes\WpRestRoute;
 use Pollora\Attributes\WpRestRoute;
 use Pollora\Attributes\WpRestRoute\Method;
 use Pollora\Attributes\WpRestRoute\Permissions\IsAdmin;
@@ -163,7 +162,7 @@ use WP_REST_Response;
     route: 'document/(?P<documentId>\\d+)',
     permissionCallback: IsAdmin::class
 )]
-class DocumentAPI extends AbstractWpRestRoute
+class DocumentAPI
 {
     #[Method('GET')]
     public function get(int $documentId): WP_REST_Response
