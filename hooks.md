@@ -210,11 +210,11 @@ Filter::remove('the_content', [App\Hooks\ContentHandler::class, 'modify']);
 
 ### Retrieving callbacks
 
-To get the registered callback for an action or filter:
+To get the registered callbacks for an action or filter:
 
 ```php
-$callback = Action::getCallbacks('init');
-$filterCallback = Filter::getCallbacks('the_content');
+$callbacks = Action::callbacks('init');
+$filterCallbacks = Filter::callbacks('the_content');
 ```
 
 ## Deferred callbacks
