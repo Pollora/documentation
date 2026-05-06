@@ -132,7 +132,7 @@ Filter::add('the_content', [$handler, 'modify']);
 
 ### Constructor injection
 
-Pollora automatically resolves dependencies when registering actions and filters using a class reference. Dependencies are injected via the constructor:
+Pollora automatically resolves dependencies when registering actions and filters using a class reference. Both the attribute-based discovery path and the imperative API (facades) support constructor injection through the Laravel container:
 
 ```php
 namespace App\Cms\Hooks;
@@ -217,12 +217,33 @@ $callback = Action::getCallbacks('init');
 $filterCallback = Filter::getCallbacks('the_content');
 ```
 
-## Singleton access
+## Deferred callbacks
 
-For optimized access and lifecycle management, all hookable classes are loaded into the application through a singleton named `wp.hooks`. This singleton centralizes access to all registered hooks.
-
-You can access the hooks through the singleton as follows:
+Pollora aligns with WordPress behavior for callback registration: callbacks that are not yet callable at registration time (e.g., functions defined by plugins loaded later) are accepted without throwing an exception. Validation occurs at execution time, just like WordPress's native `add_action()`/`add_filter()`.
 
 ```php
-$hooks = app('wp.hooks');
+// This works even if the function doesn't exist yet —
+// it will be resolved when the hook fires.
+Action::add('init', 'my_plugin_function');
+```
+
+## Service access
+
+The `Action` and `Filter` services are registered as singletons in the container and can be accessed via facades or dependency injection:
+
+```php
+// Via facades
+use Pollora\Support\Facades\Action;
+use Pollora\Support\Facades\Filter;
+
+// Via dependency injection
+use Pollora\Hook\Domain\Contracts\Action as ActionContract;
+use Pollora\Hook\Domain\Contracts\Filter as FilterContract;
+
+class MyService {
+    public function __construct(
+        private ActionContract $action,
+        private FilterContract $filter
+    ) {}
+}
 ```
