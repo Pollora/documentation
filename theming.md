@@ -72,11 +72,87 @@ theme-name/
 ├─ index.php
 ├─ package.json
 ├─ style.css
-├─ tailwind.config.js
 ├─ theme.json
-├─ vite.config.json
 └─ vite.config.js
 ```
+
+## Theme.json and Vite Build Integration
+
+Pollora provides automatic integration between the Vite build process and WordPress's `theme.json` system. Tailwind CSS variables are extracted at build time and injected into WordPress at runtime — the block editor receives your full design token palette without manual synchronization.
+
+### How It Works
+
+The `@roots/vite-plugin` package includes a `wordpressThemeJson` plugin that:
+
+1. Reads your source `theme.json` from the theme root (base configuration)
+2. Extracts CSS variables from the compiled Tailwind CSS (colors, font families, font sizes, border radius)
+3. Generates an enriched `theme.json` in the build output at `public/build/theme/{slug}/assets/theme.json`
+
+Pollora's `ThemeJsonResolver` hooks into WordPress's `wp_theme_json_data_theme` filter (WP 6.1+) to inject this built data at runtime. WordPress receives the full Tailwind-enriched theme settings dynamically.
+
+### Source theme.json
+
+Your source `theme.json` at the theme root serves as the **base configuration** — layout sizes, appearance tools, and any settings not derived from CSS:
+
+```json
+{
+    "$schema": "https://schemas.wp.org/wp/6.0/theme.json",
+    "version": 2,
+    "settings": {
+        "appearanceTools": true,
+        "layout": {
+            "contentSize": "1024px",
+            "wideSize": "1275px"
+        },
+        "typography": {
+            "dropCap": false
+        }
+    }
+}
+```
+
+### Vite Configuration
+
+In your `vite.config.js`, include the `wordpressThemeJson` plugin:
+
+```javascript
+import { wordpressThemeJson } from '@roots/vite-plugin';
+
+export default defineConfig({
+    plugins: [
+        tailwindcss(),
+        laravel(getThemeConfig()),
+        wordpressThemeJson({
+            baseThemeJsonPath: './theme.json',
+        }),
+    ],
+});
+```
+
+When you run `npm run build`, the plugin merges your base `theme.json` with all Tailwind CSS variables extracted from the compiled stylesheet. The result is written to the build directory.
+
+### What Gets Injected
+
+The built `theme.json` includes:
+
+- **Colors** — All Tailwind color palette shades (e.g., Red 50–950, Blue 50–950)
+- **Font sizes** — Tailwind's typography scale (`xs` through `9xl`)
+- **Font families** — `sans`, `serif`, `mono` from Tailwind defaults or your custom fonts
+- **Border radius** — Tailwind's radius scale (`xs` through `4xl`)
+
+These values are available in the WordPress block editor (Gutenberg) — users can select Tailwind colors, font sizes, and border radii directly from the editor UI.
+
+### Architecture
+
+The resolution follows the hexagonal architecture pattern used throughout the framework:
+
+| Layer | Class | Role |
+|-------|-------|------|
+| Domain | `ThemeJsonResolverInterface` | Contract for resolving built theme.json data |
+| Infrastructure | `ThemeJsonResolver` | Reads from `public/build/theme/{slug}/assets/theme.json` with in-memory cache |
+| Provider | `ThemeServiceProvider` | Registers the service and hooks into `wp_theme_json_data_theme` |
+
+The resolver is registered as a singleton and uses in-memory caching — the filesystem is read at most once per request per theme.
 
 ## Template Hierarchy
 
