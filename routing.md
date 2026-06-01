@@ -519,3 +519,113 @@ class RouteServiceProvider extends ServiceProvider
 ```
 
 This allows you to create custom routes that integrate seamlessly with both Laravel's routing system and WordPress's template hierarchy.
+
+## Theme & Plugin API Routes
+
+Themes and plugins can define their own routes by placing route files in a `routes/` directory at their root. The framework automatically discovers and loads these files during registration.
+
+### Route Files
+
+| File | Prefix | Use case |
+|------|--------|----------|
+| `routes/api.php` | `/api` | JSON endpoints, AJAX handlers, headless APIs |
+| `routes/web.php` | none | Custom pages, form handlers, redirects |
+
+### Basic Usage
+
+```php
+// themes/my-theme/routes/api.php
+
+use Illuminate\Support\Facades\Route;
+use Theme\MyTheme\Http\Controllers\Api\ProductSearchController;
+
+Route::get('/products/search', ProductSearchController::class);
+// → accessible at GET /api/products/search
+```
+
+```php
+// themes/my-theme/routes/web.php
+
+use Illuminate\Support\Facades\Route;
+
+Route::get('/custom-page', function () {
+    return view('pages.custom');
+});
+```
+
+API routes are standard Laravel routes — you can use controllers, middleware, route groups, rate limiting, and all other Laravel routing features.
+
+### Lightweight API Mode
+
+API routes (`/api/*`) automatically benefit from **lightweight mode**: WordPress loads without plugins, reducing response times from ~1.3s to ~100ms. The theme is still loaded, so routes, controllers, and services work normally.
+
+This is controlled by the `wordpress.api_plugins` configuration key:
+
+```php
+// config/wordpress.php
+
+// No plugins loaded (fastest — default)
+'api_plugins' => [],
+
+// Selective: only these plugins are loaded
+'api_plugins' => ['woocommerce', 'advanced-custom-fields-pro'],
+
+// Glob patterns: load all plugins matching a prefix
+'api_plugins' => ['woocommerce*'],
+// → matches woocommerce, woocommerce-subscriptions, woocommerce-payments, etc.
+
+// Load all plugins (disable lightweight mode)
+'api_plugins' => ['*'],
+// or
+'api_plugins' => null,
+```
+
+Since plugins are not loaded by default, API route handlers should use **Eloquent / DB facade** instead of WordPress or plugin functions (e.g., `get_permalink()`, `wc_get_product()`). When a handler needs a specific plugin, add it to the `api_plugins` array or use the `function_exists()` pattern to provide fallbacks:
+
+```php
+// Works with or without WooCommerce loaded
+if (function_exists('get_woocommerce_currency_symbol')) {
+    $currency = get_woocommerce_currency_symbol();
+} else {
+    $currency = DB::table('options')
+        ->where('option_name', 'woocommerce_currency')
+        ->value('option_value') ?? 'EUR';
+}
+```
+
+### Plugin Routes
+
+Plugins follow the same convention. Place a `routes/api.php` or `routes/web.php` in the plugin root:
+
+```
+my-plugin/
+├── app/
+│   └── Http/Controllers/Api/
+│       └── StatsController.php
+├── routes/
+│   └── api.php        ← GET /api/stats
+├── config/
+└── my-plugin.php
+```
+
+```php
+// plugins/my-plugin/routes/api.php
+
+use Illuminate\Support\Facades\Route;
+use Plugin\MyPlugin\Http\Controllers\Api\StatsController;
+
+Route::get('/stats', StatsController::class);
+```
+
+### Comparison with WordPress REST API
+
+| Feature | Theme/Plugin API routes | WordPress REST API |
+|---------|------------------------|--------------------|
+| Prefix | `/api/` | `/wp-json/` |
+| Framework | Laravel router | WP REST infrastructure |
+| Plugins loaded | Configurable (none by default) | All |
+| Response time | ~100ms | ~1.3s |
+| Authentication | Laravel middleware | WP nonce / application passwords |
+| ORM | Eloquent / DB facade | WP_Query / wpdb |
+
+Use theme/plugin API routes for performance-critical endpoints (search suggestions, autocomplete, dashboards). Use the WordPress REST API when you need full WordPress context (Gutenberg editor, third-party plugin integrations).
