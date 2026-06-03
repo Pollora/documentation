@@ -54,6 +54,7 @@
 ## Monitoring & Tooling
 
 - [Dashboard & Status](dashboard.md) — Admin dashboard, `pollora:status` command, `--json` output
+e- [Nectar — AI Context](nectar.md) — AI guidelines, agent skills, and MCP tools for AI-assisted development
 
 ## Advanced Features
 
