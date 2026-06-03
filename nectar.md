@@ -1,6 +1,6 @@
 # Nectar — AI Development Context
 
-Nectar is an AI-powered development companion for Pollora. Built on top of [Laravel Boost](https://laravel.com/docs/boost), it provides AI guidelines, agent skills, and a dedicated MCP server that gives AI agents deep context about your Pollora application.
+[Nectar](https://github.com/Pollora/Nectar) is an AI-powered development companion for Pollora. Built on top of [Laravel Boost](https://laravel.com/docs/boost), it provides AI guidelines, agent skills, and a dedicated MCP server that gives AI agents deep context about your Pollora application.
 
 ## Table of Contents
 
