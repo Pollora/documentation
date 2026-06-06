@@ -1,0 +1,679 @@
+# Post Type Attributes Reference
+
+Complete reference of all PHP 8 attributes available for custom post type registration in Pollora.
+
+For a tutorial introduction and usage guide, see [Post Types](post-types.md).
+
+## Visibility & Access
+
+### `PubliclyQueryable`
+
+Makes the post type publicly queryable on the front end.
+
+```php
+#[PubliclyQueryable]
+```
+
+By default, it's set to `true`. You can set it to `false` to make the post type not publicly queryable.
+
+### `PublicPostType`
+
+Sets the post type as public, making it visible in the admin UI and on the front end.
+
+```php
+#[PublicPostType]
+// or explicitly
+#[PublicPostType(true)]
+// or to make private
+#[PublicPostType(false)]
+```
+
+### `ExcludeFromSearch`
+
+Excludes the post type from search results.
+
+```php
+#[ExcludeFromSearch]
+// or explicitly
+#[ExcludeFromSearch(true)]
+// or to include in search
+#[ExcludeFromSearch(false)]
+```
+
+### `QueryVar`
+
+Sets the query_var key for this post type. If false, no query var is registered.
+
+```php
+#[QueryVar('event')]
+// or to use the post type name as query var
+#[QueryVar(true)]
+// or to disable query var
+#[QueryVar(false)]
+```
+
+## Archive & Structure
+
+### `HasArchive`
+
+Enables an archive page for the post type.
+
+```php
+#[HasArchive]
+// or with a custom archive slug
+#[HasArchive('custom-archive-slug')]
+```
+
+### `Hierarchical`
+
+Makes the post type hierarchical like pages, allowing for parent/child relationships.
+
+```php
+#[Hierarchical]
+// or explicitly
+#[Hierarchical(true)]
+// or to make non-hierarchical
+#[Hierarchical(false)]
+```
+
+### `Rewrite`
+
+Sets the rewrite rules for the post type. Can be a boolean or an array of options.
+
+```php
+#[Rewrite(['slug' => 'events', 'with_front' => false])]
+// or to use default rewrite rules
+#[Rewrite(true)]
+// or to disable rewrite rules
+#[Rewrite(false)]
+```
+
+### `Chronological`
+
+Sets the post type to be displayed in chronological order (newest first) in admin lists and queries.
+
+```php
+#[Chronological]
+// or explicitly
+#[Chronological(true)]
+```
+
+This is a convenience attribute that sets the default ordering to date, in descending order.
+
+## Features & Content
+
+### `Supports`
+
+Defines which features the post type supports.
+
+```php
+#[Supports(['title', 'editor', 'thumbnail'])]
+```
+
+Common support options include:
+- `title` - Post title
+- `editor` - Content editor
+- `author` - Author selection
+- `thumbnail` - Featured image
+- `excerpt` - Post excerpt
+- `comments` - Comments
+- `revisions` - Revisions
+- `custom-fields` - Custom fields
+- `page-attributes` - Page attributes (template, parent, menu order)
+
+### `Taxonomies`
+
+Connects the post type with specific taxonomies.
+
+```php
+#[Taxonomies(['category', 'post_tag', 'event_type'])]
+```
+
+### `Template`
+
+Defines a default block template for the post type in the block editor.
+
+```php
+#[Template([
+    ['core/heading', ['level' => 2, 'placeholder' => 'Event Title']],
+    ['core/paragraph', ['placeholder' => 'Event description...']]
+])]
+```
+
+### `TemplateLock`
+
+Controls whether the template can be modified in the block editor.
+
+```php
+#[TemplateLock('all')] // Locks the template completely
+// or
+#[TemplateLock('insert')] // Prevents adding or removing blocks, but allows moving
+// or
+#[TemplateLock(false)] // No lock
+```
+
+### `BlockEditor`
+
+Enables or disables the Gutenberg block editor for this post type. When disabled, the classic editor will be used instead.
+
+```php
+#[BlockEditor]
+// or explicitly
+#[BlockEditor(true)]
+// or to use classic editor
+#[BlockEditor(false)]
+```
+
+### `FeaturedImage`
+
+Customizes the featured image label for the post type.
+
+```php
+#[FeaturedImage('Event Cover Image')]
+```
+
+### `TitlePlaceholder`
+
+Customizes the placeholder text in the title field when creating a new post.
+
+```php
+#[TitlePlaceholder('Enter event title here')]
+```
+
+## Admin UI
+
+### `ShowUI`
+
+Controls whether to generate a default UI for managing this post type in the admin.
+
+```php
+#[ShowUI]
+// or explicitly
+#[ShowUI(true)]
+// or to hide UI
+#[ShowUI(false)]
+```
+
+### `ShowInMenu`
+
+Controls where to show the post type in the admin menu. True places it as a top-level menu, false hides it, and a string places it as a submenu of that menu.
+
+```php
+#[ShowInMenu]
+// or explicitly
+#[ShowInMenu(true)]
+// or to hide from menu
+#[ShowInMenu(false)]
+// or as a submenu of another menu
+#[ShowInMenu('tools.php')]
+```
+
+### `ShowInNavMenus`
+
+Controls whether this post type is available for selection in navigation menus.
+
+```php
+#[ShowInNavMenus]
+// or explicitly
+#[ShowInNavMenus(true)]
+// or to hide from nav menus
+#[ShowInNavMenus(false)]
+```
+
+### `ShowInAdminBar`
+
+Shows the post type in the WordPress admin bar.
+
+```php
+#[ShowInAdminBar]
+// or explicitly
+#[ShowInAdminBar(true)]
+// or to hide from admin bar
+#[ShowInAdminBar(false)]
+```
+
+### `MenuPosition`
+
+Sets the position in the admin menu where the post type should appear.
+
+```php
+#[MenuPosition(5)]
+```
+
+Common positions:
+- 5 - below Posts
+- 10 - below Media
+- 15 - below Links
+- 20 - below Pages
+- 25 - below Comments
+- 60 - below first separator
+- 65 - below Plugins
+- 70 - below Users
+- 75 - below Tools
+- 80 - below Settings
+- 100 - below second separator
+
+### `MenuIcon`
+
+Sets the dashicon to use for the post type in the admin menu.
+
+```php
+#[MenuIcon('dashicons-calendar')]
+```
+
+You can use any [WordPress Dashicon](https://developer.wordpress.org/resource/dashicons/) or a URL to a custom icon.
+
+### `QuickEdit`
+
+Enables or disables the quick edit functionality for this post type in the WordPress admin list table.
+
+```php
+#[QuickEdit]
+// or explicitly
+#[QuickEdit(true)]
+// or to disable quick edit
+#[QuickEdit(false)]
+```
+
+## Labels & Description
+
+### `Labels`
+
+Overrides specific labels with named parameters. Only the labels you provide are overridden; the rest keep their auto-generated values.
+
+```php
+#[Labels(
+    addNew: 'New Project',
+    notFound: 'No projects found.',
+    notFoundInTrash: 'No projects found in trash.',
+)]
+```
+
+Available parameters: `name`, `singularName`, `menuName`, `allItems`, `addNew`, `addNewItem`, `editItem`, `newItem`, `viewItem`, `viewItems`, `searchItems`, `notFound`, `notFoundInTrash`, `parentItemColon`, `archives`, `attributes`, `insertIntoItem`, `uploadedToThisItem`, `featuredImage`, `setFeaturedImage`, `removeFeaturedImage`, `useFeaturedImage`, `filterItemsList`, `itemsListNavigation`, `itemsList`, `itemPublished`, `itemUpdated`, `itemScheduled`, `itemReverted`.
+
+> **Note:** PHP attributes only accept constant expressions, so `__()` cannot be used here. For translatable labels, use `withArgs()` or `configuring()` instead (see [Internationalization](post-types.md#internationalization)).
+
+### `Label`
+
+Sets the singular label for the post type. This is used in the admin UI.
+
+```php
+#[Label('Event')]
+```
+
+### `Description`
+
+Sets the description for the post type. This is shown in the admin UI.
+
+```php
+#[Description('Custom events for the website')]
+```
+
+## Capabilities & Permissions
+
+### `CapabilityType`
+
+Sets the capability type for the post type, which is used as a base to build the capabilities that users need to edit, delete, and read posts of this type.
+
+```php
+#[CapabilityType('post')]
+// or
+#[CapabilityType('page')]
+// or custom
+#[CapabilityType('product')]
+```
+
+### `MapMetaCap`
+
+Enables WordPress to map meta capabilities to primitive capabilities. This is usually used together with `CapabilityType`.
+
+```php
+#[MapMetaCap]
+// or explicitly
+#[MapMetaCap(true)]
+// or to disable
+#[MapMetaCap(false)]
+```
+
+### `Capabilities`
+
+Provides an array of custom capabilities for this post type.
+
+```php
+#[Capabilities([
+    'edit_post' => 'edit_event',
+    'read_post' => 'read_event',
+    'delete_post' => 'delete_event',
+    'edit_posts' => 'edit_events',
+    'edit_others_posts' => 'edit_others_events'
+])]
+```
+
+## REST API
+
+### `ShowInRest`
+
+Makes the post type available via the REST API. This is needed for the Gutenberg editor to work with the post type.
+
+```php
+#[ShowInRest]
+// or explicitly
+#[ShowInRest(true)]
+// or to hide from REST API
+#[ShowInRest(false)]
+```
+
+### `RestBase`
+
+Defines the base URL segment that will be used in REST API endpoints for this post type. If not specified, the post type slug will be used.
+
+```php
+#[RestBase('events')]
+```
+
+### `RestNamespace`
+
+Defines the REST API namespace for the post type. If not specified, the default WordPress namespace (`wp/v2`) will be used.
+
+```php
+#[RestNamespace('my-app/v1')]
+```
+
+### `RestControllerClass`
+
+Specifies the controller class that should be used for handling REST API requests for this post type.
+
+```php
+#[RestControllerClass('WP_REST_Posts_Controller')]
+// or a custom controller
+#[RestControllerClass('MyApp\\REST\\EventController')]
+```
+
+## Dashboard & Feed
+
+### `DashboardActivity`
+
+Shows recent activity for this post type in the WordPress dashboard "Activity" widget.
+
+```php
+#[DashboardActivity]
+// or explicitly
+#[DashboardActivity(true)]
+// or to hide from dashboard activity
+#[DashboardActivity(false)]
+```
+
+### `DashboardGlance`
+
+Shows the post type in the "At a Glance" widget on the WordPress dashboard.
+
+```php
+#[DashboardGlance]
+// or explicitly
+#[DashboardGlance(true)]
+// or to hide from At a Glance widget
+#[DashboardGlance(false)]
+```
+
+### `ShowInFeed`
+
+Includes posts of this type in the site's main RSS feed.
+
+```php
+#[ShowInFeed]
+// or explicitly
+#[ShowInFeed(true)]
+// or to exclude from feed
+#[ShowInFeed(false)]
+```
+
+## Export & Deletion
+
+### `CanExport`
+
+Allows the post type to be exported using WordPress's built-in export tools.
+
+```php
+#[CanExport]
+// or explicitly
+#[CanExport(true)]
+// or to disable export
+#[CanExport(false)]
+```
+
+### `DeleteWithUser`
+
+When enabled, posts of this type belonging to a user will be moved to trash when the user is deleted.
+
+```php
+#[DeleteWithUser]
+// or explicitly
+#[DeleteWithUser(true)]
+// or to keep posts when user is deleted
+#[DeleteWithUser(false)]
+```
+
+## Meta Boxes
+
+### `RegisterMetaBoxCb`
+
+Defines a callback function that will be called when setting up meta boxes for the edit form. This attribute is applied to methods that will be used as callbacks.
+
+```php
+#[PostType]
+class Event
+{
+    #[RegisterMetaBoxCb]
+    public function registerEventMetaBoxes($post): void
+    {
+        add_meta_box(
+            'event_details',
+            'Event Details',
+            [$this, 'renderEventDetailsMetaBox'],
+            null,
+            'normal',
+            'default'
+        );
+    }
+    
+    public function renderEventDetailsMetaBox($post): void
+    {
+        // Render the meta box content
+        echo '<div class="event-details-meta-box">';
+        // ... your meta box HTML ...
+        echo '</div>';
+    }
+}
+```
+
+## Admin Columns & Filters (Extended CPTs)
+
+### `AdminCols`
+
+Configures the columns displayed in the admin list table for this post type.
+
+```php
+#[AdminCols([
+    'title' => [
+        'title'    => 'Event Title',
+        'function' => function($post_id) {
+            echo get_the_title($post_id);
+        },
+    ],
+    'date' => [
+        'title'    => 'Published',
+        'default'  => 'ASC',
+    ],
+    'featured_image' => [
+        'title'    => 'Image',
+        'function' => function($post_id) {
+            echo get_the_post_thumbnail($post_id, [50, 50]);
+        },
+        'width'    => 80,
+    ]
+])]
+```
+
+### `AdminCol`
+
+Defines an admin column for a post type. This attribute is applied to methods that generate the content for the column. It supports all the features provided by the [Extended CPTs library](https://github.com/johnbillion/extended-cpts/wiki/Admin-columns).
+
+```php
+#[PostType]
+class Event
+{
+    #[AdminCol('title', 'Event Title')]
+    public function formatTitle($postId): void
+    {
+        echo get_the_title($postId);
+    }
+    
+    #[AdminCol('featured_image', 'Featured Image', width: 80)]
+    public function displayImage($postId): void
+    {
+        echo get_the_post_thumbnail($postId, [50, 50]);
+    }
+    
+    #[AdminCol('event_date', 'Event Date', sortable: true, dateFormat: 'd/m/Y')]
+    public function displayEventDate($postId): void
+    {
+        $date = get_post_meta($postId, 'event_date', true);
+        echo date('d/m/Y', strtotime($date));
+    }
+    
+    #[AdminCol('price', 'Price', sortable: 'meta_value_num', metaKey: 'event_price')]
+    public function displayPrice($postId): void
+    {
+        $price = get_post_meta($postId, 'event_price', true);
+        echo '$' . number_format($price, 2);
+    }
+}
+```
+
+**Parameters:**
+
+- `$key` (string): The column key
+- `$title` (string): The column title
+- `$sortable` (bool|string, optional): Enable sorting. Use `true` for basic sorting, or specify a field like `'meta_value_num'` for custom sorting
+- `$titleIcon` (string|null, optional): Dashicon for column header (e.g., `'dashicons-calendar'`)
+- `$dateFormat` (string|null, optional): Date format for date-based fields (e.g., `'d/m/Y'`)
+- `$link` (string|null, optional): Link behavior: `'view'`, `'edit'`, `'list'`, or `'none'`
+- `$cap` (string|null, optional): User capability required to view column
+- `$postCap` (string|null, optional): Capability required to view column content
+- `$default` (string|null, optional): Set as default sorting column (`'ASC'` or `'DESC'`)
+- `$metaKey` (string|null, optional): For meta field columns
+- `$taxonomy` (string|null, optional): For taxonomy columns
+- `$featuredImage` (string|null, optional): Featured image size (e.g., `'thumbnail'`)
+- `$postField` (string|null, optional): Standard post table field
+- `$width` (int|null, optional): Column width in pixels
+
+**Extended CPT Features:**
+
+You can also use specialized column types without custom methods:
+
+```php
+#[PostType]
+class Product
+{
+    // Meta field column with automatic sorting
+    #[AdminCol('price', 'Price', sortable: 'meta_value_num', metaKey: 'product_price')]
+    public function dummyPrice() {} // Method name doesn't matter for meta columns
+    
+    // Taxonomy column
+    #[AdminCol('categories', 'Categories', taxonomy: 'product_category')]
+    public function dummyCategories() {}
+    
+    // Featured image column
+    #[AdminCol('image', 'Image', featuredImage: 'thumbnail', width: 80)]
+    public function dummyImage() {}
+    
+    // Post field column (built-in WordPress fields)
+    #[AdminCol('author', 'Author', postField: 'post_author', link: 'edit')]
+    public function dummyAuthor() {}
+}
+```
+
+**Advanced Examples:**
+
+```php
+#[PostType]
+class Event
+{
+    // Column with custom icon and capability restriction
+    #[AdminCol(
+        'vip_status',
+        'VIP Event',
+        titleIcon: 'dashicons-star-filled',
+        cap: 'manage_options',
+        sortable: true
+    )]
+    public function displayVipStatus($postId): void
+    {
+        $isVip = get_post_meta($postId, 'is_vip_event', true);
+        echo $isVip ? '★ VIP' : 'Regular';
+    }
+    
+    // Date column with custom format and default sorting
+    #[AdminCol(
+        'start_date',
+        'Start Date',
+        dateFormat: 'M j, Y',
+        default: 'ASC',
+        sortable: true
+    )]
+    public function displayStartDate($postId): void
+    {
+        $date = get_post_meta($postId, 'event_start_date', true);
+        echo date('M j, Y', strtotime($date));
+    }
+}
+```
+
+### `AdminFilters`
+
+Adds filterable columns to the admin list table. This is a feature provided by the Extended CPTs library.
+
+```php
+#[AdminFilters(['date', 'author', 'taxonomy' => 'event_type'])]
+```
+
+### `Archive`
+
+Configures the archive query for the post type. This is a feature provided by the Extended CPTs library.
+
+```php
+#[Archive(['nopaging' => true, 'orderby' => 'title'])]
+```
+
+### `SiteFilters`
+
+Adds filterable columns to the front-end queries. This is a feature provided by the Extended CPTs library.
+
+```php
+#[SiteFilters(['date', 'author', 'taxonomy' => 'event_type'])]
+```
+
+### `SiteSortables`
+
+Adds sortable columns for front-end queries. This is a feature provided by the Extended CPTs library.
+
+```php
+#[SiteSortables(['title' => 'Title', 'date' => 'Date', 'author' => 'Author'])]
+```
+
+## Registration
+
+### `Priority`
+
+Sets the priority for the post type registration during WordPress initialization. Lower numbers execute earlier.
+
+```php
+#[Priority(10)]  // Registers later
+#[Priority(5)]   // Default priority
+#[Priority(1)]   // Registers early
+```
+
+**Parameters:**
+- `$priority` (int): The registration priority (default: 5)
+
+This determines when the post type is registered during WordPress initialization. Use lower priorities for foundation types that other types depend on, and higher priorities for extended types.
