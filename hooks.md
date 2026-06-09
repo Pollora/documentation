@@ -1,24 +1,24 @@
-# Hookable Hooks
+# Hooks
 
 - [Attribute-based hooks](#attribute-based-hooks)
-  - [Declarate with artisan](#declarate-with-artisan-1)
+  - [Generate with Artisan](#generate-with-artisan)
   - [Action hooks](#action-hooks)
   - [Filter hooks](#filter-hooks)
 - [Facades](#action-and-filter-facades)
   - [Registering an action or filter](#registering-an-action-or-filter)
   - [Using functions, closures, or instances](#using-functions-closures-or-instances)
   - [Constructor injection](#constructor-injection)
-  - [Executing actions and filters](executing-actions-and-filters)
+  - [Executing actions and filters](#executing-actions-and-filters)
   - [Checking existence](#checking-existence)
   - [Removing actions and filters](#removing-actions-and-filters)
   - [Retrieving callbacks](#retrieving-callbacks)
-- [Singleton access](#singleton-access)
+- [Service access](#service-access)
 
 ## Attribute-based hooks
 
 You can define action and filter hooks using PHP attributes. This provides a more concise way to define hooks within your classes.
 
-### Declarate with artisan
+### Generate with Artisan
 
 You can create a new attribute-based hook class using the `pollora:make-action` or `pollora:make-filter` Artisan commands:
 
@@ -229,7 +229,7 @@ Action::add('init', 'my_plugin_function');
 
 ## Service access
 
-The `Action` and `Filter` services are registered as singletons in the container and can be accessed via facades or dependency injection:
+The `Action` and `Filter` services are registered in the container and can be accessed via facades or dependency injection:
 
 ```php
 // Via facades

@@ -75,8 +75,9 @@ The Discovery system automatically scans your codebase to find and register comp
 **Discovers**: Classes with `#[PostType]` attributes
 
 ```php
-#[PostType('product', ['public' => true])]
-class Product extends AbstractPostType
+#[PostType('product')]
+#[PublicPostType]
+class Product
 {
     // Post type implementation
 }
@@ -87,8 +88,9 @@ class Product extends AbstractPostType
 **Discovers**: Classes with `#[Taxonomy]` attributes
 
 ```php
-#[Taxonomy('product-category', ['hierarchical' => true])]
-class ProductCategory extends AbstractTaxonomy
+#[Taxonomy('product-category')]
+#[Hierarchical]
+class ProductCategory
 {
     // Taxonomy implementation
 }

@@ -337,7 +337,7 @@ The framework uses an enhanced template hierarchy system that builds upon WordPr
 
 ```php
 // In a service provider or plugin
-$templateHierarchy = \Pollora\Theme\TemplateHierarchy::instance();
+$templateHierarchy = app(\Pollora\Theme\TemplateHierarchy::class);
 
 // Register a custom template handler for product pages on sale
 $templateHierarchy->registerTemplateHandler('product_on_sale', function($queriedObject) {
@@ -381,7 +381,7 @@ function is_product_on_sale() {
 
 ```php
 // In a service provider
-$templateHierarchy = \Pollora\Theme\TemplateHierarchy::instance();
+$templateHierarchy = app(\Pollora\Theme\TemplateHierarchy::class);
 $templateHierarchy->finalizeHierarchy(true); // true enables caching
 ```
 

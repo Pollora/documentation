@@ -320,14 +320,14 @@ declare(strict_types=1);
 namespace Plugin\MyAwesomePlugin;
 
 use Pollora\Attributes\Action;
-use Pollora\Hook\Domain\Contracts\Hooks;
+use Pollora\Attributes\Filter;
 
 /**
  * Main plugin class for My Awesome Plugin.
  *
  * Uses Pollora's attribute-based hook system for cleaner code organization.
  */
-class MyAwesomePluginPlugin implements Hooks
+class MyAwesomePluginPlugin
 {
     protected string $version = '1.0.0';
     protected string $slug = 'my-awesome-plugin';
@@ -529,9 +529,8 @@ Instead of manual `add_action()` calls, use PHP 8 attributes:
 
 ```php
 use Pollora\Attributes\Action;
-use Pollora\Hook\Domain\Contracts\Hooks;
 
-class MyPluginClass implements Hooks
+class MyPluginClass
 {
     #[Action('init', priority: 10)]
     public function onInit(): void
@@ -560,7 +559,7 @@ class MyPluginClass implements Hooks
 ```php
 use Pollora\Attributes\Filter;
 
-class MyPluginClass implements Hooks
+class MyPluginClass
 {
     #[Filter('the_content', priority: 10)]
     public function modifyContent(string $content): string

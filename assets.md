@@ -227,6 +227,6 @@ This updated approach provides greater flexibility and maintains clarity in your
 
 ## Important: Use of the Service Provider
 
-It is essential to declare assets in a **Service Provider** rather than a **Hookable** class. The service provider ensures the assets are properly enqueued via the WordPress `wp_enqueue_scripts` hook.
+It is essential to declare assets in a **Service Provider** rather than a hook class. The service provider ensures the assets are properly enqueued via the WordPress `wp_enqueue_scripts` hook.
 
 By following these guidelines, you can ensure consistent and efficient asset management across your entire WordPress setup, leveraging the power of ViteJS and Pollora's asset management system.

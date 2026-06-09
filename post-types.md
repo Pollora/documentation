@@ -1,14 +1,10 @@
 # Post Types
 
-Pollora uses PHP 8 attributes to declare custom post types. This approach provides a clean, declarative syntax and better organization of your post types.
+Pollora uses PHP 8 attributes to declare custom post types, providing a clean, declarative syntax with automatic discovery and registration.
 
-## Using PHP Attributes
+## Creating a Post Type
 
-The most elegant way to define custom post types in Pollora is by using PHP 8 attributes. This approach provides a clean, declarative syntax and better organization of your post types.
-
-### Creating a Post Type with Attributes
-
-You can create a post type class anywhere in your application. The simplest approach is to create a class with the `#[PostType]` attribute:
+Create a class with the `#[PostType]` attribute anywhere in your application:
 
 ```php
 <?php
@@ -21,12 +17,6 @@ use Pollora\Attributes\PostType\HasArchive;
 use Pollora\Attributes\PostType\Supports;
 use Pollora\Attributes\PostType\MenuIcon;
 
-/**
- * Event post type.
- *
- * This class defines the Event custom post type using PHP attributes
- * for WordPress registration.
- */
 #[PostType]
 #[PubliclyQueryable]
 #[HasArchive]
@@ -37,9 +27,13 @@ class Event
 }
 ```
 
-### The `#[PostType]` Attribute
+You can also generate a post type class using Artisan:
 
-The `#[PostType]` attribute is the foundation for defining custom post types. It accepts optional parameters:
+```bash
+php artisan pollora:make-post-type Event
+```
+
+### The `#[PostType]` Attribute
 
 ```php
 #[PostType]                                          // Auto-generated slug, singular, and plural
@@ -48,210 +42,65 @@ The `#[PostType]` attribute is the foundation for defining custom post types. It
 ```
 
 **Parameters:**
-- `$slug` (optional): The post type slug. If not provided, automatically generated from class name using kebab-case
-- `$singular` (optional): The singular name. If not provided, automatically generated from class name
-- `$plural` (optional): The plural name. If not provided, automatically pluralized from singular name
-- `$textDomain` (optional): The text domain for auto-generated label translations. Defaults to `'pollora'`
+- `$slug` (optional): Post type slug. Auto-generated from class name in kebab-case if omitted
+- `$singular` (optional): Singular name. Auto-generated from class name if omitted
+- `$plural` (optional): Plural name. Auto-pluralized from singular if omitted
+- `$textDomain` (optional): Text domain for label translations. Defaults to `'pollora'`
 
-### Auto-Generation Examples
+### Auto-Generation
 
-When you don't specify parameters, Pollora automatically generates them from your class name:
-
-```php
-#[PostType]
-class Event {}
-// Generates: slug="event", singular="Event", plural="Events"
-
-#[PostType]
-class EventCategory {}
-// Generates: slug="event-category", singular="Event Category", plural="Event Categories"
-
-#[PostType]
-class BookReview {}
-// Generates: slug="book-review", singular="Book Review", plural="Book Reviews"
-```
-
-All labels (menu names, descriptions, etc.) are automatically generated based on the singular and plural names, providing a complete WordPress post type configuration with minimal code.
-
-### Common Attributes
-
-Pollora provides many attributes to configure your post types. Here are the most commonly used ones:
-
-#### `PubliclyQueryable`
-
-Makes the post type publicly queryable on the front end.
+Pollora generates slug, singular, and plural names from your class name:
 
 ```php
-#[PubliclyQueryable]
+#[PostType] class Event {}           // slug="event", singular="Event", plural="Events"
+#[PostType] class EventCategory {}   // slug="event-category", singular="Event Category", plural="Event Categories"
+#[PostType] class BookReview {}      // slug="book-review", singular="Book Review", plural="Book Reviews"
 ```
 
-By default, it's set to `true`. You can set it to `false` to make the post type not publicly queryable.
+All labels (menu names, descriptions, etc.) are automatically generated from the singular and plural names.
 
-#### `PublicPostType`
+## Common Attributes
 
-Sets the post type as public, making it visible in the admin UI and on the front end.
+### Visibility & Structure
 
-```php
-#[PublicPostType]
-// or explicitly
-#[PublicPostType(true)]
-// or to make private
-#[PublicPostType(false)]
-```
+| Attribute | Purpose | Usage |
+|-----------|---------|-------|
+| `PubliclyQueryable` | Front-end queryable | `#[PubliclyQueryable]` or `#[PubliclyQueryable(false)]` |
+| `PublicPostType` | Visible in admin + front end | `#[PublicPostType]` or `#[PublicPostType(false)]` |
+| `HasArchive` | Enable archive page | `#[HasArchive]` or `#[HasArchive('custom-slug')]` |
+| `Hierarchical` | Parent/child like pages | `#[Hierarchical]` or `#[Hierarchical(false)]` |
+| `Rewrite` | URL rewrite rules | `#[Rewrite(['slug' => 'events', 'with_front' => false])]` |
+| `ShowInRest` | REST API + Gutenberg | `#[ShowInRest]` or `#[ShowInRest(false)]` |
 
-#### `HasArchive`
+### Features & Content
 
-Enables an archive page for the post type.
+| Attribute | Purpose | Usage |
+|-----------|---------|-------|
+| `Supports` | Supported features | `#[Supports(['title', 'editor', 'thumbnail'])]` |
+| `Taxonomies` | Associated taxonomies | `#[Taxonomies(['category', 'post_tag'])]` |
+| `Template` | Default block template | `#[Template([['core/heading', ['level' => 2]]])]` |
+| `BlockEditor` | Gutenberg on/off | `#[BlockEditor]` or `#[BlockEditor(false)]` |
 
-```php
-#[HasArchive]
-// or with a custom archive slug
-#[HasArchive('custom-archive-slug')]
-```
+### Admin UI
 
-#### `Supports`
+| Attribute | Purpose | Usage |
+|-----------|---------|-------|
+| `ShowUI` | Admin management UI | `#[ShowUI]` or `#[ShowUI(false)]` |
+| `ShowInMenu` | Admin menu placement | `#[ShowInMenu]`, `#[ShowInMenu(false)]`, or `#[ShowInMenu('tools.php')]` |
+| `MenuIcon` | Admin menu icon | `#[MenuIcon('dashicons-calendar')]` |
+| `Labels` | Override specific labels | `#[Labels(addNew: 'New Project', notFound: 'None found.')]` |
 
-Defines which features the post type supports.
+> **Note:** `#[Labels]` only accepts constant expressions -- `__()` is not allowed. For translatable labels, use `withArgs()` or `configuring()` (see [Internationalization](#internationalization)).
 
-```php
-#[Supports(['title', 'editor', 'thumbnail'])]
-```
+Support options for `#[Supports]`: `title`, `editor`, `author`, `thumbnail`, `excerpt`, `comments`, `revisions`, `custom-fields`, `page-attributes`.
 
-Common support options include:
-- `title` - Post title
-- `editor` - Content editor
-- `author` - Author selection
-- `thumbnail` - Featured image
-- `excerpt` - Post excerpt
-- `comments` - Comments
-- `revisions` - Revisions
-- `custom-fields` - Custom fields
-- `page-attributes` - Page attributes (template, parent, menu order)
+Post types with `#[PostType]` are automatically discovered and registered -- no manual registration or configuration needed.
 
-#### `MenuIcon`
+## Advanced Usage
 
-Sets the dashicon to use for the post type in the admin menu.
+### `withArgs()` Method
 
-```php
-#[MenuIcon('dashicons-calendar')]
-```
-
-You can use any [WordPress Dashicon](https://developer.wordpress.org/resource/dashicons/) or a URL to a custom icon.
-
-#### `Hierarchical`
-
-Makes the post type hierarchical like pages, allowing for parent/child relationships.
-
-```php
-#[Hierarchical]
-// or explicitly
-#[Hierarchical(true)]
-// or to make non-hierarchical
-#[Hierarchical(false)]
-```
-
-#### `ShowInRest`
-
-Makes the post type available via the REST API. This is needed for the Gutenberg editor to work with the post type.
-
-```php
-#[ShowInRest]
-// or explicitly
-#[ShowInRest(true)]
-// or to hide from REST API
-#[ShowInRest(false)]
-```
-
-#### `ShowUI`
-
-Controls whether to generate a default UI for managing this post type in the admin.
-
-```php
-#[ShowUI]
-// or explicitly
-#[ShowUI(true)]
-// or to hide UI
-#[ShowUI(false)]
-```
-
-#### `ShowInMenu`
-
-Controls where to show the post type in the admin menu. True places it as a top-level menu, false hides it, and a string places it as a submenu of that menu.
-
-```php
-#[ShowInMenu]
-// or explicitly
-#[ShowInMenu(true)]
-// or to hide from menu
-#[ShowInMenu(false)]
-// or as a submenu of another menu
-#[ShowInMenu('tools.php')]
-```
-
-#### `Labels`
-
-Overrides specific labels with named parameters. Only the labels you provide are overridden; the rest keep their auto-generated values.
-
-```php
-#[Labels(
-    addNew: 'New Project',
-    notFound: 'No projects found.',
-    notFoundInTrash: 'No projects found in trash.',
-)]
-```
-
-> **Note:** PHP attributes only accept constant expressions, so `__()` cannot be used here. For translatable labels, use `withArgs()` or `configuring()` instead (see [Internationalization](#internationalization) below).
-
-#### `Taxonomies`
-
-Connects the post type with specific taxonomies.
-
-```php
-#[Taxonomies(['category', 'post_tag', 'event_type'])]
-```
-
-#### `Template`
-
-Defines a default block template for the post type in the block editor.
-
-```php
-#[Template([
-    ['core/heading', ['level' => 2, 'placeholder' => 'Event Title']],
-    ['core/paragraph', ['placeholder' => 'Event description...']]
-])]
-```
-
-#### `Rewrite`
-
-Sets the rewrite rules for the post type. Can be a boolean or an array of options.
-
-```php
-#[Rewrite(['slug' => 'events', 'with_front' => false])]
-// or to use default rewrite rules
-#[Rewrite(true)]
-// or to disable rewrite rules
-#[Rewrite(false)]
-```
-
-#### `BlockEditor`
-
-Enables or disables the Gutenberg block editor for this post type. When disabled, the classic editor will be used instead.
-
-```php
-#[BlockEditor]
-// or explicitly
-#[BlockEditor(true)]
-// or to use classic editor
-#[BlockEditor(false)]
-```
-
-### Automatic Registration
-
-Post types defined with the `#[PostType]` attribute are automatically discovered and registered with WordPress. You don't need to manually register them or add them to a configuration file.
-
-### Advanced Usage
-
-For more complex scenarios, you can add additional methods to your post type classes:
+Provide additional WordPress post type arguments merged with attribute-generated ones:
 
 ```php
 #[PostType('book')]
@@ -259,10 +108,6 @@ For more complex scenarios, you can add additional methods to your post type cla
 #[HasArchive]
 class Book
 {
-    /**
-     * Add custom arguments to the post type registration.
-     * This method will be called automatically if it exists.
-     */
     public function withArgs(): array
     {
         return [
@@ -270,23 +115,12 @@ class Book
             'show_in_rest' => true,
         ];
     }
-    
-    /**
-     * Custom method for additional functionality.
-     */
-    public function getBookDetails(): array
-    {
-        // Your custom logic here
-        return [];
-    }
 }
 ```
 
-The `withArgs()` method, if present, allows you to provide additional WordPress post type arguments that will be merged with those generated from attributes.
-
 ### The `configuring()` Lifecycle Hook
 
-The `configuring()` method provides a powerful way to programmatically configure your post type before registration. This method receives an Entity PostType instance that gives you access to the full Entity API for dynamic configuration.
+Programmatically configure the post type before registration using the Entity API:
 
 ```php
 #[PostType('book')]
@@ -294,48 +128,29 @@ The `configuring()` method provides a powerful way to programmatically configure
 #[HasArchive]
 class Book
 {
-    /**
-     * Configure the post type before registration.
-     * This method is called automatically during discovery.
-     */
     public function configuring(\Pollora\Entity\Domain\Model\PostType $postType): void
     {
-        // Set custom labels
         $postType->labels([
             'name' => 'Library Books',
             'singular_name' => 'Library Book',
             'add_new_item' => 'Add New Book to Library',
-            'edit_item' => 'Edit Library Book',
         ]);
         
-        // Configure supports
         $postType->supports(['title', 'editor', 'thumbnail', 'custom-fields']);
-        
-        // Set custom capabilities
         $postType->capabilityType('book');
-        
-        // Configure REST API
         $postType->showInRest();
         $postType->restBase('library-books');
-        
-        // Set custom rewrite rules
-        $postType->rewrite([
-            'slug' => 'library/books',
-            'with_front' => false,
-        ]);
+        $postType->rewrite(['slug' => 'library/books', 'with_front' => false]);
     }
 }
 ```
 
-**Key Features:**
+**Key features:**
+- Receives a `\Pollora\Entity\Domain\Model\PostType` instance with the full Entity API
+- Configurations in `configuring()` take priority over attributes; attributes fill remaining gaps
+- Labels are smart-merged: your custom labels override, missing labels auto-generate
 
-- **Entity API Access**: The `configuring()` method receives a full Entity PostType instance, giving you access to all Entity methods like `labels()`, `supports()`, `capabilityType()`, etc.
-- **Priority Over Attributes**: Configurations made in `configuring()` take priority over attribute configurations. However, attributes still provide missing values.
-- **Smart Merging**: Labels are intelligently merged - your custom labels are used as the base, with missing labels automatically filled from attribute configurations.
-
-**Available Entity Methods:**
-
-The Entity PostType instance provides methods for all WordPress post type arguments:
+**Available Entity methods:**
 
 ```php
 public function configuring(\Pollora\Entity\Domain\Model\PostType $postType): void
@@ -345,7 +160,7 @@ public function configuring(\Pollora\Entity\Domain\Model\PostType $postType): vo
     $postType->labels(['name' => 'Books', 'singular_name' => 'Book']);
     $postType->description('A custom book post type');
     
-    // Visibility and UI (parameterless = true, use inverse methods for false)
+    // Visibility (parameterless = true, use inverse methods for false)
     $postType->public();             // or ->private()
     $postType->publiclyQueryable();  // or ->notPubliclyQueryable()
     $postType->showUi();             // or ->hideUi()
@@ -382,49 +197,31 @@ public function configuring(\Pollora\Entity\Domain\Model\PostType $postType): vo
 }
 ```
 
-**Use Cases:**
+## Internationalization
 
-1. **Dynamic Labels**: Configure labels based on user locale or site settings
-2. **Conditional Features**: Enable/disable features based on site configuration
-3. **Complex Rewrite Rules**: Set up sophisticated URL structures
-4. **Integration Setup**: Configure REST API endpoints or custom capabilities
-5. **Theme-Specific Configuration**: Adjust post type behavior based on active theme
+Pollora provides three approaches for translatable post type labels:
 
-**Best Practices:**
+### Auto-Generated Labels (Default)
 
-- Use attributes for static configuration and `configuring()` for dynamic behavior
-- Leverage the smart merging - define base labels in `configuring()` and let attributes fill gaps
-- Keep the method focused on configuration logic, avoid business logic
-- Use type hints for better IDE support: `\Pollora\Entity\Domain\Model\PostType $postType`
-
-### Internationalization
-
-Pollora provides three approaches for translatable post type labels, depending on your needs:
-
-#### Auto-Generated Labels (Default)
-
-When no labels are specified, Pollora auto-generates them using `sprintf(__('Edit %s', 'pollora'), $singular)`. These patterns are extractible and included in the framework's `.pot` file. The `textDomain` parameter lets you use your own domain:
+Pollora auto-generates labels using `sprintf(__('Edit %s', 'pollora'), $singular)`. The `textDomain` parameter lets you use your own domain:
 
 ```php
 #[PostType('project', textDomain: 'my-theme')]
 ```
 
-#### Static Overrides with `#[Labels]`
+### Static Overrides with `#[Labels]`
 
-The `#[Labels]` attribute provides partial label overrides using named parameters. However, PHP attributes only accept constant expressions — `__()` calls are not allowed in attributes.
+Partial label overrides using named parameters (no `__()` -- constant expressions only):
 
 ```php
 #[PostType]
-#[Labels(
-    addNew: 'New Project',
-    notFound: 'No projects found.',
-)]
+#[Labels(addNew: 'New Project', notFound: 'No projects found.')]
 class Project {}
 ```
 
-#### Translatable Labels with `withArgs()`
+### Translatable Labels with `withArgs()`
 
-For fully translatable labels, use `withArgs()` where `__()` calls are evaluated at runtime and extractible by `wp i18n make-pot`:
+For fully translatable labels with `__()` calls evaluated at runtime:
 
 ```php
 #[PostType]
@@ -437,19 +234,14 @@ class Service
             'labels' => [
                 'name' => __('Services', 'my-theme'),
                 'singular_name' => __('Service', 'my-theme'),
-                'add_new' => __('Add New', 'my-theme'),
                 'add_new_item' => __('Add New Service', 'my-theme'),
-                'edit_item' => __('Edit Service', 'my-theme'),
-                'all_items' => __('All Services', 'my-theme'),
             ],
         ];
     }
 }
 ```
 
-#### Translatable Labels with `configuring()`
-
-The `configuring()` hook also supports `__()` for translatable labels with access to the full Entity API:
+### Translatable Labels with `configuring()`
 
 ```php
 #[PostType]
@@ -465,8 +257,6 @@ class Event
     }
 }
 ```
-
-**Summary:**
 
 | Approach | Translatable | Extractible by `make-pot` | Use case |
 |----------|-------------|---------------------------|----------|
