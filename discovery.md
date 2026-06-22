@@ -195,6 +195,8 @@ $discoveryManager->clearCache();
 
 ## Creating Custom Discovery Classes
 
+> **Extension author API:** The `Pollora\Discovery\Domain\Contracts\*` and `Pollora\Discovery\Domain\Services\*` namespaces are the **stable public contracts** for building custom discoveries. These types are intentionally exposed to extension authors and will follow semantic versioning guarantees.
+
 ### 1. Basic Discovery Class
 
 ```php

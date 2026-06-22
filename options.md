@@ -33,6 +33,8 @@ Option::delete('old_setting');
 
 For better testability and dependency management, inject the service directly:
 
+> **Advanced usage:** `OptionService` is an application-layer contract intended for dependency injection in services. For most use cases, prefer the `Option` facade above.
+
 ```php
 use Pollora\Option\Application\Services\OptionService;
 
@@ -176,7 +178,7 @@ $value = Option::get('optional_setting'); // Returns null, not false
 ### Working with Objects
 
 ```php
-use Pollora\Option\Domain\Models\Option as OptionModel;
+use Pollora\Option\Option as OptionModel;
 
 // Create option object for advanced manipulation
 $option = new OptionModel('api_credentials', [
@@ -333,8 +335,8 @@ class CachedOptionService
 ### Exception Types
 
 ```php
-use Pollora\Option\Domain\Exceptions\OptionNotFoundException;
-use Pollora\Option\Domain\Exceptions\InvalidOptionException;
+use Pollora\Option\OptionNotFoundException;
+use Pollora\Option\InvalidOptionException;
 
 // Handle missing required options
 try {
@@ -385,6 +387,8 @@ class ConfigService
 ## Testing
 
 ### Unit Testing
+
+> **Extension author API:** The `OptionRepositoryInterface` contract is a stable public interface for mocking in tests or providing custom storage backends.
 
 ```php
 use Pollora\Option\Application\Services\OptionService;
