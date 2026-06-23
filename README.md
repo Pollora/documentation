@@ -64,7 +64,6 @@ e- [Nectar — AI Context](nectar.md) — AI guidelines, agent skills, and MCP t
 - [Events & Listeners](events-listeners.md) — WordPress event dispatching and Laravel listeners
 - [Scheduling](schedule-events.md) — `#[Schedule]` attribute, WordPress cron management
 - [AJAX](ajax.md) — Handling AJAX requests
-- [Admin Pages](admin-pages.md) — WordPress admin interfaces
 - [Menu](menu.md) — Admin menu management
 
 ## Requirements
