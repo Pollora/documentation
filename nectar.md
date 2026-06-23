@@ -10,6 +10,7 @@
 - [Available MCP Tools](#available-mcp-tools)
 - [AI Guidelines](#ai-guidelines)
 - [Agent Skills](#agent-skills)
+- [Upgrade Assistance](#upgrade-assistance)
 - [Configuration](#configuration)
 - [Architecture](#architecture)
 
@@ -20,6 +21,7 @@ When working with AI coding assistants (Claude Code, Cursor, Windsurf, etc.), th
 - **Injecting Pollora-specific guidelines** into your AI agent's context via Laravel Boost
 - **Providing 8 on-demand skills** for domain-specific tasks (post types, themes, hooks, etc.)
 - **Exposing 10 MCP tools** for live introspection of your WordPress and Pollora environment
+- **Offering upgrade prompts** that guide AI agents step-by-step through Pollora major version upgrades
 
 Nectar is a development-only package — it only loads in `local` and `development` environments.
 
@@ -193,6 +195,38 @@ Skills are activated on-demand when working on specific tasks:
 
 Each skill provides detailed instructions, code examples, and best practices specific to its domain.
 
+## Upgrade Assistance
+
+Nectar includes MCP upgrade prompts that guide AI agents through Pollora major version upgrades. Prompts are **automatically registered** when the current project version matches — no manual activation needed.
+
+### Available Upgrade Prompts
+
+| Prompt | Available When | What It Covers |
+|--------|---------------|----------------|
+| `upgrade-pollora-v13` | Pollora 12.x detected | Full migration guide from Pollora 12 to 13 |
+
+### Pollora 12→13 Upgrade Coverage
+
+The `upgrade-pollora-v13` prompt covers all breaking changes and migration steps:
+
+- **Loop facade removal** (v13.2) — migration to Sage Directives (`@title`, `@content`, `@excerpt`)
+- **Config-based registration removal** (v13.4) — migration from `config/post-types.php` and `config/taxonomies.php` to `#[PostType]` and `#[Taxonomy]` attribute classes
+- **`@theme` Blade directive removal** (v13.4) — conflicts with Tailwind CSS v4 `@theme` at-rule
+- **Route model namespace change** (v13.4) — from `Domain\Models` to `Infrastructure\Models`
+- **CSRF middleware rename** (Laravel 13) — `ValidateCsrfToken` to `PreventRequestForgery` with WordPress-specific route exclusions
+- **Theme Vite configuration** — `@roots/vite-plugin` with `wordpressThemeJson` for font and theme.json resolution
+- **WordPress 7.0 update**
+- **Post-upgrade cleanup** — cache clearing, discovery rebuild, `wp transient delete --all`
+
+The prompt follows a systematic 6-step process: assess → create safety net → analyze codebase → apply changes → update dependencies → clean up and verify.
+
+### Version-Specific Guidelines
+
+Nectar provides version-specific guidelines that are loaded automatically based on the installed Pollora version:
+
+- **`12/core.blade.php`** — Documents features available in v12 (Loop facade, `@theme` directive, config-based registration) with deprecation notes
+- **`13/core.blade.php`** — Documents v13 features (discovery enhancements, template hierarchy, theme API routes, WordPress events)
+
 ## Configuration
 
 Publish the configuration file:
@@ -236,12 +270,12 @@ Nectar extends Laravel Boost with three layers:
             │              │              │
 ┌───────────▼──┐  ┌────────▼───────┐  ┌──▼──────────┐
 │  Guidelines  │  │    Skills      │  │  MCP Server  │
-│  (Blade)     │  │  (Markdown)    │  │  (Tools)     │
-├──────────────┤  ├────────────────┤  ├─────────────┤
-│ core.blade   │  │ pollora-hooks  │  │ 10 tools    │
-│ 13/core.blade│  │ pollora-blocks │  │ read-only   │
-│              │  │ pollora-theme  │  │ live data   │
-│              │  │ ...6 more      │  │             │
+│  (Blade)     │  │  (Markdown)    │  │  (Tools +    │
+├──────────────┤  ├────────────────┤  │   Prompts)   │
+│ core.blade   │  │ pollora-hooks  │  ├─────────────┤
+│ 12/core.blade│  │ pollora-blocks │  │ 10 tools    │
+│ 13/core.blade│  │ pollora-theme  │  │ 1 upgrade   │
+│              │  │ ...6 more      │  │   prompt    │
 └──────────────┘  └────────────────┘  └─────────────┘
 ```
 
