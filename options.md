@@ -177,8 +177,10 @@ $value = Option::get('optional_setting'); // Returns null, not false
 
 ### Working with Objects
 
+> **Domain types as public API:** The `Domain\Models` and `Domain\Exceptions` types below are stable public contracts that follow semantic versioning. Importing them directly is the intended usage pattern.
+
 ```php
-use Pollora\Option\Option as OptionModel;
+use Pollora\Option\Domain\Models\Option as OptionModel;
 
 // Create option object for advanced manipulation
 $option = new OptionModel('api_credentials', [
@@ -335,8 +337,8 @@ class CachedOptionService
 ### Exception Types
 
 ```php
-use Pollora\Option\OptionNotFoundException;
-use Pollora\Option\InvalidOptionException;
+use Pollora\Option\Domain\Exceptions\OptionNotFoundException;
+use Pollora\Option\Domain\Exceptions\InvalidOptionException;
 
 // Handle missing required options
 try {

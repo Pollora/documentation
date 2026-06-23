@@ -47,7 +47,7 @@ Place the `#[Ajax]` attribute on a public method to auto-register it as an AJAX 
 
 ```php
 use Pollora\Attributes\Ajax;
-use Pollora\Ajax\AjaxAccess;
+use Pollora\Ajax\Domain\Model\AjaxAccess;
 
 class NewsletterHandler
 {
