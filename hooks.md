@@ -232,11 +232,11 @@ Action::add('init', 'my_plugin_function');
 The `Action` and `Filter` services are registered in the container and can be accessed via facades or dependency injection:
 
 ```php
-// Via facades
+// Via facades (recommended for most use cases)
 use Pollora\Support\Facades\Action;
 use Pollora\Support\Facades\Filter;
 
-// Via dependency injection
+// Via dependency injection (for services that need hook contracts)
 use Pollora\Hook\Domain\Contracts\Action as ActionContract;
 use Pollora\Hook\Domain\Contracts\Filter as FilterContract;
 
@@ -247,3 +247,5 @@ class MyService {
     ) {}
 }
 ```
+
+> **Extension author API:** The `Pollora\Hook\Domain\Contracts\Action` and `Pollora\Hook\Domain\Contracts\Filter` interfaces are **stable public contracts** for services that need to register hooks programmatically via dependency injection. For most use cases, prefer the facades above.
