@@ -36,7 +36,7 @@ For better testability and dependency management, inject the service directly:
 > **Advanced usage:** `OptionService` is an application-layer contract intended for dependency injection in services. For most use cases, prefer the `Option` facade above.
 
 ```php
-use Pollora\Option\Application\Services\OptionService;
+use Pollora\Option\Application\Service\OptionService;
 
 class ThemeController
 {
@@ -180,7 +180,7 @@ $value = Option::get('optional_setting'); // Returns null, not false
 > **Domain types as public API:** The `Domain\Models` and `Domain\Exceptions` types below are stable public contracts that follow semantic versioning. Importing them directly is the intended usage pattern.
 
 ```php
-use Pollora\Option\Domain\Models\Option as OptionModel;
+use Pollora\Option\Domain\Model\Option as OptionModel;
 
 // Create option object for advanced manipulation
 $option = new OptionModel('api_credentials', [
@@ -337,8 +337,8 @@ class CachedOptionService
 ### Exception Types
 
 ```php
-use Pollora\Option\Domain\Exceptions\OptionNotFoundException;
-use Pollora\Option\Domain\Exceptions\InvalidOptionException;
+use Pollora\Option\Domain\Exception\OptionNotFoundException;
+use Pollora\Option\Domain\Exception\InvalidOptionException;
 
 // Handle missing required options
 try {
@@ -393,8 +393,8 @@ class ConfigService
 > **Extension author API:** The `OptionRepositoryInterface` contract is a stable public interface for mocking in tests or providing custom storage backends.
 
 ```php
-use Pollora\Option\Application\Services\OptionService;
-use Pollora\Option\Domain\Contracts\OptionRepositoryInterface;
+use Pollora\Option\Application\Service\OptionService;
+use Pollora\Option\Domain\Contract\OptionRepositoryInterface;
 
 class OptionServiceTest extends TestCase
 {
