@@ -237,8 +237,8 @@ use Pollora\Support\Facades\Action;
 use Pollora\Support\Facades\Filter;
 
 // Via dependency injection (for services that need hook contracts)
-use Pollora\Hook\Domain\Contracts\Action as ActionContract;
-use Pollora\Hook\Domain\Contracts\Filter as FilterContract;
+use Pollora\Hook\Domain\Contract\Action as ActionContract;
+use Pollora\Hook\Domain\Contract\Filter as FilterContract;
 
 class MyService {
     public function __construct(
@@ -248,4 +248,4 @@ class MyService {
 }
 ```
 
-> **Extension author API:** The `Pollora\Hook\Domain\Contracts\Action` and `Pollora\Hook\Domain\Contracts\Filter` interfaces are **stable public contracts** for services that need to register hooks programmatically via dependency injection. For most use cases, prefer the facades above.
+> **Extension author API:** The `Pollora\Hook\Domain\Contract\Action` and `Pollora\Hook\Domain\Contract\Filter` interfaces are **stable public contracts** for services that need to register hooks programmatically via dependency injection. For most use cases, prefer the facades above.
