@@ -20,6 +20,7 @@
 
 - [Installation](installation.md) — Setup with Composer, DDEV, and environment configuration
 - [Getting Started](getting-started.md) — Build your first Pollora application
+- [Server Configuration](server-configuration.md) — Apache/Nginx setup, directory protection, reverse proxy & HTTPS
 - [IDE Integration](ide.md) — Configure your editor for optimal DX
 - [Environment Management](environment-management.md) — Managing WordPress constants and `.env`
 
