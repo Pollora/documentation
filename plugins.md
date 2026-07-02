@@ -42,7 +42,7 @@ Generate a new plugin using the Artisan command:
 
 ```bash
 # Create a plugin with modern asset management (recommended for frontend-heavy plugins)
-php artisan pollora:make-plugin my-awesome-plugin \
+php artisan pollora:make:plugin my-awesome-plugin \
     --plugin-author="John Doe" \
     --plugin-author-uri="https://johndoe.com" \
     --plugin-uri="https://github.com/johndoe/my-awesome-plugin" \
@@ -51,7 +51,7 @@ php artisan pollora:make-plugin my-awesome-plugin \
     --asset=true
 
 # Or create a minimal plugin without assets (good for backend-focused plugins)
-php artisan pollora:make-plugin my-awesome-plugin \
+php artisan pollora:make:plugin my-awesome-plugin \
     --plugin-author="John Doe" \
     --plugin-author-uri="https://johndoe.com" \
     --plugin-uri="https://github.com/johndoe/my-awesome-plugin" \
@@ -181,11 +181,11 @@ namespace Plugin\MyAwesomePlugin;
 
 ### Using the Make Command
 
-The `pollora:make-plugin` command provides several options:
+The `pollora:make:plugin` command provides several options:
 
 ```bash
 # Basic plugin creation
-php artisan pollora:make-plugin my-plugin \
+php artisan pollora:make:plugin my-plugin \
     --plugin-author="Author" \
     --plugin-author-uri="https://author.com" \
     --plugin-uri="https://plugin.com" \
@@ -193,7 +193,7 @@ php artisan pollora:make-plugin my-plugin \
     --plugin-version="1.0.0"
 
 # Create plugin with assets (JS/CSS with ViteJS compilation)
-php artisan pollora:make-plugin my-plugin \
+php artisan pollora:make:plugin my-plugin \
     --plugin-author="Author" \
     --plugin-author-uri="https://author.com" \
     --plugin-uri="https://plugin.com" \
@@ -202,7 +202,7 @@ php artisan pollora:make-plugin my-plugin \
     --asset=true
 
 # Create plugin without assets (minimal structure)
-php artisan pollora:make-plugin my-plugin \
+php artisan pollora:make:plugin my-plugin \
     --plugin-author="Author" \
     --plugin-author-uri="https://author.com" \
     --plugin-uri="https://plugin.com" \
@@ -211,7 +211,7 @@ php artisan pollora:make-plugin my-plugin \
     --asset=false
 
 # Create from GitHub repository
-php artisan pollora:make-plugin my-plugin \
+php artisan pollora:make:plugin my-plugin \
     --plugin-author="Author" \
     --plugin-author-uri="https://author.com" \
     --plugin-uri="https://plugin.com" \
@@ -220,7 +220,7 @@ php artisan pollora:make-plugin my-plugin \
     --repository=owner/repo
 
 # Force overwrite existing plugin
-php artisan pollora:make-plugin my-plugin \
+php artisan pollora:make:plugin my-plugin \
     --plugin-author="Author" \
     --plugin-author-uri="https://author.com" \
     --plugin-uri="https://plugin.com" \

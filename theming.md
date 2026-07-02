@@ -11,13 +11,13 @@ The Pollora framework offers a robust and flexible system for creating and manag
 To generate a new theme, run the following command:
 
 ```bash
-php artisan pollora:make-theme
+php artisan pollora:make:theme
 ```
 
 You'll be prompted to answer several questions to configure your theme. Alternatively, you can pass the configuration as options:
 
 ```bash
-php artisan pollora:make-theme {theme-name} \
+php artisan pollora:make:theme {theme-name} \
   --theme-author="Author Name" \
   --theme-author-uri="https://author.com" \
   --theme-uri="https://theme.com" \

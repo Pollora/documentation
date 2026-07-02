@@ -16,7 +16,7 @@ The `BlockRegistrar` service scans a directory for subdirectories containing `bl
 ### 1. Scaffold a Block
 
 ```bash
-php artisan pollora:make-block hero-banner --theme
+php artisan pollora:make:block hero-banner --theme
 ```
 
 This creates all the files in `resources/blocks/hero-banner/` and bootstraps the Vite infrastructure on first use (vite.config.js patching, npm dependencies, `BlocksServiceProvider`).
@@ -98,7 +98,7 @@ registerBlockType(metadata.name, {
 
 ## BlocksServiceProvider
 
-Each theme, plugin, or module that contains blocks needs a `BlocksServiceProvider` to register them. The `pollora:make-block` command creates this automatically on first use.
+Each theme, plugin, or module that contains blocks needs a `BlocksServiceProvider` to register them. The `pollora:make:block` command creates this automatically on first use.
 
 ```php
 <?php
@@ -231,12 +231,12 @@ The `source(".")` parameter tells Tailwind to scan **only the block's directory*
 
 Without `source(".")`, the block's CSS would include utilities from the entire project — much larger than necessary.
 
-## `pollora:make-block` Command
+## `pollora:make:block` Command
 
 ### Usage
 
 ```bash
-php artisan pollora:make-block <name> [options]
+php artisan pollora:make:block <name> [options]
 ```
 
 ### Arguments
@@ -264,16 +264,16 @@ php artisan pollora:make-block <name> [options]
 
 ```bash
 # Simple static block in the active theme
-php artisan pollora:make-block hero-banner --theme
+php artisan pollora:make:block hero-banner --theme
 
 # Dynamic block with server-side rendering
-php artisan pollora:make-block testimonial --theme --dynamic --title="Testimonial"
+php artisan pollora:make:block testimonial --theme --dynamic --title="Testimonial"
 
 # Block with InnerBlocks in a plugin
-php artisan pollora:make-block accordion --plugin=my-plugin --inner-blocks
+php artisan pollora:make:block accordion --plugin=my-plugin --inner-blocks
 
 # Custom namespace and category
-php artisan pollora:make-block pricing-table --theme --namespace=starter --category=design
+php artisan pollora:make:block pricing-table --theme --namespace=starter --category=design
 ```
 
 ### First-Run Bootstrap
@@ -311,7 +311,7 @@ In `index.jsx`, set `save: () => null` since rendering is handled server-side.
 
 ## npm Dependencies
 
-Block development requires these packages (added automatically by `pollora:make-block`):
+Block development requires these packages (added automatically by `pollora:make:block`):
 
 ```json
 {

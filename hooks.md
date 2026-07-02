@@ -20,14 +20,14 @@ You can define action and filter hooks using PHP attributes. This provides a mor
 
 ### Generate with Artisan
 
-You can create a new attribute-based hook class using the `pollora:make-action` or `pollora:make-filter` Artisan commands:
+You can create a new attribute-based hook class using the `pollora:make:action` or `pollora:make:filter` Artisan commands:
 
 ```bash
 # Create a new action hook class
-php artisan pollora:make-action MyActionClass
+php artisan pollora:make:action MyActionClass
 
 # Create a new filter hook class
-php artisan pollora:make-filter MyFilterClass
+php artisan pollora:make:filter MyFilterClass
 ```
 
 ### Action hooks

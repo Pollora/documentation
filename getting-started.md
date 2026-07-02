@@ -32,7 +32,7 @@ This command will:
 
 During the setup, you'll be prompted for:
 
-#### Environment Configuration (pollora:env-setup)
+#### Environment Configuration (pollora:env:setup)
 
 - **Site URL**: Your site's URL (e.g., https://example.com)
 - **Database Configuration**:
@@ -63,7 +63,7 @@ If you prefer to run the installation steps manually, you can use the following 
 
 ```bash
 # Configure environment
-php artisan pollora:env-setup
+php artisan pollora:env:setup
 
 # Install WordPress
 php artisan pollora:install
@@ -107,7 +107,7 @@ If you prefer the traditional WordPress installation interface, you can:
 
 1. Run the environment setup:
 ```bash
-php artisan pollora:env-setup
+php artisan pollora:env:setup
 ```
 
 2. Once the `.env` file is configured, visit your site's URL and follow the WordPress installation wizard.

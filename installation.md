@@ -264,7 +264,7 @@ If you encounter database connection issues:
 1. Verify your database credentials
 2. Ensure your database server is running
 3. Check if the database exists and is accessible
-4. Run `php artisan pollora:env-setup` to reconfigure database settings
+4. Run `php artisan pollora:env:setup` to reconfigure database settings
 
 ### Installation Failed
 

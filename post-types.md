@@ -30,7 +30,7 @@ class Event
 You can also generate a post type class using Artisan:
 
 ```bash
-php artisan pollora:make-post-type Event
+php artisan pollora:make:post-type Event
 ```
 
 ### The `#[PostType]` Attribute

@@ -359,13 +359,13 @@ Generate command classes with Artisan:
 
 ```bash
 # Basic command
-php artisan pollora:make-wp-cli TestCommand --description="Test command"
+php artisan pollora:make:wp-cli TestCommand --description="Test command"
 
 # In a theme
-php artisan pollora:make-wp-cli ThemeCommand --theme=mytheme --description="Theme utilities"
+php artisan pollora:make:wp-cli ThemeCommand --theme=mytheme --description="Theme utilities"
 
 # In a plugin
-php artisan pollora:make-wp-cli PluginCommand --plugin=myplugin --description="Plugin tools"
+php artisan pollora:make:wp-cli PluginCommand --plugin=myplugin --description="Plugin tools"
 ```
 
 ### Options
