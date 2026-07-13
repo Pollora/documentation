@@ -7,6 +7,7 @@ The Pollora Discovery system provides automatic component discovery in your appl
 - [Overview](#overview)
 - [Architecture](#architecture)
 - [Built-in Discovery Classes](#built-in-discovery-classes)
+- [Skipping Discovery](#skipping-discovery)
 - [API Usage](#api-usage)
 - [Creating Custom Discovery Classes](#creating-custom-discovery-classes)
 - [Discovery Engine](#discovery-engine)
@@ -148,6 +149,66 @@ class ApiController
     }
 }
 ```
+
+## Skipping Discovery
+
+### Excluding a Class Entirely
+
+Use the `#[SkipDiscovery]` attribute to prevent a class from being processed by the discovery engine. No reflection will be loaded and no attributes will be scanned — the class is completely invisible to all discoveries.
+
+```php
+use Pollora\Attributes\SkipDiscovery;
+
+#[SkipDiscovery]
+class InternalHelper
+{
+    // This class will never be discovered, regardless of its attributes
+}
+```
+
+This is useful for:
+- Base classes or abstract helpers that should not be auto-registered
+- Test fixtures or development-only classes
+- Classes with attributes that are processed by external systems
+
+### Selective Exclusion with `except`
+
+Sometimes you want a class to be ignored by most discoveries but still processed by specific ones. Use the `except` parameter to list the discovery classes that should still see the class:
+
+```php
+use Pollora\Attributes\SkipDiscovery;
+use Pollora\Hook\Infrastructure\Services\HookDiscovery;
+
+#[SkipDiscovery(except: [HookDiscovery::class])]
+class SpecializedHookHandler
+{
+    #[Action('init')]
+    public function onInit(): void
+    {
+        // This hook WILL be discovered (HookDiscovery is in the except list)
+    }
+}
+```
+
+In this example, the class is skipped by `PostTypeDiscovery`, `ServiceProviderDiscovery`, `ScheduleDiscovery`, etc. — but `HookDiscovery` will still process it and register the `#[Action]` attribute.
+
+You can list multiple discovery classes:
+
+```php
+#[SkipDiscovery(except: [HookDiscovery::class, ScheduleDiscovery::class])]
+class MyClass
+{
+    // Only hooks and schedules will be discovered
+}
+```
+
+### How It Works
+
+The `#[SkipDiscovery]` attribute is detected during the Spatie token-parsing phase — before any reflection is loaded. This means:
+
+- **Zero overhead** on classes without the attribute
+- **No reflection cost** for fully skipped classes (`#[SkipDiscovery]` without `except`)
+- Reflection is only loaded when `except` is used, to read the parameter values
 
 ## API Usage
 
