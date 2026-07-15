@@ -202,6 +202,43 @@ class MyClass
 }
 ```
 
+### Config-Level Exclusions
+
+For cases where you cannot modify the source code (third-party packages, vendor classes), use the `config/discovery.php` configuration file to exclude classes or paths globally.
+
+Publish the config file:
+
+```bash
+php artisan vendor:publish --tag=pollora-config
+```
+
+Then configure the exclusions:
+
+```php
+// config/discovery.php
+return [
+    /*
+     * Fully qualified class names to exclude from discovery.
+     */
+    'skip_classes' => [
+        App\Legacy\OldController::class,
+        SomeVendor\Package\InternalHelper::class,
+    ],
+
+    /*
+     * Path patterns to exclude from discovery scanning.
+     * Matched with str_contains() — use directory names or partial paths.
+     */
+    'skip_paths' => [
+        '/Fixtures/',
+        '/Tests/',
+        '/stubs/',
+    ],
+];
+```
+
+Config-level exclusions are checked before any reflection is loaded, just like `#[SkipDiscovery]`.
+
 ### How It Works
 
 The `#[SkipDiscovery]` attribute is detected during the Spatie token-parsing phase — before any reflection is loaded. This means:
@@ -209,6 +246,8 @@ The `#[SkipDiscovery]` attribute is detected during the Spatie token-parsing pha
 - **Zero overhead** on classes without the attribute
 - **No reflection cost** for fully skipped classes (`#[SkipDiscovery]` without `except`)
 - Reflection is only loaded when `except` is used, to read the parameter values
+
+Config-level exclusions (`skip_classes`, `skip_paths`) are also checked at the same early stage — no reflection is triggered for excluded classes.
 
 ## API Usage
 
