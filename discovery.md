@@ -451,6 +451,8 @@ final class TemplateDiscovery implements DiscoversPathInterface
 
 ### 3. Registering Custom Discovery
 
+Discovery classes are **automatically registered** by the framework. You only need to bind your discovery as a singleton in a service provider — the `DiscoveryRegistrar` will detect it and add it to the engine.
+
 ```php
 <?php
 
@@ -458,34 +460,20 @@ namespace MyTheme\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use MyTheme\Discovery\CustomComponentDiscovery;
-use Pollora\Discovery\Domain\Contracts\DiscoveryEngineInterface;
 
 class ThemeServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        // Register your discovery class
+        // Just register as a singleton — auto-registration handles the rest
         $this->app->singleton(CustomComponentDiscovery::class);
-    }
-
-    public function boot(): void
-    {
-        /** @var DiscoveryEngineInterface $engine */
-        $engine = $this->app->make(DiscoveryEngineInterface::class);
-
-        // Add your discovery to the engine
-        $engine->addDiscovery('custom_components', $this->app->make(CustomComponentDiscovery::class));
-
-        // Add theme locations for discovery
-        $engine->addLocation(
-            new \Pollora\Discovery\Domain\Models\DiscoveryLocation(
-                'MyTheme\\',
-                get_stylesheet_directory() . '/app'
-            )
-        );
     }
 }
 ```
+
+That's it. The `DiscoveryRegistrar` scans the container for all singletons whose class name ends with `Discovery` and that implement `DiscoveryInterface`. It registers them with the engine using the identifier returned by `getIdentifier()`.
+
+> **How it works:** During the engine's `discover()` phase, the registrar iterates over container bindings, resolves any that look like discovery classes, and calls `addDiscovery()` automatically. No manual wiring needed.
 
 ## Discovery Engine
 
@@ -502,12 +490,8 @@ $engine = app(DiscoveryEngineInterface::class);
 $engine->addLocation(new DiscoveryLocation('App\\', app_path()));
 $engine->addLocation(new DiscoveryLocation('MyTheme\\', get_stylesheet_directory() . '/app'));
 
-// Add custom discoveries
-$engine->addDiscovery('my_discovery', MyDiscovery::class);
-
-// Configure caching
-$cache = app(\Pollora\Discovery\Domain\Contracts\DiscoveryCacheInterface::class);
-$engine->withCache($cache);
+// Discoveries are auto-registered from container singletons.
+// Manual registration is no longer needed.
 
 // Run discovery
 $engine->run(); // Discovery + Apply
@@ -608,27 +592,14 @@ DISCOVERY_CACHE_PREFIX=app.discovery. # Cache key prefix
 ### Service Provider Configuration
 
 ```php
-// In a service provider
-public function boot(): void
+// In a service provider — just register discoveries as singletons
+public function register(): void
 {
-    /** @var DiscoveryManager $manager */
-    $manager = $this->app->make(DiscoveryManager::class);
-
-    // Add application-specific locations
-    $manager->addLocations([
-        ['namespace' => 'App\\', 'path' => app_path()],
-        ['namespace' => 'MyTheme\\', 'path' => get_stylesheet_directory() . '/app'],
-    ]);
-
-    // Add custom discoveries
-    $manager->addDiscoveries([
-        'my_components' => MyComponentDiscovery::class,
-        'my_services' => MyServiceDiscovery::class,
-    ]);
-
-    // Run discovery on application boot
-    $manager->run();
+    $this->app->singleton(MyComponentDiscovery::class);
+    $this->app->singleton(MyServiceDiscovery::class);
 }
+
+// The DiscoveryRegistrar auto-detects them. No boot() wiring needed.
 ```
 
 ## Usage Examples
@@ -809,11 +780,8 @@ class MyDiscovery implements DiscoveryInterface
 PolloraDiscover::register('my_scout', MyScout::class);
 $classes = PolloraDiscover::scout('my_scout');
 
-// New
-$manager = app(DiscoveryManager::class);
-$manager->addDiscovery('my_discovery', MyDiscovery::class);
-$manager->run();
-$classes = $manager->getDiscoveredItems('my_discovery');
+// New — just register as singleton, auto-discovered
+$this->app->singleton(MyDiscovery::class);
 ```
 
 ## Troubleshooting
