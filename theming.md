@@ -76,6 +76,27 @@ theme-name/
 └─ vite.config.js
 ```
 
+### Theme Registration (functions.php)
+
+The theme's `functions.php` file registers the theme with the Pollora framework using the `pollora_register()` helper:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use Pollora\Modules\Domain\Enums\ModuleType;
+
+pollora_register(ModuleType::Theme);
+```
+
+That's it — three lines. The `pollora_register()` helper:
+- Auto-detects the active theme name and path from WordPress
+- Resolves the correct registrar (`ThemeRegistrarInterface`)
+- Triggers automatic discovery of all PHP attributes, service providers, post types, hooks, etc.
+
+For themes, no additional arguments are needed — the framework reads the theme name and directory from WordPress automatically.
+
 ## Theme.json and Vite Build Integration
 
 Pollora provides automatic integration between the Vite build process and WordPress's `theme.json` system. Tailwind CSS variables are extracted at build time and injected into WordPress at runtime — the block editor receives your full design token palette without manual synchronization.
