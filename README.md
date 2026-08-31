@@ -41,6 +41,7 @@
 - [Hooks](hooks.md) — `#[Action]` / `#[Filter]` attributes, hookable classes
 - [Authentication](auth.md) — WordPress authentication guard
 - [WP REST API](wp-rest-api.md) — `#[WpRestRoute]` attribute, custom REST endpoints
+- [Abilities](abilities.md) — `#[Ability]` attribute, the WordPress Abilities API for AI agents and MCP
 - [WP-CLI Commands](wp-cli-commands.md) — Custom Artisan-style WP-CLI commands
 - [WordPress Config](wordpress-config.md) — Managing WordPress constants via Laravel config
 - [WordPress Logging](wordpress-logging.md) — WordPress error logging through Laravel
@@ -55,7 +56,7 @@
 ## Monitoring & Tooling
 
 - [Dashboard & Status](dashboard.md) — Admin dashboard, `pollora:status` command, `--json` output
-e- [Nectar — AI Context](nectar.md) — AI guidelines, agent skills, and MCP tools for AI-assisted development
+- [Nectar — AI Context](nectar.md) — AI guidelines, agent skills, and MCP tools for AI-assisted development
 
 ## Advanced Features
 
