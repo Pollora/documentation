@@ -45,6 +45,7 @@
 - [WP-CLI Commands](wp-cli-commands.md) — Custom Artisan-style WP-CLI commands
 - [WordPress Config](wordpress-config.md) — Managing WordPress constants via Laravel config
 - [WordPress Logging](wordpress-logging.md) — WordPress error logging through Laravel
+- [Translations](translations.md) — `__()` routing between Laravel's translator and WordPress's `.po`/`.mo` catalogues
 
 ## Frontend & Theming
 

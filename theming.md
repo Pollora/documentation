@@ -425,7 +425,7 @@ Or, explicitly specify the theme container:
 
 ## Localization
 
-Language files should be placed in the `lang/` folder of your theme. Pollora will load them automatically.
+A theme can translate through WordPress's own `.po`/`.mo` catalogues (a `languages/` directory, compiled automatically by `pollora:make:theme`) and through a Laravel-namespaced catalogue (a `lang/` directory, registered automatically as `{theme-name}::group.key`) at the same time — a single `__()` call routes to the right one. See the dedicated [Translations](translations.md) guide for how the routing works and when to use which.
 
 ## Theme Development
 
