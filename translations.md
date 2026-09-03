@@ -5,7 +5,6 @@
   - [A string is a WordPress text domain](#a-string-is-a-wordpress-text-domain)
   - [A non-empty array is a Laravel call](#a-non-empty-array-is-a-laravel-call)
   - [No second argument is ambiguous](#no-second-argument-is-ambiguous)
-  - [Forcing WordPress with the wordpress. prefix](#forcing-wordpress-with-the-wordpress-prefix)
 - [The WordPress system (.po/.mo)](#the-wordpress-system-pomo)
   - [Text domain and Domain Path](#text-domain-and-domain-path)
   - [Compiling .po files](#compiling-po-files)
@@ -38,7 +37,6 @@ The **second argument** is what tells the two systems apart — there is no conf
 | `__('Save changes')` | Laravel, then WordPress `default` domain | No intent expressed — the only ambiguous case. |
 | `__('Save changes', 'my-plugin')` | WordPress, `my-plugin` domain | A text domain is an explicit WordPress call. |
 | `__('Shipping :brand', ['brand' => $name])` | Laravel, then WordPress `default` domain — placeholders always filled | Named replacements are a Laravel idiom; WordPress has no equivalent. |
-| `__('wordpress.Save changes')` | WordPress `default` domain, prefix stripped | Escape hatch to force the gettext side. |
 
 ### A string is a WordPress text domain
 
@@ -66,13 +64,7 @@ __('Save changes');
 
 This is the one case where the caller expressed no preference. Pollora tries the Laravel catalogue first (your app's own strings usually take priority), then falls back to the WordPress `default` domain — which is where WordPress core, most themes, and any plugin that never declared its own domain keep their strings.
 
-### Forcing WordPress with the wordpress. prefix
-
-```php
-__('wordpress.Save changes'); // always WordPress, never Laravel
-```
-
-Prefixing a key with `wordpress.` skips the Laravel lookup entirely and strips the prefix before the gettext call. Reach for this only when a bare-argument key would otherwise collide with a Laravel translation you don't want consulted — it is not needed for the common cases above.
+There is deliberately no key-prefix escape hatch to force a bare-argument call onto one side or the other. A prefix like `wordpress.` would be invisible to gettext extraction tools (`wp i18n make-pot`, Poedit) — they read the literal `__()` argument, so a translator would translate a `msgid` the runtime never actually looks up once the prefix is stripped. If a bare key would collide with a catalogue entry you don't want consulted, use the explicit forms above instead: pass the WordPress text domain, or pass a (possibly single-entry) replacement array to force Laravel.
 
 ## The WordPress system (.po/.mo)
 
