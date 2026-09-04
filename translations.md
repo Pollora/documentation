@@ -7,8 +7,9 @@
   - [No second argument is ambiguous](#no-second-argument-is-ambiguous)
 - [The WordPress system (.po/.mo)](#the-wordpress-system-pomo)
   - [Text domain and Domain Path](#text-domain-and-domain-path)
-  - [Compiling .po files](#compiling-po-files)
+  - [Extracting strings and compiling](#extracting-strings-and-compiling)
   - [Translating theme markup](#translating-theme-markup)
+  - [Translating theme config](#translating-theme-config)
 - [The Laravel system](#the-laravel-system)
   - [Scoped catalogues per theme and module](#scoped-catalogues-per-theme-and-module)
   - [The application's own catalogue](#the-applications-own-catalogue)
@@ -79,13 +80,34 @@ Text Domain: my-theme
 Domain Path: /languages
 ```
 
-WordPress core loads the matching `.mo` for the active locale automatically — you don't call anything to make this happen. All you have to get right is the domain name (used in every `__($text, 'my-theme')` call) and the file naming convention: `{domain}-{locale}.mo` (e.g. `my-theme-fr_FR.mo`) in the `Domain Path` directory.
+WordPress loads the matching `.mo` for the active locale on first use — you don't call `load_theme_textdomain()` yourself. What you do have to get right is the **file name**, and it is not the same for themes and plugins:
 
-### Compiling .po files
+| Where the catalogue lives | Expected file name | Example |
+|---|---|---|
+| Inside the theme (the `Domain Path` above) | `{locale}.mo` | `themes/my-theme/languages/fr_FR.mo` |
+| A plugin, or a theme catalogue installed in `WP_LANG_DIR` | `{domain}-{locale}.mo` | `my-plugin-fr_FR.mo` |
 
-Pollora ships a pure-PHP `.po` → `.mo` compiler (`Pollora\Translation\Infrastructure\Services\GettextMoCompiler`) — no `msgfmt` system binary required, which matters in Docker images and shared hosting where it may not be installed.
+Getting this wrong fails silently: the domain simply never loads and every string renders untranslated. A theme catalogue named `my-theme-fr_FR.mo` is the common mistake — inside the theme, WordPress looks for `fr_FR.mo` and nothing else.
 
-`php artisan pollora:make:theme` compiles every `.po` file it finds in the generated theme's `languages/` directory as part of scaffolding. To recompile after editing a `.po` file by hand (or with Loco Translate, Poedit, etc.), use the same compiler directly:
+> **Timing matters since WordPress 6.7.** A text domain loaded before the `after_setup_theme` action triggers a `_doing_it_wrong()` notice ("Translation loading for the `…` domain was triggered too early"), and the string comes back untranslated. This is why Pollora defers some theme config files — see [Translating theme config](#translating-theme-config).
+
+### Extracting strings and compiling
+
+The usual gettext round-trip applies. Extract a `.pot` template from your source with WP-CLI, copy it per locale, translate, then compile:
+
+```bash
+# 1. Extract every __( ) call into a template
+wp i18n make-pot themes/my-theme themes/my-theme/languages/my-theme.pot
+
+# 2. One .po per locale (copy the .pot, then translate it in Poedit / Loco Translate)
+cp themes/my-theme/languages/my-theme.pot themes/my-theme/languages/fr_FR.po
+```
+
+Note the file naming again: inside a theme, the `.po`/`.mo` pair is named after the **locale** (`fr_FR.po` → `fr_FR.mo`), not after the text domain.
+
+Pollora then ships a pure-PHP `.po` → `.mo` compiler (`Pollora\Translation\Infrastructure\Services\GettextMoCompiler`) — no `msgfmt` system binary required, which matters in Docker images and shared hosting where it may not be installed.
+
+`php artisan pollora:make:theme` compiles every `.po` file it finds in the generated theme's `languages/` directory as part of scaffolding. To recompile after editing a `.po` file by hand, use the same compiler directly:
 
 ```php
 use Pollora\Translation\Infrastructure\Services\GettextMoCompiler;
@@ -110,6 +132,29 @@ Inside a theme, `__()` with a text domain works exactly as it does in any WordPr
 ```
 
 The same applies to any plugin or third-party code you don't control — `__($text, 'woocommerce')`, `__($text, 'default')` for WordPress core strings, and so on all resolve the normal WordPress way, since a string second argument always takes the WordPress path.
+
+### Translating theme config
+
+Theme config files are plain PHP, so they can call `__()` directly — this is how the default theme labels its menus:
+
+```php
+// themes/my-theme/config/menus.php
+return [
+    'menu-header' => __('Menu header', 'my-theme'),
+    'menu-footer' => __('Menu footer', 'my-theme'),
+];
+```
+
+**This only works in the config files Pollora defers.** Config is normally loaded while the theme boots, which is well before `after_setup_theme` — too early for any text domain, per the WordPress 6.7 rule above. Pollora works around it by deferring exactly three files to the `init` action, because those are the ones whose values reach WordPress late enough to matter:
+
+| Config file | Loaded |
+|---|---|
+| `menus.php`, `sidebars.php`, `templates.php` | Deferred to `init` — `__()` is safe |
+| everything else (`supports.php`, `images.php`, `gutenberg.php`, `providers.php`, …) | Eagerly, at theme boot — `__()` is **not** safe |
+
+Calling `__($text, 'my-theme')` in a non-deferred config file returns the untranslated string and may emit a `_doing_it_wrong()` notice. If you need a translated value there, resolve it later — from a hook or a service provider that runs on `init` or after — rather than at config-load time.
+
+> Pollora also carries a `Pollora\Services\Translater` helper, used internally to translate menu and sidebar config arrays by key (`(new Translater($items, 'menus'))->translate(['*'])`). It looks each value up as `{domain}.{value}`, which lets a project translate plain config strings through a Laravel `menus`/`sidebars` group file instead of gettext. The default theme uses explicit `__($text, 'my-theme')` calls in config instead, which is the clearer of the two.
 
 ## The Laravel system
 
