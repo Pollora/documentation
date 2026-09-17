@@ -83,4 +83,4 @@ We welcome contributions to both the framework and documentation. See the [Contr
 
 ## License
 
-Pollora is open-source software licensed under the [GPL-2.0-or-later](https://github.com/Pollora/framework/blob/main/LICENSE) license.
+Pollora is open-source software licensed under the [MIT license](https://github.com/Pollora/framework/blob/main/LICENSE).
