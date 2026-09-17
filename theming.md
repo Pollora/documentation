@@ -350,7 +350,7 @@ Block CSS files (`style.css`, `editor.css`) support Tailwind via two directives:
 - **`@reference "tailwindcss"`** in `editor.css` — gives access to `@apply` without generating utilities (editor-only styles typically use `@apply`, not utility classes in JSX).
 
 ```css
-/* resources/blocks/hero/style.css */
+/* resources/views/blocks/hero/style.css */
 @import "tailwindcss" source(".");
 
 .wp-block-my-theme-hero {
