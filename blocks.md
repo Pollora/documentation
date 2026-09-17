@@ -313,7 +313,7 @@ In a theme or plugin whose blocks are still in `resources/blocks`, it skips the 
 <section {!! get_block_wrapper_attributes(['class' => 'py-16']) !!}>
     <h2 class="text-3xl font-bold">{{ $attributes['heading'] ?? '' }}</h2>
 
-    <x-button :href="$attributes['buttonUrl'] ?? '#'">
+    <x-button :href="esc_url_raw($attributes['buttonUrl'] ?? '#')">
         {{ $attributes['buttonText'] ?? __('Learn more', 'my-theme') }}
     </x-button>
 
@@ -322,6 +322,7 @@ In a theme or plugin whose blocks are still in `resources/blocks`, it skips the 
 ```
 
 - `{{ }}` escapes; use `{!! !!}` only for `get_block_wrapper_attributes()` and `$content`, which WordPress already escaped.
+- For URLs, filter the protocol with `esc_url_raw()` and let `{{ }}` escape: `href="{{ esc_url_raw($url) }}"`. `esc_url()` already HTML-encodes, so inside `{{ }}` a `&` would come out as `&amp;#038;`.
 - Blade components work as in any view. The block's `$attributes` array is restored after each `<x-…>` tag, even though components use their own `$attributes` bag.
 - Tailwind classes used in the template are picked up as long as your CSS scans `resources/views`.
 
