@@ -719,11 +719,12 @@ const getPluginConfig = () => ({
     input: ["./resources/assets/app.js", ...Object.values(blockEntries)],
     publicDirectory,
     hotFile: path.join(publicDirectory, `${pluginName}.hot`),
-    buildDirectory: path.join("build", "plugins", pluginName),
+    buildDirectory: path.join("build", "plugin", pluginName),
     refresh: [
         // Blade only under resources/views, so block JSX keeps HMR
         ...refreshPaths.filter((refreshPath) => refreshPath !== 'resources/views/**'),
         'public/content/plugins/'+pluginName+'/resources/views/**/*.blade.php',
+        'resources/views/**/*.blade.php',
         'public/content/plugins/'+pluginName+'/app/**/*.php',
     ],
 });
