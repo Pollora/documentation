@@ -19,7 +19,7 @@ The `BlockRegistrar` service scans a directory for subdirectories containing `bl
 php artisan pollora:make:block hero-banner --theme
 ```
 
-This creates all the files in `resources/blocks/hero-banner/` and bootstraps the Vite infrastructure on first use (vite.config.js patching, npm dependencies, `BlocksServiceProvider`).
+This creates all the files in `resources/views/blocks/hero-banner/` and bootstraps the Vite infrastructure on first use (vite.config.js patching, npm dependencies, `BlocksServiceProvider`).
 
 ### 2. Build
 
@@ -35,19 +35,23 @@ The block appears in the Gutenberg inserter. No manual `register_block_type()` n
 
 ## Block Structure
 
-Each block lives in its own directory under `resources/blocks/`:
+Each block lives in its own directory under `resources/views/blocks/`, next to the other Blade views:
 
 ```
-resources/blocks/hero-banner/
-├── block.json       # WordPress block metadata
-├── index.jsx        # Entry point — registers the block
-├── edit.jsx         # Editor component
-├── save.jsx         # Frontend save (static) or omitted (dynamic)
-├── render.php       # Server-side render (dynamic blocks only)
-├── editor.css       # Editor-only styles
-├── style.css        # Shared styles (editor + frontend)
-└── view.js          # Frontend-only script (optional)
+resources/views/blocks/hero-banner/
+├── block.json         # WordPress block metadata
+├── render.blade.php   # Server-side render (default)
+├── index.jsx          # Entry point — registers the block
+├── edit.jsx           # Editor component
+├── save.jsx           # Frontend save (static blocks only, see --static)
+├── editor.css         # Editor-only styles
+├── style.css          # Shared styles (editor + frontend)
+└── view.js            # Frontend-only script (optional)
 ```
+
+Blocks are **dynamic by default**: `render.blade.php` renders them on each request, so their markup is not stored in `post_content`. Changing the markup updates every existing block instead of triggering the editor's "This block contains unexpected or invalid content" error.
+
+`view.js` keeps its WordPress meaning — the frontend script — and the server template is `render.blade.php`.
 
 ### block.json
 
@@ -65,7 +69,8 @@ Standard WordPress [block metadata](https://developer.wordpress.org/block-editor
     "editorScript": "file:./index.jsx",
     "editorStyle": "file:./editor.css",
     "style": "file:./style.css",
-    "viewScript": "file:./view.js"
+    "viewScript": "file:./view.js",
+    "render": "file:./render.blade.php"
 }
 ```
 
@@ -76,25 +81,17 @@ Entry point that registers the block with WordPress:
 ```jsx
 import { registerBlockType } from '@wordpress/blocks';
 import Edit from './edit';
-import save from './save';
 import metadata from './block.json';
 import './editor.css';
 import './style.css';
 
 registerBlockType(metadata.name, {
     edit: Edit,
-    save,
+    save: () => null, // Rendered server-side by render.blade.php
 });
 ```
 
-For dynamic blocks (server-rendered), replace `save` with `() => null`:
-
-```jsx
-registerBlockType(metadata.name, {
-    edit: Edit,
-    save: () => null,
-});
-```
+A static block (`--static`) imports `save` from `./save` and passes it instead.
 
 ## BlocksServiceProvider
 
@@ -113,7 +110,7 @@ class BlocksServiceProvider extends ServiceProvider
     public function boot(BlockRegistrar $registrar): void
     {
         $registrar->registerDirectory(
-            directory: dirname(__DIR__, 2) . '/resources/blocks',
+            directory: dirname(__DIR__, 2) . '/resources/views/blocks',
             containerName: 'theme',
         );
     }
@@ -130,6 +127,16 @@ The `containerName` matches the asset container for your module type:
 
 The `BlockRegistrar` automatically creates a `{container}.blocks` child container with an empty `basePath` to resolve block assets directly against the Vite manifest.
 
+Asset entry points are resolved relative to the Vite project root — `resources/views/blocks/hero-banner/index.jsx` — which is both the manifest key and the dev server path. The root is the closest parent directory holding a `vite.config.{js,ts,mjs}`, or else the directory containing `resources/`. Pass it explicitly when your layout differs:
+
+```php
+$registrar->registerDirectory(
+    directory: dirname(__DIR__, 2) . '/resources/views/blocks',
+    containerName: 'theme',
+    basePath: dirname(__DIR__, 2),
+);
+```
+
 ## Vite Configuration
 
 Block entry points must be registered in `vite.config.js`. The recommended pattern auto-discovers all block assets:
@@ -138,12 +145,12 @@ Block entry points must be registered in `vite.config.js`. The recommended patte
 import { wordpressPlugin } from '@roots/vite-plugin';
 import { globSync } from 'glob';
 
-const blockEntries = globSync('./resources/blocks/*/{index,view}.{js,jsx,ts,tsx}')
-    .concat(globSync('./resources/blocks/*/{editor,style}.css'))
+const blockEntries = globSync([
+    './resources/views/blocks/*/{index,view}.{js,jsx,ts,tsx}',
+    './resources/views/blocks/*/{editor,style}.css',
+])
     .reduce((acc, file) => {
-        const slug = path.basename(path.dirname(file));
-        const name = path.basename(file, path.extname(file));
-        acc[`blocks/${slug}/${name}`] = file;
+        acc[file.replace(/^\.\//, '').replace(/\.\w+$/, '')] = file;
         return acc;
     }, {});
 const hasBlocks = Object.keys(blockEntries).length > 0;
@@ -165,6 +172,17 @@ plugins: [
 ```
 
 The `@roots/vite-plugin` provides the `wordpressPlugin()` which generates `editor.deps.json` with WordPress script dependencies.
+
+### Full reloads
+
+Blocks live under `resources/views`, so a `refresh` glob such as `resources/views/**` — including laravel-vite-plugin's default `refreshPaths` — would reload the whole page on every block JSX change instead of hot-replacing it. Reload on Blade templates only:
+
+```js
+refresh: [
+    ...refreshPaths.filter((refreshPath) => refreshPath !== 'resources/views/**'),
+    'resources/views/**/*.blade.php',
+],
+```
 
 ## Tailwind CSS in Blocks
 
@@ -255,7 +273,8 @@ php artisan pollora:make:block <name> [options]
 | `--title=TITLE` | Block title in the inserter |
 | `--category=CAT` | Gutenberg category (default: `widgets`) |
 | `--icon=ICON` | Dashicon name (default: `block-default`) |
-| `--dynamic` | Create a dynamic block with `render.php` |
+| `--static` | Create a static block saved in `post_content` (`save.jsx`, no `render.blade.php`) |
+| `--dynamic` | Deprecated: blocks are dynamic by default |
 | `--inner-blocks` | Add InnerBlocks support |
 | `--no-view-script` | Skip frontend view script |
 | `--force` | Overwrite existing block |
@@ -263,11 +282,11 @@ php artisan pollora:make:block <name> [options]
 ### Examples
 
 ```bash
-# Simple static block in the active theme
-php artisan pollora:make:block hero-banner --theme
+# Block rendered with Blade in the active theme
+php artisan pollora:make:block testimonial --theme --title="Testimonial"
 
-# Dynamic block with server-side rendering
-php artisan pollora:make:block testimonial --theme --dynamic --title="Testimonial"
+# Static block saved in post content
+php artisan pollora:make:block hero-banner --theme --static
 
 # Block with InnerBlocks in a plugin
 php artisan pollora:make:block accordion --plugin=my-plugin --inner-blocks
@@ -281,33 +300,43 @@ php artisan pollora:make:block pricing-table --theme --namespace=starter --categ
 When creating the first block in a theme or plugin, the command automatically:
 
 1. Creates `app/Providers/BlocksServiceProvider.php`
-2. Patches `vite.config.js` with block entry discovery and `wordpressPlugin()`
+2. Patches `vite.config.js` with block entry discovery, `wordpressPlugin()` and Blade-only full reloads
 3. Adds required npm dependencies (`@roots/vite-plugin`, `@wordpress/blocks`, etc.)
 
-## Dynamic Blocks
+In a theme or plugin whose blocks are still in `resources/blocks`, it skips the bootstrap and updates the `vite.config.js` block entries to build both locations.
 
-Dynamic blocks render on the server using `render.php`. Add `"render": "file:./render.php"` to `block.json`:
+## Rendering with Blade
 
-```json
-{
-    "name": "my-theme/testimonial",
-    "render": "file:./render.php",
-    "editorScript": "file:./index.jsx"
-}
+`render.blade.php` receives the block's `$attributes` (array), `$content` (inner blocks HTML) and `$block` (`WP_Block`):
+
+```blade
+<section {!! get_block_wrapper_attributes(['class' => 'py-16']) !!}>
+    <h2 class="text-3xl font-bold">{{ $attributes['heading'] ?? '' }}</h2>
+
+    <x-button :href="$attributes['buttonUrl'] ?? '#'">
+        {{ $attributes['buttonText'] ?? __('Learn more', 'my-theme') }}
+    </x-button>
+
+    {!! $content !!}
+</section>
 ```
 
-The render template receives `$attributes`, `$content`, and `$block`:
+- `{{ }}` escapes; use `{!! !!}` only for `get_block_wrapper_attributes()` and `$content`, which WordPress already escaped.
+- Blade components work as in any view. The block's `$attributes` array is restored after each `<x-…>` tag, even though components use their own `$attributes` bag.
+- Tailwind classes used in the template are picked up as long as your CSS scans `resources/views`.
 
-```php
-<?php
-$heading = $attributes['heading'] ?? '';
-?>
-<div <?php echo get_block_wrapper_attributes(); ?>>
-    <h2><?php echo esc_html($heading); ?></h2>
-</div>
-```
+A render file must stay inside the block directory: if `block.json` points outside it, or to a missing file, the block renders nothing and a warning is logged.
 
-In `index.jsx`, set `save: () => null` since rendering is handled server-side.
+A `render.php` file still works and is included as plain PHP.
+
+## Migrating from `resources/blocks`
+
+Blocks used to live in `resources/blocks`. That directory is still registered, with a deprecation notice in the log, and support ends in Pollora v15.
+
+1. Move the blocks: `git mv resources/blocks resources/views/blocks`
+2. In `app/Providers/BlocksServiceProvider.php`, point `registerDirectory()` at `/resources/views/blocks`. An old provider keeps working meanwhile: both locations are scanned from either path, and a block present in both is taken from `resources/views/blocks`.
+3. In `vite.config.js`, glob `./resources/views/blocks/*/…` and restrict full reloads to Blade files (see [Full reloads](#full-reloads)). Running `pollora:make:block` does this for you.
+4. Optionally convert a static block to Blade: add `"render": "file:./render.blade.php"` to `block.json`, move the markup of `save.jsx` into `render.blade.php`, and set `save: () => null`. Existing content keeps its saved markup until the post is edited, then renders from Blade.
 
 ## npm Dependencies
 

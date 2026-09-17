@@ -235,7 +235,7 @@ When creating a plugin with the `--asset=true` option, the following files are i
 
 The Vite configuration comes pre-configured with:
 - **`@roots/vite-plugin`** for WordPress dependency extraction (`editor.deps.json`)
-- **Block auto-discovery** via `globSync` for `resources/blocks/*/` entries
+- **Block auto-discovery** via `globSync` for `resources/views/blocks/*/` entries
 - **Docker/DDEV detection** for seamless local development
 
 After plugin creation with assets, install and build them:
@@ -688,7 +688,7 @@ Pollora plugins support modern asset management with Vite, including hot reload 
 
 ### Vite Configuration
 
-The plugin Vite configuration includes **Gutenberg block support** out of the box. Block entries in `resources/blocks/` are automatically discovered and compiled alongside regular assets:
+The plugin Vite configuration includes **Gutenberg block support** out of the box. Block entries in `resources/views/blocks/` are automatically discovered and compiled alongside regular assets:
 
 ```javascript
 // vite.config.js
@@ -704,12 +704,12 @@ const port = 5174; // Different port for plugins (5173 for themes)
 const publicDirectory = "../../../../public";
 
 // Auto-discover Gutenberg block entries
-const blockEntries = globSync('./resources/blocks/*/{index,view}.{js,jsx,ts,tsx}')
-    .concat(globSync('./resources/blocks/*/{editor,style}.css'))
+const blockEntries = globSync([
+    './resources/views/blocks/*/{index,view}.{js,jsx,ts,tsx}',
+    './resources/views/blocks/*/{editor,style}.css',
+])
     .reduce((acc, file) => {
-        const slug = path.basename(path.dirname(file));
-        const name = path.basename(file, path.extname(file));
-        acc[`blocks/${slug}/${name}`] = file;
+        acc[file.replace(/^\.\//, '').replace(/\.\w+$/, '')] = file;
         return acc;
     }, {});
 const hasBlocks = Object.keys(blockEntries).length > 0;
@@ -721,10 +721,10 @@ const getPluginConfig = () => ({
     hotFile: path.join(publicDirectory, `${pluginName}.hot`),
     buildDirectory: path.join("build", "plugins", pluginName),
     refresh: [
-        ...refreshPaths,
-        'public/content/plugins/'+pluginName+'/resources/views/**',
+        // Blade only under resources/views, so block JSX keeps HMR
+        ...refreshPaths.filter((refreshPath) => refreshPath !== 'resources/views/**'),
+        'public/content/plugins/'+pluginName+'/resources/views/**/*.blade.php',
         'public/content/plugins/'+pluginName+'/app/**/*.php',
-        'resources/blocks/**',
     ],
 });
 
@@ -751,7 +751,8 @@ export default defineConfig({
 ```
 
 Key points:
-- **Block auto-discovery**: `globSync` scans `resources/blocks/*/` for entry files
+- **Block auto-discovery**: `globSync` scans `resources/views/blocks/*/` for entry files
+- **Blade-only full reloads under `resources/views`**: block scripts there keep hot module replacement
 - **Conditional `wordpressPlugin()`**: Only loaded when blocks exist (generates `editor.deps.json` for WordPress dependencies)
 - **Blade/PHP HMR**: Full reload on PHP/Blade file changes
 - **Docker/DDEV aware**: Automatic detection of container environments with proper HMR configuration
@@ -969,7 +970,7 @@ new MyAwesomePluginPlugin();
 Tailwind v4 auto-detects source files — no `tailwind.config.js` needed. For Gutenberg blocks, use `@import "tailwindcss" source(".")` in the block's `style.css` to scope Tailwind scanning to the block directory:
 
 ```css
-/* resources/blocks/my-block/style.css */
+/* resources/views/blocks/my-block/style.css */
 @import "tailwindcss" source(".");
 
 .wp-block-my-plugin-my-block {
