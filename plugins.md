@@ -161,6 +161,26 @@ For a plugin named "my-awesome-plugin", the namespace would be:
 namespace Plugin\MyAwesomePlugin;
 ```
 
+### Where discovery looks
+
+Attribute discovery scans your plugin's `app/` directory, falling back to
+`src/`, which are the same two directories the autoloader maps
+`Plugin\{PluginName}\` onto. Themes and modules work the same way. A plugin
+that ships neither directory is scanned at its root, so a plugin keeping its
+classes at the top level still works.
+
+Keep your classes in `app/` — not only for the convention. Discovery walks a
+directory in full, and a plugin root is where `node_modules/` lands as soon as
+the plugin has a Vite build. Measured on a plugin with a block build: 69,741
+files walked on every request to reach three PHP files, 1,691 ms against 1 ms
+for the same directory without `node_modules`. It also picked up PHP files
+shipped inside npm packages — five WordPress core classes out of
+`@wordpress/style-engine` — and handed them to discovery.
+
+While `APP_DEBUG` is on, discovery keeps no cache, so that walk is paid on
+every request. Pollora now logs a warning naming any location whose scan takes
+more than 250 ms, which is far above a healthy one.
+
 ## Creating a Plugin
 
 ### Using the Make Command
