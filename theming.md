@@ -393,6 +393,31 @@ $styleUrl = (string)Asset::url('assets/css/app.css');
 $scriptUrl = (string)Asset::url('assets/js/app.js');
 ```
 
+#### WordPress's own theme URL functions
+
+`get_theme_file_uri()` works too, and resolves through the same build:
+
+```php
+get_theme_file_uri('resources/assets/app.js');
+// https://example.test/build/theme/my-theme/assets/app-DcI6_eae.js
+
+get_theme_file_uri('fonts/Inter-Regular.woff2');   // relative to the container root
+// https://example.test/build/theme/my-theme/assets/Inter-Regular-B0QUfDW0.woff2
+```
+
+Both spellings are accepted: the path from the theme's root, and the path
+relative to the asset container's root (`resources/assets/` by default).
+
+A file the build does not know about is handed back with WordPress's own
+answer, unchanged. That answer is **not fetchable**: a theme's own directory
+is not web-served on a Pollora project — only the build output under
+`/build/theme/{slug}` is. If you need a URL for a file, make it part of the
+Vite build.
+
+The same applies to `get_stylesheet_directory_uri()` and
+`get_template_directory_uri()`: they answer a URL, but not one that serves
+your theme's files. Use `Asset::url()` or `get_theme_file_uri()`.
+
 #### Explicitly Specifying the Theme Container
 
 Although the framework defaults to the active theme's container, you can explicitly specify it using the `from('theme')` method for clarity:
