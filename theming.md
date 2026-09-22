@@ -47,6 +47,7 @@ theme-name/
 ├─ config/
 │  ├─ gutenberg.php
 │  ├─ images.php
+│  ├─ login.php
 │  ├─ menus.php
 │  ├─ providers.php
 │  ├─ sidebars.php
@@ -426,6 +427,125 @@ Or, explicitly specify the theme container:
 ## Localization
 
 A theme can translate through WordPress's own `.po`/`.mo` catalogues (a `languages/` directory, compiled automatically by `pollora:make:theme`) and through a Laravel-namespaced catalogue (a `lang/` directory, registered automatically as `{theme-name}::group.key`) at the same time — a single `__()` call routes to the right one. See the dedicated [Translations](translations.md) guide for how the routing works and when to use which.
+
+## Login screen
+
+WordPress loads your theme on `wp-login.php` — `functions.php` runs, the theme
+is active — but it emits none of your design there. Measured on a site running
+a theme with 304 colours in its `theme.json`: zero occurrences of
+`wp--preset--color` in the HTML of the login screen. So every WordPress site,
+whatever it looks like, has always signed people in through the same grey form.
+
+Pollora prints your theme's design on that screen instead. It is **opt-in**: a
+theme with no `config/login.php` gets WordPress's screen unchanged, byte for
+byte. Add the file and the screen is yours.
+
+```php
+<?php
+// themes/your-theme/config/login.php
+
+return [
+    'enabled' => true,
+
+    'logo' => [
+        // A path inside the theme, read from disk and inlined. An absolute
+        // URL, a site-root path and an attachment id all work too.
+        'source' => 'resources/assets/images/logo.svg',
+        'width' => 220,
+        // 'height' is derived from the file's own viewBox or dimensions.
+        'url' => home_url('/'),
+        'text' => get_bloginfo('name', 'display'),
+    ],
+
+    'powered_by' => true,
+];
+```
+
+Colours, radii and typography are **not** in this file. They are already in
+`theme.json`, which is where your theme keeps its design, and Pollora reads
+them from there — restyling the theme restyles its login screen, with nothing
+to keep in sync.
+
+Everything the login screen covers is one screen as far as `login_head` is
+concerned, so sign-in, lost password, password reset, registration and the
+confirm-admin-email prompt are all styled together.
+
+### Design roles
+
+A palette is a vocabulary, not a set of roles: one theme calls a shade
+`primary-hover`, another calls it `primary-vivid`, and a Tailwind-built
+`theme.json` buries both under three hundred primitives named `red-500` and
+the like. So the login screen states the roles it needs, and each role names
+the preset slugs it will accept, most specific first:
+
+| Role | Preset slugs accepted, in order |
+|---|---|
+| `background` | `background`, `surface-alt`, `surface`, `base` |
+| `surface` | `surface`, `background`, `base` |
+| `surface-alt` | `surface-alt`, `surface`, `background` |
+| `foreground` | `foreground`, `contrast`, `ink` |
+| `muted` | `muted`, `subtle`, `gray-500`, `grey-500` |
+| `primary` | `primary`, `brand`, `accent` |
+| `primary-hover` | `primary-hover`, `primary-vivid`, `primary` |
+| `accent` | `accent`, `secondary`, `primary` |
+| `outline` | `outline`, `border`, `gray-200`, `grey-200` |
+| `danger` | `error`, `danger`, `red-600` |
+| `success` | `success`, `green-600` |
+| `radius` | `lg`, `md`, `xl` (from `settings.border.radiusSizes`) |
+| `radius-sm` | `md`, `sm`, `xs` |
+| `font` | `body`, `sans`, `inter-var`, `base` (from `settings.typography.fontFamilies`) |
+| `heading-font` | `display`, `heading`, `body`, `sans` |
+
+A theme that speaks this vocabulary configures nothing. One that names things
+its own way points a role at its own slugs, or writes a value in:
+
+```php
+'tokens' => [
+    'primary' => ['brand-600', 'brand-500'],  // slugs to try, in order
+    'accent' => 'oklch(70% .2 30)',           // a value no preset holds
+],
+```
+
+Every role resolves to something: a theme with no `theme.json` at all still
+gets a coherent screen rather than half a stylesheet over WordPress's defaults.
+
+A preset whose value points at a CSS variable — `var(--wp--preset--color--x,
+#1f2937)`, which Tailwind-built theme.json files generate — resolves to its
+declared fallback, because the login screen carries none of the stylesheets
+those variables come from. With no fallback to read, the role falls through to
+the next slug it accepts.
+
+### The logo
+
+A logo file inside your theme has no URL on a Pollora site: only the Vite build
+output is web-served. Pollora therefore reads the file and inlines it, which
+costs one file read on a screen served rarely and cannot 404. SVG, PNG, JPEG,
+GIF, WebP and AVIF are inlined, up to 96 KB.
+
+Four kinds of source are understood:
+
+| `source` | What happens |
+|---|---|
+| `'resources/assets/images/logo.svg'` | read from the theme directory and inlined |
+| `'https://…'`, `'//…'`, `'/content/uploads/…'` | used as the address it is |
+| `42` (an attachment id) | resolved through the media library |
+| omitted | the site's `custom_logo`, if it set one; otherwise WordPress's |
+
+Give `width` or `height` and the other is derived from the file's own
+proportions, so a wide wordmark is not squeezed into WordPress's 84×84 box.
+
+### Taking over from a module or a plugin
+
+Four filters cover the screen without touching the theme:
+
+| Filter | Value |
+|---|---|
+| `pollora/login/palette` | the resolved roles, as `role => CSS value` |
+| `pollora/login/logo` | a `ResolvedLogo`, or `null` |
+| `pollora/login/styles` | the complete stylesheet, before it is printed |
+| `pollora/login/credit` | the footer mention's HTML; return `null` to drop it |
+
+Returning an empty string from `pollora/login/styles` prints nothing at all.
 
 ## Theme Development
 
