@@ -15,15 +15,14 @@ Welcome to Pollora! This guide will help you get a working installation up and r
 Pollora's version numbers follow the Laravel release it is built on, so the
 current line is **13.32**, built on Laravel 13.32.
 
-Two packages carry that number and they are tagged independently:
+Two packages carry that number: `pollora/pollora`, the skeleton
+`create-project` installs, and `pollora/framework`, which the skeleton requires.
+They are tagged together, and a skeleton tag pins the framework tag of the same
+number in its `composer.lock` — which is what `create-project` installs from,
+whatever constraint the `composer.json` carries. So one version number describes
+an install completely.
 
-| Package | Current | What it is |
-|---|---|---|
-| `pollora/pollora` | `v13.32.0-beta.4` | the skeleton — what `create-project` installs |
-| `pollora/framework` | `v13.32.0-beta.6` | the framework the skeleton requires, at `^13.32@beta` |
-
-So a fresh install gives you the latest skeleton **and** the latest framework
-beta, whichever numbers those happen to be.
+The current tag is **v13.32.0-beta.6**.
 
 Because these are pre-releases, Composer never selects them by default: a
 plain `composer create-project pollora/pollora` still installs the last stable
@@ -68,7 +67,7 @@ With `--ddev`, the CLI configures DDEV (WordPress project type, PHP 8.4, MariaDB
 | `--force`, `-f` | Force install even if the directory already exists |
 | `--git` | Initialize a Git repository |
 | `--branch=NAME` | Branch name for the new repository (default: `main`) |
-| `--ver=VERSION` | Install a specific version or constraint (e.g. `13.32.0-beta.4`, `^13.32@beta`) |
+| `--ver=VERSION` | Install a specific version or constraint (e.g. `13.32.0-beta.6`, `^13.32@beta`) |
 | `--stable` | Install the latest stable release instead of the latest pre-release |
 
 `pollora new` installs the latest release **including pre-releases**, so you get the current beta. Pass `--stable` to stay on the last stable release, or `--ver` to pin an exact version.
