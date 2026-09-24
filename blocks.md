@@ -19,7 +19,7 @@ The `BlockRegistrar` service scans a directory for subdirectories containing `bl
 php artisan pollora:make:block hero-banner --theme
 ```
 
-This creates all the files in `resources/views/blocks/hero-banner/` and bootstraps the Vite infrastructure on first use (vite.config.js patching, npm dependencies, `BlocksServiceProvider`).
+This creates all the files in `resources/views/blocks/hero-banner/` and bootstraps the Vite infrastructure on first use (vite.config.js patching, npm dependencies). No service provider is written: Pollora registers the blocks of every theme, plugin and module itself (see [Registration](#registration)).
 
 ### 2. Build
 
@@ -42,7 +42,7 @@ resources/views/blocks/hero-banner/
 ├── block.json         # WordPress block metadata
 ├── render.blade.php   # Server-side render (default)
 ├── index.jsx          # Entry point — registers the block
-├── edit.jsx           # Editor component
+├── edit.jsx           # Editor component — shows what the page will show
 ├── save.jsx           # Frontend save (static blocks only, see --static)
 ├── editor.css         # Editor-only styles
 ├── style.css          # Shared styles (editor + frontend)
@@ -93,31 +93,37 @@ registerBlockType(metadata.name, {
 
 A static block (`--static`) imports `save` from `./save` and passes it instead.
 
-## BlocksServiceProvider
+### edit.jsx
 
-Each theme, plugin, or module that contains blocks needs a `BlocksServiceProvider` to register them. The `pollora:make:block` command creates this automatically on first use.
+The editor shows what the page will show. For a dynamic block, the generated `edit.jsx` renders `render.blade.php` through `ServerSideRender`, for the block's current attributes:
 
-```php
-<?php
+```jsx
+import { useBlockProps } from '@wordpress/block-editor';
+import ServerSideRender from '@wordpress/server-side-render';
+import metadata from './block.json';
 
-namespace Theme\MyTheme\Providers;
+export default function Edit({ attributes }) {
+    const blockProps = useBlockProps();
 
-use Illuminate\Support\ServiceProvider;
-use Pollora\Block\Infrastructure\Services\BlockRegistrar;
-
-class BlocksServiceProvider extends ServiceProvider
-{
-    public function boot(BlockRegistrar $registrar): void
-    {
-        $registrar->registerDirectory(
-            directory: dirname(__DIR__, 2) . '/resources/views/blocks',
-            containerName: 'theme',
-        );
-    }
+    return (
+        <div {...blockProps}>
+            <ServerSideRender block={metadata.name} attributes={attributes} />
+        </div>
+    );
 }
 ```
 
-The `containerName` matches the asset container for your module type:
+A static block's `edit.jsx` mirrors the markup `save.jsx` writes. A block made with `--inner-blocks` keeps the `InnerBlocks` editor, which a server render cannot provide.
+
+## Registration
+
+Pollora registers the blocks of every active theme, plugin and module by itself: whatever holds a `resources/views/blocks` directory (or the former `resources/blocks`) has its blocks registered on WordPress `init`. There is nothing to write — no service provider, no `register_block_type()` call.
+
+A service provider of your own could not do this reliably. Over HTTP, WordPress is loaded, and `init` has fired, before theme and plugin providers boot; a REST request — which the editor and `ServerSideRender` rely on — is answered before they boot at all. A block registered from a provider existed in WP-CLI only.
+
+A `BlocksServiceProvider` written by an earlier `pollora:make:block` is harmless — a block WordPress already holds is skipped — and can be deleted.
+
+Each block's assets resolve through the asset container of the module that ships it:
 
 | Module type | Container name |
 |---|---|
@@ -125,17 +131,9 @@ The `containerName` matches the asset container for your module type:
 | Plugin | `plugin.{slug}` |
 | Module | `module.{slug}` |
 
-The `BlockRegistrar` automatically creates a `{container}.blocks` child container with an empty `basePath` to resolve block assets directly against the Vite manifest.
+A Laravel module declares its own container in a provider that boots too late for `init`, so Pollora creates it when it is missing, building from `public/build/module/{slug}`. The `BlockRegistrar` automatically creates a `{container}.blocks` child container with an empty `basePath` to resolve block assets directly against the Vite manifest.
 
-Asset entry points are resolved relative to the Vite project root — `resources/views/blocks/hero-banner/index.jsx` — which is both the manifest key and the dev server path. The root is the closest parent directory holding a `vite.config.{js,ts,mjs}`, or else the directory containing `resources/`. Pass it explicitly when your layout differs:
-
-```php
-$registrar->registerDirectory(
-    directory: dirname(__DIR__, 2) . '/resources/views/blocks',
-    containerName: 'theme',
-    basePath: dirname(__DIR__, 2),
-);
-```
+Asset entry points are resolved relative to the Vite project root — `resources/views/blocks/hero-banner/index.jsx` — which is both the manifest key and the dev server path. The root is the closest parent directory holding a `vite.config.{js,ts,mjs}`, or else the directory containing `resources/`: keep the Vite config at the root of the theme, plugin or module.
 
 ## Vite Configuration
 
@@ -299,9 +297,10 @@ php artisan pollora:make:block pricing-table --theme --namespace=starter --categ
 
 When creating the first block in a theme or plugin, the command automatically:
 
-1. Creates `app/Providers/BlocksServiceProvider.php`
-2. Patches `vite.config.js` with block entry discovery, `wordpressPlugin()` and Blade-only full reloads
-3. Adds required npm dependencies (`@roots/vite-plugin`, `@wordpress/blocks`, etc.)
+1. Patches `vite.config.js` with block entry discovery, `wordpressPlugin()` and Blade-only full reloads
+2. Adds required npm dependencies (`@roots/vite-plugin`, `@wordpress/blocks`, etc.)
+
+A block needs a Vite build: the command refuses a theme or plugin that has no `package.json` or no `vite.config.js`, and writes nothing. A plugin made with `pollora:make:plugin --asset` has both.
 
 In a theme or plugin whose blocks are still in `resources/blocks`, it skips the bootstrap and updates the `vite.config.js` block entries to build both locations.
 
@@ -335,7 +334,7 @@ A `render.php` file still works and is included as plain PHP.
 Blocks used to live in `resources/blocks`. That directory is still registered, with a deprecation notice in the log, and support ends in Pollora v15.
 
 1. Move the blocks: `git mv resources/blocks resources/views/blocks`
-2. In `app/Providers/BlocksServiceProvider.php`, point `registerDirectory()` at `/resources/views/blocks`. An old provider keeps working meanwhile: both locations are scanned from either path, and a block present in both is taken from `resources/views/blocks`.
+2. Delete `app/Providers/BlocksServiceProvider.php` if you have one: Pollora registers both locations itself, and a block present in both is taken from `resources/views/blocks`.
 3. In `vite.config.js`, glob `./resources/views/blocks/*/…` and restrict full reloads to Blade files (see [Full reloads](#full-reloads)). Running `pollora:make:block` does this for you.
 4. Optionally convert a static block to Blade: add `"render": "file:./render.blade.php"` to `block.json`, move the markup of `save.jsx` into `render.blade.php`, and set `save: () => null`. Existing content keeps its saved markup until the post is edited, then renders from Blade.
 
@@ -352,7 +351,8 @@ Block development requires these packages (added automatically by `pollora:make:
         "@wordpress/block-editor": "^14.0.0",
         "@wordpress/components": "^29.0.0",
         "@wordpress/element": "^6.0.0",
-        "@wordpress/i18n": "^5.0.0"
+        "@wordpress/i18n": "^5.0.0",
+        "@wordpress/server-side-render": "^5.0.0"
     }
 }
 ```
