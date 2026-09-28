@@ -100,21 +100,82 @@ For themes, no additional arguments are needed — the framework reads the theme
 
 ## Theme.json and Vite Build Integration
 
-Pollora provides automatic integration between the Vite build process and WordPress's `theme.json` system. Tailwind CSS variables are extracted at build time and injected into WordPress at runtime — the block editor receives your full design token palette without manual synchronization.
+Your theme's design lives in one place: the `@theme` block of
+`resources/assets/css/app.css`. At build time, the colours, font sizes, fonts
+and radii declared there are written into `theme.json`, and Pollora hands that
+file to WordPress. Change a value in `app.css`, run the build, and the front end
+and the block editor change together.
 
 ### How It Works
 
 The `@roots/vite-plugin` package includes a `wordpressThemeJson` plugin that:
 
-1. Reads your source `theme.json` from the theme root (base configuration)
-2. Extracts CSS variables from the compiled Tailwind CSS (colors, font families, font sizes, border radius)
-3. Generates an enriched `theme.json` in the build output at `public/build/theme/{slug}/assets/theme.json`
+1. Reads your source `theme.json` from the theme root (the base configuration)
+2. Reads the `@theme` variables of the compiled stylesheet, in four families:
 
-Pollora's `ThemeJsonResolver` hooks into WordPress's `wp_theme_json_data_theme` filter (WP 6.1+) to inject this built data at runtime. WordPress receives the full Tailwind-enriched theme settings dynamically.
+   | Variable | Written to |
+   |---|---|
+   | `--color-*` | `settings.color.palette` |
+   | `--text-*` | `settings.typography.fontSizes` |
+   | `--font-*` | `settings.typography.fontFamilies` |
+   | `--radius-*` | `settings.border.radiusSizes` |
+
+3. Writes the merged result to `public/build/theme/{slug}/assets/theme.json`
+
+Pollora's `ThemeJsonResolver` hooks into WordPress's `wp_theme_json_data_theme`
+filter (WP 6.1+) to inject this built file at runtime.
+
+### Declaring the design in `@theme`
+
+```css
+@import "tailwindcss";
+
+@theme static {
+    --color-primary: #1f2937;
+    --color-primary-hover: #111827;
+    --color-surface: #f9fafb;
+
+    --text-sm: 0.875rem;
+    --text-base: 1rem;
+    --text-lg: 1.125rem;
+
+    --radius-md: 0.375rem;
+    --radius-lg: 0.5rem;
+}
+
+@layer base {
+    :root {
+        --color-primary: var(--wp--preset--color--primary, #1f2937);
+        --color-primary-hover: var(--wp--preset--color--primary-hover, #111827);
+        --color-surface: var(--wp--preset--color--surface, #f9fafb);
+    }
+}
+```
+
+Three rules make this work:
+
+- **`@theme static`, and a plain `@import "tailwindcss"`.** Tailwind only emits
+  the variables your templates use, and the plugin only sees what Tailwind
+  emits. `static` on your own `@theme` block emits every token you declare, so
+  each one reaches the editor. Do not write `@import "tailwindcss" theme(static)`:
+  it emits Tailwind's whole default theme, and the editor then offers some 290
+  colours (`red-50` to `stone-950`) and thirteen font sizes nobody chose.
+- **Concrete values in `@theme`.** The plugin copies each value as it is. A token
+  written `var(--wp--preset--color--primary, #1f2937)` becomes a preset defined
+  as itself, a cycle CSS discards: a block coloured "Primary" is transparent.
+- **The `:root` rule points the colour utilities at the presets.** `bg-primary`
+  then follows the palette, so a colour changed in the Site Editor reaches the
+  whole theme, not only the blocks. The fallback keeps the utilities working
+  where WordPress prints no presets.
+
+Everything a template uses and `@theme` does not declare also lands in
+`theme.json` (`text-white` brings `white`, for instance). Keep the templates on
+your tokens and the editor shows your design and nothing else.
 
 ### Source theme.json
 
-Your source `theme.json` at the theme root serves as the **base configuration** — layout sizes, appearance tools, and any settings not derived from CSS:
+The `theme.json` at the theme root is the **base configuration**: layout
+sizes, appearance tools, and anything CSS does not express.
 
 ```json
 {
@@ -127,15 +188,56 @@ Your source `theme.json` at the theme root serves as the **base configuration** 
             "wideSize": "1275px"
         },
         "typography": {
-            "dropCap": false
+            "dropCap": false,
+            "defaultFontSizes": false,
+            "customFontSize": false
         }
     }
 }
 ```
 
-### Vite Configuration
+When the base and `@theme` both define a slug, **the base wins**. Leave the
+palette, font sizes, fonts and radii out of it unless you mean to override
+them, and never copy the built file back over it: the base would then hold
+every generated value, and later edits to `app.css` would never reach the
+editor.
 
-In your `vite.config.js`, include the `wordpressThemeJson` plugin:
+### Keeping a value out of Tailwind
+
+You do not have to tie `theme.json` to Tailwind. Two ways, from the narrowest:
+
+- **One slug.** Define it in the base `theme.json`: it wins over the value of
+  `@theme`, and the rest of the family is still generated.
+- **A whole family.** Turn its generation off, and the base `theme.json` is used
+  as written:
+
+  ```javascript
+  wordpressThemeJson({
+      baseThemeJsonPath: './theme.json',
+      disableTailwindColors: false,
+      disableTailwindFontSizes: false,
+      disableTailwindFonts: true,        // fonts come from theme.json only
+      disableTailwindBorderRadius: false,
+  }),
+  ```
+
+The default theme turns the fonts off: its Inter font needs a `fontFace`
+declaration, which only `theme.json` can hold, so the font lives there.
+
+A family taken out of the generation is no longer linked: the preset in the
+editor and the Tailwind utility can then differ, and keeping them in step is up
+to you.
+
+### Not generated
+
+- **Spacing.** Tailwind v4 derives every spacing utility from one variable,
+  `--spacing`; WordPress's spacing presets are a named scale. The plugin does
+  not map one to the other. Changing `--spacing` changes the page; the editor
+  keeps WordPress's default spacing presets unless `theme.json` declares
+  `settings.spacing.spacingSizes`.
+- **Layout.** `contentSize` and `wideSize` live in the base `theme.json`.
+
+### Vite Configuration
 
 ```javascript
 import { wordpressThemeJson } from '@roots/vite-plugin';
@@ -146,23 +248,19 @@ export default defineConfig({
         laravel(getThemeConfig()),
         wordpressThemeJson({
             baseThemeJsonPath: './theme.json',
+            // Names shown in the editor; the slug is used when none is given
+            fontSizeLabels: { sm: 'Small', base: 'Medium', lg: 'Large' },
+            borderRadiusLabels: { md: 'Medium', lg: 'Large' },
+            fontLabels: { sans: 'Sans Serif' },
         }),
     ],
 });
 ```
 
-When you run `npm run build`, the plugin merges your base `theme.json` with all Tailwind CSS variables extracted from the compiled stylesheet. The result is written to the build directory.
-
-### What Gets Injected
-
-The built `theme.json` includes:
-
-- **Colors** — All Tailwind color palette shades (e.g., Red 50–950, Blue 50–950)
-- **Font sizes** — Tailwind's typography scale (`xs` through `9xl`)
-- **Font families** — `sans`, `serif`, `mono` from Tailwind defaults or your custom fonts
-- **Border radius** — Tailwind's radius scale (`xs` through `4xl`)
-
-These values are available in the WordPress block editor (Gutenberg) — users can select Tailwind colors, font sizes, and border radii directly from the editor UI.
+When you run `npm run build`, the plugin merges your base `theme.json` with the
+`@theme` values of the compiled stylesheet and writes the result to the build
+directory. Other options (`outputPath`, `cssFile`, `*.theme.js` partials) are
+described in the [plugin's README](https://github.com/roots/vite-plugin).
 
 ### Architecture
 
@@ -535,8 +633,8 @@ Every role resolves to something: a theme with no `theme.json` at all still
 gets a coherent screen rather than half a stylesheet over WordPress's defaults.
 
 A preset whose value points at a CSS variable — `var(--wp--preset--color--x,
-#1f2937)`, which Tailwind-built theme.json files generate — resolves to its
-declared fallback, because the login screen carries none of the stylesheets
+#1f2937)`, which a `theme.json` built from a non-concrete `@theme` value holds —
+resolves to its declared fallback, because the login screen carries none of the stylesheets
 those variables come from. With no fallback to read, the role falls through to
 the next slug it accepts.
 
