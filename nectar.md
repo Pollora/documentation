@@ -19,9 +19,9 @@
 When working with AI coding assistants (Claude Code, Cursor, Windsurf, etc.), the quality of generated code depends heavily on the context available. Nectar bridges this gap by:
 
 - **Injecting Pollora-specific guidelines** into your AI agent's context via Laravel Boost
-- **Providing 8 on-demand skills** for domain-specific tasks (post types, themes, hooks, etc.)
+- **Providing 9 on-demand skills** for domain-specific tasks (post types, themes, hooks, blocks, abilities, etc.)
 - **Exposing 10 MCP tools** for live introspection of your WordPress and Pollora environment
-- **Offering upgrade prompts** that guide AI agents step-by-step through Pollora major version upgrades
+- **Offering upgrade prompts** that guide AI agents step-by-step through Pollora version upgrades
 
 Nectar is a development-only package — it only loads in `local` and `development` environments.
 
@@ -133,7 +133,7 @@ Returns: class name, method, hook name, and priority for each discovered hook.
 
 ### `active_theme_info`
 
-Returns details about the active Pollora theme: directory structure, service providers, config files, registered Gutenberg blocks, Blade templates, Vite/Tailwind/theme.json status, and the computed theme namespace.
+Returns details about the active Pollora theme: directory structure, service providers, config files, Gutenberg blocks (those in `resources/views/blocks`, and separately any left in the deprecated `resources/blocks`), Blade templates, Vite/Tailwind/theme.json status, and the computed theme namespace.
 
 ### `discovered_components`
 
@@ -170,13 +170,13 @@ Returns the option value and whether it exists.
 Guidelines are injected automatically into your AI agent's context when Boost runs. They cover:
 
 - **Pollora architecture** — Laravel-first routing, Blade templates, DDD structure, auto-discovery
-- **PHP 8 attributes** — `#[PostType]`, `#[Taxonomy]`, `#[Action]`, `#[Filter]`, `#[Schedule]`, `#[WpRestRoute]`
+- **PHP 8 attributes** — `#[PostType]`, `#[Taxonomy]`, `#[Action]`, `#[Filter]`, `#[Schedule]`, `#[WpRestRoute]`, `#[Ajax]`, `#[Ability]`, `#[SkipDiscovery]`
 - **WordPress routing** — `Route::wp()` with template conditions and hierarchy fallback
 - **Blade templating** — Sage Directives (`@posts`, `@title`, `@content`, etc.)
-- **Theme development** — Convention-based structure, Vite, Tailwind CSS, Asset facade
+- **Theme development** — Convention-based structure, Vite, Tailwind CSS, Asset facade, design tokens in `@theme`, blocks with `<InnerBlocks />`
 - **Available Artisan commands** — All Pollora-specific commands
 
-Version-specific guidelines (e.g., Pollora 13.x with Laravel 13 and WordPress 6.9) are loaded automatically based on your installed framework version.
+Version-specific guidelines (e.g., Pollora 13.x with Laravel 13 and WordPress 7) are selected automatically from your installed framework version.
 
 ## Agent Skills
 
@@ -188,22 +188,24 @@ Skills are activated on-demand when working on specific tasks:
 | `pollora-taxonomies` | Creating custom taxonomies with `#[Taxonomy]` attributes |
 | `pollora-theming` | Theme development (Blade, Vite, Tailwind, assets, theme.json) |
 | `pollora-hooks` | Registering WordPress actions and filters with attributes |
-| `pollora-blocks` | Gutenberg block development with JSX/TSX and Tailwind |
-| `pollora-rest-api` | REST API endpoints with `#[WpRestRoute]` |
+| `pollora-blocks` | Gutenberg blocks with JSX/TSX, Blade rendering, `<InnerBlocks />` and Tailwind |
+| `pollora-rest-api` | REST API endpoints with `#[WpRestRoute]`, AJAX handlers with `#[Ajax]` |
 | `pollora-scheduling` | Scheduled tasks with `#[Schedule]` and WordPress cron |
 | `pollora-modules` | Laravel Modules (nwidart) with auto-discovery integration |
+| `pollora-abilities` | WordPress Abilities API with `#[Ability]` and the `Ability` facade |
 
 Each skill provides detailed instructions, code examples, and best practices specific to its domain.
 
 ## Upgrade Assistance
 
-Nectar includes MCP upgrade prompts that guide AI agents through Pollora major version upgrades. Prompts are **automatically registered** when the current project version matches — no manual activation needed.
+Nectar includes MCP upgrade prompts that guide AI agents through Pollora version upgrades. Prompts are **automatically registered** when the current project version matches — no manual activation needed.
 
 ### Available Upgrade Prompts
 
 | Prompt | Available When | What It Covers |
 |--------|---------------|----------------|
 | `upgrade-pollora-v13` | Pollora 12.x detected | Full migration guide from Pollora 12 to 13 |
+| `upgrade-pollora-v13-32` | Pollora 13.0 to 13.4.x detected | Migration to 13.32: dependencies, composer-patches 2, renamed commands, extracted packages, blocks, skeleton files, theme.json |
 
 ### Pollora 12→13 Upgrade Coverage
 
@@ -214,18 +216,27 @@ The `upgrade-pollora-v13` prompt covers all breaking changes and migration steps
 - **`@theme` Blade directive removal** (v13.4) — conflicts with Tailwind CSS v4 `@theme` at-rule
 - **Route model namespace change** (v13.4) — from `Domain\Models` to `Infrastructure\Models`
 - **CSRF middleware rename** (Laravel 13) — `ValidateCsrfToken` to `PreventRequestForgery` with WordPress-specific route exclusions
-- **Theme Vite configuration** — `@roots/vite-plugin` with `wordpressThemeJson` for font and theme.json resolution
+- **Theme Vite configuration** — `@roots/vite-plugin` with `wordpressThemeJson` for font and theme.json resolution (without copying the built `theme.json` back over the theme's own)
 - **WordPress 7.0 update**
 - **Post-upgrade cleanup** — cache clearing, discovery rebuild, `wp transient delete --all`
 
 The prompt follows a systematic 6-step process: assess → create safety net → analyze codebase → apply changes → update dependencies → clean up and verify.
 
+### Pollora 13.x → 13.32 Upgrade Coverage
+
+The `upgrade-pollora-v13-32` prompt covers the move from 13.0–13.4 to 13.32, whose version now tracks the Laravel release it targets:
+
+- **Dependencies** — `laravel/framework` `^13.33`, `johnpbloch/wordpress` `^7.1`, WordPress packages from wp-packages instead of wpackagist
+- **WordPress patching** — `cweagans/composer-patches` 2, `patches.lock.json`, the `patches-relock` script, and checking that WordPress's `__()` is patched
+- **Renamed Artisan commands** — the colon convention (`pollora:make:theme`…), former names kept as aliases
+- **Extracted packages** — the classes moved to `pollora/hook`, `pollora/option` and `pollora/ajax`
+- **`Loop` and `Query` removal**, **`Translater` domain**, **blocks** in `resources/views/blocks`, registered without a service provider
+- **Skeleton files** — `routes/web.php`, the cache table, the trailing-slash rule of `.htaccess`
+- **Themes** — design tokens in `@theme static`, generated `theme.json`
+
 ### Version-Specific Guidelines
 
-Nectar provides version-specific guidelines that are loaded automatically based on the installed Pollora version:
-
-- **`12/core.blade.php`** — Documents features available in v12 (Loop facade, `@theme` directive, config-based registration) with deprecation notes
-- **`13/core.blade.php`** — Documents v13 features (discovery enhancements, template hierarchy, theme API routes, WordPress events)
+`resources/boost/guidelines/framework.blade.php` holds the Pollora 12.x and 13.x guidelines and gives a project the ones of its installed framework major (a branch without an alias gets the 13.x text). Boost reads every guideline file of a package outside Laravel's own, so versions live in one file rather than in `12/` and `13/` folders.
 
 ## Configuration
 
@@ -273,9 +284,9 @@ Nectar extends Laravel Boost with three layers:
 │  (Blade)     │  │  (Markdown)    │  │  (Tools +    │
 ├──────────────┤  ├────────────────┤  │   Prompts)   │
 │ core.blade   │  │ pollora-hooks  │  ├─────────────┤
-│ 12/core.blade│  │ pollora-blocks │  │ 10 tools    │
-│ 13/core.blade│  │ pollora-theme  │  │ 1 upgrade   │
-│              │  │ ...6 more      │  │   prompt    │
+│ framework    │  │ pollora-blocks │  │ 10 tools    │
+│   .blade     │  │ pollora-theme  │  │ 2 upgrade   │
+│              │  │ ...6 more      │  │   prompts   │
 └──────────────┘  └────────────────┘  └─────────────┘
 ```
 
