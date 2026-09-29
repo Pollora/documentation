@@ -14,7 +14,16 @@ To generate a new theme, run the following command:
 php artisan pollora:make:theme
 ```
 
-You'll be prompted to answer several questions to configure your theme. Alternatively, you can pass the configuration as options:
+You'll be prompted to answer several questions to configure your theme, starting with the template to start from:
+
+| Template | Repository | What it is |
+|---|---|---|
+| Default | `pollora/theme-default` | A Blade starter: Vite, Tailwind CSS |
+| E-commerce | `pollora/theme-apiary` | A WooCommerce storefront, Blade and Alpine.js |
+| Magazine | `pollora/theme-buzz` | A Full Site Editing block theme — see [Block Themes](#block-themes-full-site-editing) |
+| Custom | any `owner/repo` | Your own template, from GitHub |
+
+`--repository=pollora/theme-buzz` skips the prompt. The command downloads the template's latest tag and fills in its placeholders (name, namespace, pattern slugs, `style.css` header). Alternatively, you can pass the configuration as options:
 
 ```bash
 php artisan pollora:make:theme {theme-name} \
@@ -853,14 +862,68 @@ public function boot(TemplateHierarchy $templateHierarchy)
 }
 ```
 
-## Using Block Theme Templates
+## Block Themes (Full Site Editing)
 
-Pollora supports WordPress block theme templates. When using a block theme, the template hierarchy automatically includes HTML templates from the block theme structure:
+A Pollora theme can be a WordPress **block theme**: its templates are `templates/*.html`, edited in the Site Editor, instead of Blade views. Start from the Magazine template:
+
+```bash
+php artisan pollora:make:theme my-journal --repository=pollora/theme-buzz
+```
+
+### How it renders
+
+Nothing to configure. When no Blade view answers a request, Pollora's fallback lets WordPress resolve the block template itself, and answers with the right status: a block theme's `404.html` answers HTTP 404, with `error404` on `<body>`. Blade views still win where they exist, and a `Route::wp()` or Laravel route answers before any template — so don't declare routes for pages the block templates render.
+
+### Where files go
+
+One rule: **the theme root holds what WordPress reads itself; `resources/views/` holds Blade.**
+
+```plaintext
+my-journal/
+├─ templates/                  # Block templates: index, single, page, archive, search, 404…
+├─ parts/                      # Template parts: header, footer
+├─ patterns/                   # Static patterns, registered by WordPress
+│  └─ masthead.php
+├─ resources/
+│  ├─ assets/                  # CSS, JS, fonts — built by Vite
+│  └─ views/patterns/          # Patterns that need Laravel, registered by Pollora
+│     └─ colophon.blade.php
+├─ theme.json                  # The design system; the build adds the @theme colours
+└─ style.css
+```
+
+- `templates/` and `parts/` must be at the theme root: WordPress has no setting to move them.
+- This is the layout the Site Editor exports, and the one block themes such as Ollie use: a template exported from the editor drops into place.
+
+### Patterns
+
+A static pattern is a native WordPress pattern, `patterns/*.php`: block markup under a header docblock.
 
 ```php
-// For a regular PHP template like 'page.php'
-// These templates will be checked:
-// - page.blade.php (Blade variant)
-// - page.php (PHP variant)
-// - wp-templates/page.html (Block theme variant)
+<?php
+/**
+ * Title: Masthead
+ * Slug: my-journal/masthead
+ * Categories: my-journal/patterns
+ * Block Types: core/template-part/header
+ * Inserter: false
+ */
+?>
+<!-- wp:group {"tagName":"header"} -->
+<header class="wp-block-group"><!-- wp:site-title /--></header>
+<!-- /wp:group -->
 ```
+
+WordPress reads **only `.php` files** in `patterns/`: an `.html` file there is silently ignored. The `.php` extension also lets a pattern translate a string or print a theme URL when it needs to.
+
+A pattern that needs Laravel — configuration, a helper, a computed value — is a Blade view in `resources/views/patterns`, registered by Pollora (see [Patterns](patterns.md)).
+
+Templates stay thin and point at patterns: `<!-- wp:pattern {"slug":"my-journal/masthead"} /-->`.
+
+WordPress caches the list of a theme's `patterns/` files, so a new file appears once the cache is cleared — `wp eval 'wp_get_theme()->delete_pattern_cache();'` — or at once with `WP_DEVELOPMENT_MODE=theme`.
+
+### Assets and debugging
+
+Assets work as in any Pollora theme (`Asset::add(...)->useVite()`): a Vite entry is enqueued as a script module, printed after WordPress's import map, so the core blocks' own modules — the navigation block's, for one — keep working.
+
+With `WP_DEBUG` on, the template marker of a block theme always reads `template="template-canvas"`: WordPress renders every block template through `wp-includes/template-canvas.php`. Tell templates apart by the `<body>` classes (`single-post`, `search-results`, `error404`…).

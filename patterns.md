@@ -18,15 +18,17 @@ return [
 ];
 ```
 
+A pattern that needs no Laravel can also be a native WordPress pattern, `patterns/*.php` at the theme root, which WordPress registers itself — the usual choice in a block theme. See [Block Themes](theming.md#block-themes-full-site-editing).
+
 ## Pattern Organization
 
 ### Basic Structure
 
-Patterns are stored in your theme's `views/patterns` directory:
+Pollora registers the Blade patterns in your theme's `resources/views/patterns` directory:
 
 ```
 themes/default/
-└── views/
+└── resources/views/
     └── patterns/
         ├── example.blade.php
         └── banners/
@@ -38,7 +40,7 @@ themes/default/
 You can organize your patterns into subdirectories for better maintenance:
 
 ```
-themes/default/views/patterns/
+themes/default/resources/views/patterns/
 ├── banners/
 │   ├── hero.blade.php
 │   └── cta.blade.php
