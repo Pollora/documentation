@@ -84,6 +84,21 @@ Asset::add('my-vite-asset', 'path/to/asset.js')
     ->toFrontend();
 ```
 
+### Vite entries are script modules
+
+Vite builds ES modules, so on the front end (`toFrontend()`) and in the admin (`toBackend()`) a Vite script is enqueued as a WordPress **script module** (`wp_enqueue_script_module`), not a classic script. WordPress then places it the way it places its own modules — always after its import map:
+
+| Theme | Where the Vite script is printed |
+|---|---|
+| Block theme | in the `<head>`, or in the footer with `loadInFooter()` |
+| Classic theme | in the footer, whatever `loadInFooter()` says |
+
+Printed before the import map, a module voids it in Firefox and Safari, and every WordPress module on the page — the navigation block's, for one — fails with `@wordpress/interactivity was a bare specifier`.
+
+A module only depends on modules and takes no localized data or inline script. What the asset declares with `dependencies()`, `localize()` or `inline()` goes on a classic companion script, `{handle}-data`, printed in the head: it runs before the module, which the browser defers — so inline code runs before the module too, whatever its position.
+
+`toEditor()`, `toLoginScreen()` and `toCustomizer()` are unchanged: WordPress prints no script modules there, so a Vite script stays a classic `<script type="module">`.
+
 ### Configuration Options
 
 The following methods are available for configuring assets:
@@ -93,7 +108,7 @@ The following methods are available for configuring assets:
 - `dependencies(array $dependencies)`: Specify asset dependencies.
 - `version(string $version)`: Set the asset version.
 - `media(string $media)`: Set the media type for styles.
-- `loadInFooter()`: Load the script in the footer.
+- `loadInFooter()`: Load the script in the footer (for a Vite script, only a block theme reads it — see above).
 - `loadStrategy(string $strategy)`: Set the script load strategy (e.g., 'defer').
 - `toFrontend()`, `toBackend()`, `toLoginScreen()`, `toCustomizer()`, `toEditor()`: Specify where to load the asset.
 - `useVite()`: Use ViteJS for this asset.
