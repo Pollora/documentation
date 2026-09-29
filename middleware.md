@@ -26,9 +26,13 @@ Manages HTTP headers for WordPress responses:
 - Controls cache headers
 - Removes unnecessary WordPress headers for unauthenticated requests
 
-### WordPressBodyClass
+### Body classes on Laravel routes
 
-Adds route-based CSS classes to the WordPress `body_class` output, allowing you to style pages based on the matched route condition.
+Not a middleware: a listener on Laravel's `RouteMatched` event, so it also reaches routes that carry none of the middleware above.
+
+WordPress resolves every request against its own rewrite rules first, so a URL only a Laravel route knows (`Route::get('/dashboard/{tab}')`) comes out of it as a 404. On such a route, Pollora clears that verdict — `is_404()` is false, `<body>` loses `error404` and the title is no longer "Page not found" — and adds the route's URI segments as body classes: `/dashboard/settings` gives `dashboard tab-settings`.
+
+A route WordPress answers — `Route::wp()` and the template-hierarchy fallback — is left as WordPress resolved it, so a real 404 keeps its `error404` class.
 
 ### WordPressShutdown
 

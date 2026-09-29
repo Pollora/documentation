@@ -103,7 +103,8 @@ There are two main methods to define routes in your application:
     - They automatically receive WordPress-specific middleware:
         - `WordPressBindings`: Adds WordPress objects (post, query) to the route
         - `WordPressHeaders`: Manages HTTP headers for WordPress responses
-        - `WordPressBodyClass`: Handles body classes for WordPress templates
+        - `WordPressShutdown`: Runs WordPress's shutdown hooks before the response is sent
+    - WordPress's body classes and `is_404()` are left as WordPress resolved them; only routes WordPress does not answer are adjusted (see [Middleware](middleware.md#body-classes-on-laravel-routes))
     - They are processed through WordPress's conditional logic
     - `Route::wp()` accepts all HTTP verbs
     - `Route::wpMatch()` allows specifying specific HTTP verbs
