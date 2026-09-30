@@ -135,7 +135,7 @@ The `constants` array defines WordPress constants that will be automatically def
     'logged_in_salt' => env('LOGGED_IN_SALT'),
     'nonce_salt' => env('NONCE_SALT'),
 
-    // WordPress multisite configuration
+    // WordPress multisite configuration — not in the published file, add them
     'wp_allow_multisite' => env('WP_ALLOW_MULTISITE'),
     'multisite' => env('MULTISITE'),
     'subdomain_install' => env('SUBDOMAIN_INSTALL'),

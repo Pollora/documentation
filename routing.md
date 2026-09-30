@@ -167,7 +167,7 @@ The framework provides a default set of aliases in its `config/wordpress.php` fi
 To customize WordPress route conditions, you can publish the framework's configuration file to your application:
 
 ```bash
-php artisan vendor:publish --tag=wp-config
+php artisan vendor:publish --tag=wordpress
 ```
 
 This command will copy the framework's configuration file to your application's `config/` directory, allowing you to customize it according to your needs.
