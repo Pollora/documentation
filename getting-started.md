@@ -22,7 +22,7 @@ number in its `composer.lock` — which is what `create-project` installs from,
 whatever constraint the `composer.json` carries. So one version number describes
 an install completely.
 
-The current tag is **v13.34.0-beta**.
+The current tag is **v13.34.0-beta.2**.
 
 Because these are pre-releases, Composer never selects them by default: a
 plain `composer create-project pollora/pollora` still installs the last stable
