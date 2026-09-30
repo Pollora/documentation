@@ -44,8 +44,12 @@ php artisan pollora:make:theme {theme-name} \
 - `--repository` : GitHub repository to download (owner/repo format)
 - `--repo-version` : Specific version/tag to download
 - `--force` : Force create theme with same name
+- `--activate` : Activate the generated theme without asking
+- `--no-activate` : Leave the active theme as it is, without asking
 
 This command creates a new theme with the necessary folder structure and base files.
+
+It activates the new theme only where the site needs one: a site with no usable theme — a first install — gets it without a question; a site that already has one is asked, **No** by default, so `--no-interaction` never replaces a working theme. `--activate` and `--no-activate` decide without asking. Activation goes through WordPress's `switch_theme()`, so `after_switch_theme` runs.
 
 ### Theme Structure
 
