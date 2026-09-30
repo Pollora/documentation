@@ -22,11 +22,8 @@ number in its `composer.lock` — which is what `create-project` installs from,
 whatever constraint the `composer.json` carries. So one version number describes
 an install completely.
 
-The current tag is **v13.34.0-beta.2**.
-
-Because these are pre-releases, Composer never selects them by default: a
-plain `composer create-project pollora/pollora` still installs the last stable
-release, **v13.4.0**. The commands below ask for the beta explicitly.
+The current release is **v13.34.0**, a stable release: a plain
+`composer create-project pollora/pollora` installs it.
 
 ## Installation Methods
 
@@ -67,22 +64,18 @@ With `--ddev`, the CLI configures DDEV (WordPress project type, PHP 8.4, MariaDB
 | `--force`, `-f` | Force install even if the directory already exists |
 | `--git` | Initialize a Git repository |
 | `--branch=NAME` | Branch name for the new repository (default: `main`) |
-| `--ver=VERSION` | Install a specific version or constraint (e.g. `13.34.0-beta`, `^13.34@beta`) |
+| `--ver=VERSION` | Install a specific version or constraint (e.g. `13.34.0`, `^13.34`) |
 | `--stable` | Install the latest stable release instead of the latest pre-release |
 
-`pollora new` installs the latest release **including pre-releases**, so you get the current beta. Pass `--stable` to stay on the last stable release, or `--ver` to pin an exact version.
+`pollora new` installs the latest release **including pre-releases**: today that is the stable v13.34.0, and a beta published after it would be picked up. Pass `--stable` to never get a pre-release, or `--ver` to pin an exact version.
 
 ### 2. Composer create-project
 
 ```bash
-composer create-project "pollora/pollora:^13.34@beta" example-app
-```
-
-The `@beta` flag is what allows Composer to pick the current pre-release. To install the last stable release instead, drop the constraint:
-
-```bash
 composer create-project pollora/pollora example-app
 ```
+
+Composer picks the latest stable release. To try a pre-release, ask for it explicitly, e.g. `"pollora/pollora:^13.34@beta"`.
 
 Either command will:
 
