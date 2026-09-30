@@ -4,7 +4,7 @@ Welcome to Pollora! This guide will help you get a working installation up and r
 
 ## Requirements
 
-- PHP 8.3 or higher
+- PHP 8.4 or higher (the skeleton's `composer.lock` ships Symfony 8, which requires it)
 - Composer 2.x
 - MySQL 5.7+ / MariaDB 10.3+ / SQLite
 - Node.js and NPM (for theme asset bundling)

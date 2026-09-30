@@ -74,7 +74,7 @@ Pollora uses a `wordpress.php` configuration file that contains several importan
 To customize these settings, you can publish the configuration file to your application:
 
 ```bash
-php artisan vendor:publish --tag=wp-config
+php artisan vendor:publish --tag=wordpress
 ```
 
 This command will copy the framework's configuration file to your application's `config/` directory, allowing you to customize it according to your needs.
@@ -127,13 +127,13 @@ These values are typically defined in your `.env` file during installation. If y
 <a name="multisite-configuration"></a>
 ### Multisite Configuration
 
-If you want to enable WordPress multisite functionality, you can configure the following parameters:
+WordPress multisite is configured with WordPress constants. Pollora defines every entry of the `constants` array of `config/wordpress.php` as a constant (keys upper-cased), so publish the file (`php artisan vendor:publish --tag=wordpress`) and add the multisite entries to that array — the published file does not contain them:
 
 ```php
 // config/wordpress.php
-return [
-    // ... other options
-    
+'constants' => [
+    // ... the authentication keys and salts already there
+
     // WordPress multisite configuration
     'wp_allow_multisite' => env('WP_ALLOW_MULTISITE'),
     'multisite' => env('MULTISITE'),
@@ -142,10 +142,10 @@ return [
     'path_current_site' => env('PATH_CURRENT_SITE'),
     'site_id_current_site' => env('SITE_ID_CURRENT_SITE'),
     'blog_id_current_site' => env('BLOG_ID_CURRENT_SITE'),
-];
+],
 ```
 
-Make sure to define these variables in your `.env` file if you enable multisite functionality.
+Then define these variables in your `.env` file. Keys placed at the top level of `config/wordpress.php`, outside `constants`, are not read.
 
 <a name="database-caching"></a>
 ### Database Caching
