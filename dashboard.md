@@ -1,4 +1,4 @@
-# Dashboard & Status
+# Dashboard, Status & Doctor
 
 Pollora includes a built-in admin dashboard and an Artisan CLI command that give you a complete overview of your framework installation, discovered entities, and system health.
 
@@ -125,6 +125,51 @@ Pollora dev-develop (latest stable: v13.4.0)
 ```
 
 No misleading "update available" warning is shown for development installations.
+
+## Diagnosing a project: `pollora:doctor`
+
+`pollora:status` says what is there. `pollora:doctor` says whether it works — and, under each problem, the command that fixes it:
+
+```bash
+php artisan pollora:doctor
+```
+
+```plaintext
+  ✓ WordPress core patch — The core is patched, and __() is Pollora's.
+  ✗ Composer patches lock — patches.lock.json is older than the framework's patches: Composer applies the old ones, or none.
+      johnpbloch/wordpress-core: Patch __ method in l10n to stop conflicting with Laravel
+      → composer patches-relock && composer patches-repatch
+  ! Theme pattern files — 1 pattern file(s) are never registered by WordPress.
+      patterns/masthead.html: WordPress reads only .php files in patterns/
+      → Make each one a .php file whose header is a docblock with Title and Slug (/** Title: … Slug: my-theme/… */)
+
+  1 error(s), 1 warning(s).
+```
+
+It looks for failures that stay silent — the site renders, every command exits 0 — each one met in practice:
+
+| Check | What it catches |
+|---|---|
+| WordPress core patch | the core still declares `__()` (a patch Composer skipped), or `__()` is not Pollora's |
+| Composer patches lock | `patches.lock.json` missing, or older than the framework's patches |
+| Environment file | `.env` names Pollora does not read (`DB_NAME`, `DB_USER`, `WP_HOME`…), MySQL settings on a sqlite connection |
+| Configuration and route caches | configuration or routes cached outside production: edits to `.env` or `routes/` are ignored |
+| Discovery cache | classes added since the discovery cache was written, which are not registered — named, one by one |
+| Theme, plugin and module builds | no theme; a build missing, or written to another folder than Pollora reads; a hot file pointing at a Vite dev server that is stopped or whose port is not exposed |
+| Symlinked directories | a theme, plugin or module linked under another name: the build and the site disagree on its folder |
+| Template placeholders | `%theme_*%` / `%plugin_*%` or `.stub` files left in a theme or plugin copied instead of generated |
+| Theme pattern files | `.html` files in `patterns/` (WordPress reads only `.php`), patterns without a Title or Slug |
+| Theme pattern cache | pattern files missing from WordPress's cached list |
+| Routes over block templates | `Route::wp()` routes answering in place of a block theme's templates |
+| Blocks in the legacy folder | blocks still in `resources/blocks`, which stops loading in v15 |
+
+The builds, directories, placeholders and blocks are checked for the active theme, every Pollora plugin and every enabled Laravel module.
+
+`--json` prints the same for scripts. The command exits `1` when a check finds an error (warnings exit `0`), so it can gate a deploy or a CI job.
+
+### In Site Health
+
+The same checks appear in WordPress's **Tools › Site Health**, with a *Pollora* badge, plus one only a web request can make: every block of the theme, the Pollora plugins and the modules is registered. Site Health runs in an administrator's web request — the boot a visitor gets — which is where a block can be missing while WP-CLI sees it.
 
 ## Programmatic Access
 
