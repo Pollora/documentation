@@ -43,9 +43,9 @@ php artisan pollora:status
 Example output:
 
 ```
-Pollora v13.4.0 (latest: v13.4.0) ✓
+Pollora v13.34.0 (latest: v13.34.0) ✓
 
-  PHP 8.3.12 | Laravel 13.5 | WordPress 6.9
+  PHP 8.4.12 | Laravel 13.34 | WordPress 7.1
 
   WP_DEBUG: off | Multisite: no | Permalinks: /%postname%/
 
@@ -86,14 +86,15 @@ This outputs the complete system information as a JSON object:
 ```json
 {
     "framework": {
-        "current": "13.4.0",
-        "latest": "13.4.0",
-        "update_available": false
+        "current": "13.34.0",
+        "latest": "13.34.0",
+        "update_available": false,
+        "development": false
     },
     "environment": {
-        "php": "8.3.12",
-        "laravel": "13.5.0",
-        "wordpress": "6.9"
+        "php": "8.4.12",
+        "laravel": "13.34.0",
+        "wordpress": "7.1"
     },
     "wordpress": {
         "debug": false,
@@ -118,13 +119,13 @@ This outputs the complete system information as a JSON object:
 
 ### Dev version detection
 
-When running a dev branch (`dev-develop`, `dev-main`, etc.), the command adapts its output:
+When running a dev branch (`dev-develop`, `13.x-dev`, etc.), the command adapts its output:
 
 ```
-Pollora dev-develop (latest stable: v13.4.0)
+Pollora dev-develop (latest stable: v13.34.0)
 ```
 
-No misleading "update available" warning is shown for development installations.
+No misleading "update available" warning is shown for development installations: `development` is `true` in the JSON output, and Site Health reports a development build instead of comparing it with releases.
 
 ## Diagnosing a project: `pollora:doctor`
 
