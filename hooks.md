@@ -249,3 +249,8 @@ class MyService {
 ```
 
 > **Extension author API:** The `Pollora\Hook\Domain\Contract\Action` and `Pollora\Hook\Domain\Contract\Filter` interfaces are **stable public contracts** for services that need to register hooks programmatically via dependency injection. For most use cases, prefer the facades above.
+
+## See also
+
+- [WordPress hooks with PHP 8 attributes](https://pollora.dev/guides/wordpress-hooks-php-attributes/)
+- [How Pollora runs WordPress inside Laravel](https://pollora.dev/guides/how-pollora-runs-wordpress-inside-laravel/)

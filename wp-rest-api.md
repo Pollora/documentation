@@ -94,7 +94,7 @@ Permissions can be applied globally to all methods within a class:
 ```php
 use Pollora\Attributes\WpRestRoute;
 use Pollora\Attributes\WpRestRoute;
-use Pollora\Attributes\WpRestRoute\Permissions\IsAdmin;
+use Pollora\WpRest\Permissions\IsAdmin;
 
 #[WpRestRoute(
     namespace: 'app/v2',
@@ -110,15 +110,15 @@ Permissions can also be set for specific HTTP methods:
 use Pollora\Attributes\WpRestRoute;
 use Pollora\Attributes\WpRestRoute\Method;
 use WP_REST_Response;
-use Pollora\Attributes\WpRestRoute\Permissions\IsAdmin;
-use Pollora\Attributes\WpRestRoute\Permissions\IsAuthor;
+use Pollora\WpRest\Permissions\IsAdmin;
+use Pollora\WpRest\Permissions\IsLoggedIn;
 
 class AdminDocumentAPI
 {
-    #[Method('GET', permissionCallback: IsAdmin::class)]
+    #[Method('GET', permissionCallback: IsLoggedIn::class)]
     public function get(): WP_REST_Response {}
 
-    #[Method('DELETE', permissionCallback: IsAuthor::class)]
+    #[Method('DELETE', permissionCallback: IsAdmin::class)]
     public function delete(): WP_REST_Response {}
 }
 ```
@@ -153,7 +153,7 @@ class IsAdmin implements Permission
 use Pollora\Attributes\WpRestRoute;
 use Pollora\Attributes\WpRestRoute;
 use Pollora\Attributes\WpRestRoute\Method;
-use Pollora\Attributes\WpRestRoute\Permissions\IsAdmin;
+use Pollora\WpRest\Permissions\IsAdmin;
 use WP_REST_Request;
 use WP_REST_Response;
 

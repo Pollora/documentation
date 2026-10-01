@@ -713,3 +713,6 @@ class EventCategory
 | `withArgs()` | Yes | Yes | Full i18n support |
 | `configuring()` | Yes | Yes | Dynamic + i18n support |
 
+## See also
+
+- [Custom post types and taxonomies with PHP attributes](https://pollora.dev/guides/custom-post-types-php-attributes/)

@@ -296,3 +296,7 @@ Nectar extends Laravel Boost with three layers:
 - **Discovery integration**: Hooks and components are retrieved via `DiscoveryManager`, ensuring consistency with the framework's own discovery system
 - **Environment-gated**: Nectar only loads in `local`/`development` environments to avoid any production overhead
 - **WordPress safety**: Tools that depend on wp-admin functions (like `get_plugins()`) safely load required files before calling them
+
+## See also
+
+- [AI coding agents for WordPress projects](https://pollora.dev/guides/ai-coding-agents-wordpress/)
