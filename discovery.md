@@ -884,3 +884,8 @@ $manager->run();
 $duration = (microtime(true) - $start) * 1000;
 error_log("Discovery completed in {$duration}ms");
 ```
+
+## See also
+
+- [WordPress hooks with PHP 8 attributes](https://pollora.dev/guides/wordpress-hooks-php-attributes/)
+- [Custom post types and taxonomies with PHP attributes](https://pollora.dev/guides/custom-post-types-php-attributes/)

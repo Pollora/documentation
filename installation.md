@@ -36,15 +36,9 @@ For security reasons, never commit your `.env` file to source control. Different
 <a name="databases-and-migrations"></a>
 ### Databases & Migrations
 
-With your Pollora application ready, you might want to store data. By default, the application's `.env` configuration indicates that Pollora will interact with a MySQL database. If you're on macOS, installing MySQL, Postgres, or Redis is a breeze with [DBngin](https://dbngin.com/).
+With your Pollora application ready, you might want to store data. The application's `.env` configuration points Pollora at a MySQL database, and that is a requirement: WordPress is only loaded when Laravel's default connection uses the `mysql` driver, which covers MySQL 5.7+ and MariaDB 10.3+. SQLite and PostgreSQL are not supported. If you're on macOS, installing MySQL or MariaDB is a breeze with [DBngin](https://dbngin.com/).
 
-If you'd rather not use MySQL or Postgres, [SQLite](https://www.sqlite.org/index.html) is a lightweight alternative. To begin, create a SQLite database in the `database` directory:
-
-```shell
-touch database/database.sqlite
-```
-
-Then, adjust your `.env` file to utilize Pollora's `sqlite` database driver. Unneeded configurations can be removed.
+Set the connection in `.env` with Laravel's names (`DB_CONNECTION=mysql`, `DB_HOST`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`). Names from a Bedrock or `wp-config.php` setup, such as `DB_NAME`, are not read; `php artisan pollora:doctor` flags them.
 
 Finally, run your application's [database migrations](https://laravel.com/docs/13.x/migrations) to establish your database tables:
 

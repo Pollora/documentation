@@ -630,3 +630,8 @@ Route::get('/stats', StatsController::class);
 | ORM | Eloquent / DB facade | WP_Query / wpdb |
 
 Use theme/plugin API routes for performance-critical endpoints (search suggestions, autocomplete, dashboards). Use the WordPress REST API when you need full WordPress context (Gutenberg editor, third-party plugin integrations).
+
+## See also
+
+- [How Pollora runs WordPress inside Laravel](https://pollora.dev/guides/how-pollora-runs-wordpress-inside-laravel/)
+- [Blade templates in WordPress](https://pollora.dev/guides/blade-templates-wordpress/)

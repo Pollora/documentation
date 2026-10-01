@@ -6,7 +6,7 @@ Welcome to Pollora! This guide will help you get a working installation up and r
 
 - PHP 8.4 or higher (the skeleton's `composer.lock` ships Symfony 8, which requires it)
 - Composer 2.x
-- MySQL 5.7+ / MariaDB 10.3+ / SQLite
+- MySQL 5.7+ or MariaDB 10.3+ (WordPress is loaded only on the `mysql` driver; SQLite is not supported)
 - Node.js and NPM (for theme asset bundling)
 - [DDEV](https://ddev.readthedocs.io) (optional, for a ready-made local environment)
 
@@ -180,3 +180,9 @@ After successful installation:
 For post-installation configuration (WordPress settings, environment variables, development environments), see the [Configuration](installation.md) guide.
 
 <div class="alert alert-info" role="alert"><strong>Heads up!</strong> Pollora rids WordPress of frontend responsibilites altogether, this means theme support in WordPress is dropped completely. Don't worry though, any functions you can run in vanilla WordPress you can run in Pollora!</div>
+
+## See also
+
+- [Why Pollora](https://pollora.dev/why/)
+- [How Pollora compares with Acorn, Sage, Radicle and Corcel](https://pollora.dev/compare/)
+- [Laravel and WordPress: every way to combine them](https://pollora.dev/guides/laravel-and-wordpress-approaches/)

@@ -931,3 +931,7 @@ WordPress caches the list of a theme's `patterns/` files, so a new file appears 
 Assets work as in any Pollora theme (`Asset::add(...)->useVite()`): a Vite entry is enqueued as a script module, printed after WordPress's import map, so the core blocks' own modules — the navigation block's, for one — keep working.
 
 With `WP_DEBUG` on, the template marker of a block theme always reads `template="template-canvas"`: WordPress renders every block template through `wp-includes/template-canvas.php`. Tell templates apart by the `<body>` classes (`single-post`, `search-results`, `error404`…).
+
+## See also
+
+- [Blade templates in WordPress](https://pollora.dev/guides/blade-templates-wordpress/)
