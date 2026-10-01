@@ -79,12 +79,71 @@ Each module can have its own dependencies defined in `composer.json`, but actual
     "merge-plugin": {
         "include": [
             "Modules/*/composer.json"
-        ]
+        ],
+        "merge-dev": false
     }
 }
 ```
 
 This approach ensures coherent, centralized package management while maintaining modular flexibility.
+
+A module's `require` is merged; its `require-dev` is not (`merge-dev: false`). A module installed with Composer is merged too, and its development tools (PHPUnit, Rector…) would otherwise become requirements of the project: the next `composer install` then removed WordPress core from `public/cms`. Development dependencies belong in the project's own `require-dev`. The skeleton sets it after v13.34.0; an older project adds it to `extra.merge-plugin`.
+
+## Installing a Module with Composer
+
+A module published as a Composer package installs with `composer require`, straight into `Modules/`, where nwidart finds it:
+
+```bash
+composer require pollora/meilifacets
+```
+
+The skeleton routes it there with one `installer-paths` rule, handled by `composer/installers` (already used for WordPress plugins and themes):
+
+```json
+"extra": {
+    "installer-paths": {
+        "public/content/mu-plugins/{$name}/": ["type:wordpress-muplugin"],
+        "public/content/plugins/{$name}/": ["type:wordpress-plugin"],
+        "public/content/themes/{$name}/": ["type:wordpress-theme"],
+        "Modules/{$name}/": ["vendor:pollora"]
+    }
+}
+```
+
+- **The rule must come last.** `composer/installers` applies the first rule that matches, and a `vendor:` rule ignores the package type: placed first, it would also send Pollora's WordPress plugins (`pollora/mcp-connector`, `pollora/ai-visibility`) to `Modules/`. Last, it only catches what the rules above did not, which are the `pollora/*` modules of type `laravel-library`; Pollora's other packages (`library`, `project`) are not handled by `composer/installers` and stay in `vendor/`.
+- **A module from another vendor needs its own line**, for instance `"Modules/{$name}/": ["vendor:pollora", "vendor:acme"]`. The rule does not target `type:laravel-library` alone: dozens of ordinary Laravel packages declare that type and would land in `Modules/`.
+- The skeleton ships this rule after v13.34.0. A project created from v13.34.0 or earlier adds it to its `composer.json`, last, and `"merge-dev": false` to `extra.merge-plugin` (see Dependency Management).
+
+### Publishing a module
+
+The module's `composer.json` declares the type and the folder name:
+
+```json
+{
+    "name": "pollora/meilifacets",
+    "type": "laravel-library",
+    "require": {
+        "composer/installers": "^2.3"
+    },
+    "extra": {
+        "installer-name": "MeiliFacets"
+    }
+}
+```
+
+`installer-name` sets the folder, `Modules/MeiliFacets/`, with the exact case nwidart expects; the package name itself has no naming constraint.
+
+### Enabling it
+
+An installed module is not enabled yet: add it to `modules_statuses.json`, or run `php artisan module:enable MeiliFacets`.
+
+```json
+{
+    "MeiliFacets": true
+}
+```
+
+`composer remove pollora/meilifacets` deletes `Modules/MeiliFacets/`; remove its line from `modules_statuses.json` too.
 
 ## Enabling and Disabling Modules
 
