@@ -9,12 +9,15 @@
 <p align="center">
   The Laravel & WordPress integration framework.
   <br>
+  <a href="https://pollora.dev"><strong>Read the docs on pollora.dev</strong></a> &middot;
   <a href="https://github.com/Pollora/framework"><strong>Framework</strong></a> &middot;
   <a href="https://github.com/Pollora/pollora"><strong>Skeleton</strong></a> &middot;
   <a href="https://github.com/Pollora/framework/blob/main/CHANGELOG.md"><strong>Changelog</strong></a>
 </p>
 
 ---
+
+> This repository is the source of the documentation published at **[pollora.dev](https://pollora.dev)**. Read it there for search, navigation and the latest version; open pull requests here to change it.
 
 ## Getting Started
 
