@@ -47,34 +47,21 @@ The fix is to ensure your web server **never resolves `DirectoryIndex`** for the
 <a name="apache-configuration"></a>
 ### Apache Configuration
 
-The default `.htaccess` shipped with Pollora includes `Options -Indexes` to disable directory listing. To also prevent blank 200 responses from `index.php` files inside directories, add the following rule **before** the "Send Requests To Front Controller" block:
+Since v13.34.1, the `.htaccess` shipped with the skeleton (`public/.htaccess`) sends these requests to the front controller, which answers with your site's own 404 page. A project created before that can add the same rule, **before** the "Redirect Trailing Slashes" block:
 
 ```apache
-<IfModule mod_rewrite.c>
-    Options -MultiViews -Indexes
-
-    RewriteEngine On
-
-    # Block direct directory browsing.
-    # All directory requests go through the framework (returns 404),
-    # except wp-admin which needs DirectoryIndex for its own index.php.
-    RewriteCond %{REQUEST_FILENAME} -d
-    RewriteCond %{REQUEST_URI} !^/cms/wp-admin
-    RewriteCond %{REQUEST_URI} !^/$
-    RewriteRule ^ index.php [L]
-
-    # Send Requests To Front Controller...
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteRule ^ index.php [L]
-</IfModule>
+    # WordPress Content Directories Are Not Pages...
+    RewriteCond %{REQUEST_FILENAME} -d [OR]
+    RewriteCond %{REQUEST_FILENAME} /index\.php$
+    RewriteRule ^(cms/wp-content|content)(/|$) index.php [L]
 ```
 
 This ensures that:
-- **Files** (CSS, JS, images, fonts) are served directly by Apache
-- **Directories** are routed through the framework, which returns 404
-- **`/cms/wp-admin`** is excluded so WordPress admin works normally
-- **`/`** (root) is excluded so the front controller's `index.php` is resolved
+- **Directories** under `/cms/wp-content/` and `/content/` — and the empty `index.php` WordPress ships in some of them — answer your site's 404 instead of a blank 200 or a 403
+- **Files** in them (plugin CSS and JS, uploads, fonts) are served directly by Apache, as before
+- **The rest of the site** is untouched: `/cms/wp-admin/` and the front controller keep their `index.php`
+
+`Options -Indexes`, also in the shipped `.htaccess`, keeps directory listing off everywhere else.
 
 <a name="nginx-configuration"></a>
 ### Nginx Configuration
