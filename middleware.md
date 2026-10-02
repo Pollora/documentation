@@ -38,6 +38,21 @@ A route WordPress answers — `Route::wp()` and the template-hierarchy fallback 
 
 Ensures WordPress shutdown hooks (`shutdown` action, output buffer flushing) are properly executed after the Laravel response is sent.
 
+### WordPressTemplateEnhancement
+
+Gives a Blade page what WordPress gives a template it includes: its **template enhancement output buffer**. WordPress 7 relies on it for classic themes — block styles load on demand, are printed at `wp_footer` once the page's blocks are known, then are moved back into the `<head>` with `global-styles` through the `wp_template_enhancement_output_buffer` filter. Without it, those styles end up at the bottom of the page, after the content they style.
+
+The middleware fires `wp_template_enhancement_output_buffer_started` before the view renders, then runs the filter and the `wp_finalized_template_enhancement_output_buffer` action on the HTML of the response. Any plugin built on that filter sees Pollora's pages too. JSON, redirects and streamed responses are left alone, and a site that opted out through `wp_should_output_buffer_template_for_enhancement` keeps its responses as they are. Since v13.34.1.
+
+A plain Laravel route does not get it. If its view prints `wp_head()` and `wp_footer()`, add the middleware yourself:
+
+```php
+use Pollora\Route\Infrastructure\Middleware\WordPressTemplateEnhancement;
+
+Route::get('/dashboard', DashboardController::class)
+    ->middleware(WordPressTemplateEnhancement::class);
+```
+
 ## Creating Custom Middleware
 
 Use Artisan to generate a new middleware:
