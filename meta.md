@@ -167,6 +167,38 @@ Values are read when first accessed, through `get_metadata_raw()`, so the object
 
 WordPress's functions keep working: `get_post_meta($postId, 'capacity', true)` still returns the stored string.
 
+### On the Eloquent models
+
+The models of `Pollora\Models` — `Post`, `Page`, `Term`, `User`, `Comment` — read the typed meta of their object as attributes. Bind a model to its post type with `$postType`:
+
+```php
+use Pollora\Models\Post;
+
+class Event extends Post
+{
+    protected $postType = 'event';
+}
+```
+
+```php
+$event = Post::find($id);         // an Event: models with a $postType are bound at discovery
+$event->capacity;                 // int, or by its key: $event->sold_out
+$event->capacity = 250;           // checked at once: 'many' throws InvalidMetaValueException
+$event->save();                   // written through update_metadata()
+
+Event::whereMeta('capacity', '>=', 100)->get();
+Event::whereMeta('status', EventStatus::Published)->get();
+Event::whereMeta('subtitle', null)->get();    // the meta is absent
+
+auth()->user()->newsletterOptIn;  // a #[UserMeta] on the user model
+```
+
+Typed meta are not part of `toArray()` or `getAttributes()`: they are not columns.
+
+`whereMeta()` compares stored values — numbers as numbers, dates in UTC — with `=`, `!=`, `<`, `<=`, `>`, `>=`. A model without the meta is not matched, even if its default would be.
+
+A model class known to carry typed meta — a post model whose `$postType` has some, the user and comment models once a `#[UserMeta]` or `#[CommentMeta]` exists — stops eager loading the `meta` relation: a collection loads its meta in one query, through WordPress's cache. Keys no `#[Meta]` declares keep working as before (`$post->some_key` returns the raw value), and a project without typed meta sees no change.
+
 ### A value that cannot be read
 
 If the database holds a value that does not match the declared type (`"many"` for an `int`, written before the meta was declared), reading it:
@@ -210,4 +242,3 @@ A declaration WordPress cannot register is refused at discovery, and the error i
 ## Not available yet
 
 - Arrays and structured objects, validation rules.
-- Typed casts on the Eloquent models (`Pollora\Models\Post`): use `Meta::of()`.
