@@ -95,3 +95,7 @@ if (Auth::onceUsingId($userId)) {
 ```
 
 The `onceUsingId()` method is similar to `loginUsingId()`, but it temporarily authenticates the user only for the duration of the current request. This uses the `onceUsingId()` method you've implemented in the `WordPressGuard` class.
+
+## Authorization
+
+What an authenticated user may do — `$user->can('edit_posts')`, the `can:` middleware, `@can` in Blade, roles declared in code — is covered in [Roles & Capabilities](roles.md).

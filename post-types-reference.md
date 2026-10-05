@@ -323,6 +323,8 @@ Sets the capability type for the post type, which is used as a base to build the
 #[CapabilityType('product')]
 ```
 
+A post type with its own capability type gets capabilities no role has, administrators included. Pollora gives them to the super roles, and you grant them to other roles with `#[GrantsPostType]`: see [Roles & Capabilities](roles.md#post-types-with-their-own-capabilities).
+
 ### `MapMetaCap`
 
 Enables WordPress to map meta capabilities to primitive capabilities. This is usually used together with `CapabilityType`.

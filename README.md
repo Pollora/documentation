@@ -43,6 +43,7 @@
 
 - [Hooks](hooks.md) — `#[Action]` / `#[Filter]` attributes, hookable classes
 - [Authentication](auth.md) — WordPress authentication guard
+- [Roles & Capabilities](roles.md) — `$user->can()`, `@can`, `#[Role]`, `#[ModifyRole]`, post types with their own capabilities
 - [WP REST API](wp-rest-api.md) — `#[WpRestRoute]` attribute, custom REST endpoints
 - [Abilities](abilities.md) — `#[Ability]` attribute, the WordPress Abilities API for AI agents and MCP
 - [WP-CLI Commands](wp-cli-commands.md) — Custom Artisan-style WP-CLI commands
