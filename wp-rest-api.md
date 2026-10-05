@@ -125,6 +125,34 @@ class AdminDocumentAPI
 
 If a method has its own permission callback, it **overrides** the class-level permission.
 
+### Checking a capability
+
+`Can` allows the user when they have a WordPress capability. Unlike `IsAdmin`, it takes arguments, so pass an instance:
+
+```php
+use App\Cms\Roles\EventCap;
+use Pollora\Attributes\WpRestRoute;
+use Pollora\Attributes\WpRestRoute\Method;
+use Pollora\WpRest\Permissions\Can;
+
+#[WpRestRoute('app/v1', 'events/(?P<id>\\d+)', permissionCallback: new Can('edit_posts'))]
+class EventAPI
+{
+    #[Method('GET', permissionCallback: new Can(EventCap::ExportAttendees))]
+    public function attendees(int $id): array {}
+
+    #[Method('PUT', permissionCallback: new Can('edit_post', parameter: 'id'))]
+    public function update(int $id): array {}
+}
+```
+
+| Parameter | Effect |
+|---|---|
+| `capability` | A capability, or a case of a [`#[CapabilitySet]`](roles.md#project-capabilities) enum |
+| `parameter` | A request parameter whose value is passed with the capability, for a meta capability such as `edit_post` on the post being edited |
+
+A guest is refused with a 401 status, a logged-in user without the capability with a 403. `permissionCallback` accepts an instance of any permission class, yours included.
+
 ## Custom Permission Classes
 
 A permission class must implement `Pollora\Attributes\WpRestRoute\Permission` and define an `allow()` method that returns `true`, `false`, or a `WP_Error`.
