@@ -6,7 +6,7 @@ In WordPress, a meta is a string key and a string value: its key is repeated whe
 
 ## Declaring meta
 
-A meta is a public typed property marked `#[Meta]`, on the class that already carries `#[PostType]` or `#[Taxonomy]`. The property type gives the meta type, its initial value the default, and its name the key, in snake_case:
+A meta is a public typed property marked `#[Meta]`, on the class that already carries `#[PostType]` or `#[Taxonomy]` — or on a class of its own for [users, comments, and post types or taxonomies the project does not declare](#other-objects). The property type gives the meta type, its initial value the default, and its name the key, in snake_case:
 
 ```php
 use App\Enums\EventStatus;
@@ -54,6 +54,62 @@ class Genre
 
 Each property needs a default value or a nullable type: it is what an absent meta reads as. The meta are registered on `init`, after post types and taxonomies, and declaring a class is all it takes — run `php artisan discovery:clear` after adding one in development.
 
+### Other objects
+
+Meta of objects the project does not declare go on a class of their own, marked with the object they belong to:
+
+```php
+use Pollora\Attributes\CommentMeta;
+use Pollora\Attributes\Meta;
+use Pollora\Attributes\PostMeta;
+use Pollora\Attributes\TermMeta;
+use Pollora\Attributes\UserMeta;
+
+#[PostMeta('product')]                 // a plugin's post type (WooCommerce)
+class ProductExtras
+{
+    #[Meta(showInRest: true)]
+    public ?string $warrantyNotice = null;
+}
+
+#[PostMeta(['post', 'page'])]          // several post types share the schema
+class ArticleExtras
+{
+    #[Meta(showInRest: true, revisions: true)]
+    public ?string $subtitle = null;
+}
+
+#[TermMeta('category')]
+class CategoryExtras
+{
+    #[Meta(showInRest: true)]
+    public ?string $color = null;
+}
+
+#[UserMeta]
+class MemberProfile
+{
+    #[Meta(showInRest: true)]
+    public bool $newsletterOptIn = false;
+}
+
+#[CommentMeta]
+class ReviewMeta
+{
+    #[Meta]
+    public int $rating = 5;
+}
+```
+
+| Attribute | Meta of | Parameter |
+|---|---|---|
+| `#[PostMeta]` | posts of the given post types | one slug or a list |
+| `#[TermMeta]` | terms of the given taxonomies | one slug or a list |
+| `#[UserMeta]` | users | — |
+| `#[CommentMeta]` | comments, of every type | — |
+
+Several classes may declare meta for the same objects — one `#[UserMeta]` per module, for instance — as long as their keys differ. Comment meta apply to every comment type, WooCommerce reviews included: WordPress has no per-type registration for comments.
+
 ### `#[Meta]` parameters
 
 | Parameter | Default | Effect |
@@ -83,7 +139,7 @@ The sanitization applies to every write, wherever it comes from: `Meta::of()`, `
 
 ## Reading and writing
 
-`Meta::of()` gives the meta of one post or term, with their PHP types:
+`Meta::of()` gives the meta of one object — post, term, user or comment, by its ID — with their PHP types:
 
 ```php
 use App\Cms\PostTypes\Event;
@@ -102,6 +158,9 @@ $event->fill(['status' => EventStatus::Published, 'soldOut' => true])->save();
 
 $event->set('startsAt', null)->save();   // null deletes a nullable meta
 $event->toArray();                        // every meta, by property name
+
+Meta::of(MemberProfile::class, $userId)->newsletterOptIn;   // bool
+Meta::of(ReviewMeta::class, $commentId)->rating;           // int
 ```
 
 Values are read when first accessed, through `get_metadata_raw()`, so the object cache applies; an absent meta gives the property's default. Writes are checked at once — `$event->capacity = 'many'` throws an `InvalidMetaValueException` before anything is written — and stored by `save()` through `update_metadata()`, so sanitization, meta hooks and cache invalidation apply.
@@ -117,7 +176,7 @@ If the database holds a value that does not match the declared type (`"many"` fo
 
 ## REST API
 
-With `showInRest: true`, the meta appears under `meta` in the REST response of the post or term, with its type:
+With `showInRest: true`, the meta appears under `meta` in the REST response of the post, term, user or comment, with its type:
 
 ```json
 {
@@ -133,7 +192,7 @@ With `showInRest: true`, the meta appears under `meta` in the REST response of t
 
 The schema follows the type: dates have the `date-time` format and enums list their values, so a write with an unknown value is refused with a 400 error (`rest_not_in_enum`).
 
-**A post type exposes its meta in REST only if it supports `custom-fields`**: add it to `#[Supports]`, as in the example above. Without it, WordPress leaves `meta` out of the response.
+**A post type exposes its meta in REST only if it supports `custom-fields`**: add it to `#[Supports]`, as in the example above. Without it, WordPress leaves `meta` out of the response. Core posts and pages support it; for a plugin's post type targeted by `#[PostMeta]`, check that it does.
 
 A key starting with an underscore is protected: WordPress hides it from custom fields and REST. Exposing one requires an explicit `capability`.
 
@@ -145,11 +204,10 @@ A declaration WordPress cannot register is refused at discovery, and the error i
 - an enum without backing values (`enum Mood { … }` instead of `enum Mood: string { … }`);
 - a non-nullable property without a default value;
 - a protected key exposed in REST without a `capability`;
-- `revisions: true` on a taxonomy;
-- the same key declared twice, in one class or by two classes for the same post type or taxonomy.
+- `revisions: true` on anything but posts;
+- the same key declared twice, in one class or by two classes for the same objects (a post type in common, users, comments).
 
 ## Not available yet
 
 - Arrays and structured objects, validation rules.
-- Meta of users, comments, and of post types or taxonomies the project does not declare (core, WooCommerce).
 - Typed casts on the Eloquent models (`Pollora\Models\Post`): use `Meta::of()`.
