@@ -119,13 +119,24 @@ This role starts from the capabilities of an author, manages every event, can ex
 
 | Attribute | Parameters | Effect |
 |---|---|---|
-| `#[Role]` | `slug`, `label`, `inherits`, `allowSensitive` | Declares the role. `label` defaults to the class name. `inherits` names a role — a slug or the class of another `#[Role]` — whose capabilities are the starting point |
+| `#[Role]` | `slug`, `label`, `inherits`, `allowSensitive`, `textDomain` | Declares the role. `label` defaults to the class name. `inherits` names a role — a slug or the class of another `#[Role]` — whose capabilities are the starting point. `textDomain` translates the label ([see below](#translated-labels)) |
 | `#[Grants]` | capabilities, as strings or enum cases | Adds capabilities. Repeatable |
 | `#[Without]` | capabilities | Removes capabilities, typically inherited ones. Repeatable |
 | `#[GrantsPostType]` | post type class or slug, `Access` level | Adds the capabilities of a post type with its own capability type. Repeatable |
 | `#[GrantsTaxonomy]` | taxonomy class or slug | Adds the term capabilities of a taxonomy with its own capabilities. Repeatable |
 
 Inheritance follows the parent as it is on each request: when a plugin adds a capability to `author`, `event_manager` gets it too.
+
+### Translated labels
+
+WordPress looks for role names in its own catalogue only. Give the label your theme's or plugin's text domain to translate it from your catalogue:
+
+```php
+#[Role('event_manager', label: 'Event manager', textDomain: 'my-theme')]
+final class EventManager {}
+```
+
+The label is then translated wherever WordPress shows role names — users list, role dropdowns, profile screen. Add `Event manager` to your `.po` file as a plain string, without context: `__('Event manager', 'my-theme')` in a file the extraction tool scans is enough to collect it. Translation happens when the admin displays the role, so it never loads your catalogue too early.
 
 ### Post types and taxonomies
 
@@ -249,7 +260,3 @@ Route::get('/events/scan', ScanController::class)
 A user who has none of the roles, or a guest, gets a 403 response. If your application already uses the `role` alias, for another package, Pollora keeps it: use `EnsureUserHasRole::using()`.
 
 As in Blade, prefer `can:` with a capability: `can:export_attendees` stays right when a second role is given that capability, `role:event_manager` does not.
-
-## Not available yet
-
-- Role labels are shown as declared; they are not translated yet.
