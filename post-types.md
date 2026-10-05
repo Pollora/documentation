@@ -270,3 +270,7 @@ For a complete list of all available attributes, see [Post Type Attributes Refer
 ## See also
 
 - [Custom post types and taxonomies with PHP attributes](https://pollora.dev/guides/custom-post-types-php-attributes/)
+
+## Meta
+
+The meta of a post type can be declared on the same class, as typed properties marked `#[Meta]`: see [Typed Meta](meta.md).

@@ -716,3 +716,7 @@ class EventCategory
 ## See also
 
 - [Custom post types and taxonomies with PHP attributes](https://pollora.dev/guides/custom-post-types-php-attributes/)
+
+## Meta
+
+The meta of a taxonomy can be declared on the same class, as typed properties marked `#[Meta]`: see [Typed Meta](meta.md).
