@@ -2,7 +2,7 @@
 
 A Block Binding fills an attribute of a block — the text of a paragraph, the URL of a button, the image of an image block — with a value computed on the server, instead of what the editor typed. An event page, a product sheet or a team member card can then be built from core blocks, with no custom block to write.
 
-Pollora lets you declare a source as a PHP class, ships sources that read [typed meta](meta.md) formatted by their type, and makes your own Blade blocks bindable with one line of `block.json`.
+Block Bindings need WordPress 6.9 or later; Pollora installs WordPress 7. Pollora lets you declare a source as a PHP class, ships sources that read [typed meta](meta.md) formatted by their type, and makes your own Blade blocks bindable with one line of `block.json`.
 
 > **Experimental.** The API may still change before it is declared stable.
 
@@ -191,6 +191,28 @@ public ?int $coverImageId = null;
 | `title` | The attachment title |
 | `caption` | The caption |
 | `id` | The ID |
+
+## Checking the bindings
+
+A binding that cannot show its value gives no error: the block simply keeps the content it was saved with. `php artisan pollora:doctor`, and **Tools › Site Health** in wp-admin, read every binding written in the templates, template parts and patterns of the theme, the Pollora plugins and the modules, and name the file, the block and the reason:
+
+```
+✗ Block bindings — 2 binding(s) can never show a value: the blocks keep their saved content.
+    theme buzz: templates/single-event.html — core/paragraph, "content" → acme/event: the field "seats" does not exist; acme/event has the fields "remaining_seats", "booking_url"
+    theme buzz: patterns/event-card.php — core/paragraph, "content" → pollora/post-meta: the meta "internal_ref" is never shown: it is not exposed in REST (showInRest: true) or its key is protected
+```
+
+It reports a source that is not registered, a field the source does not have, a meta no `#[Meta]` declares, a meta or an option the source may not show, an attribute WordPress does not bind for that block, and a `block.json` whose `pollora.bindings` has no `render` or lists an attribute the block does not declare. Bindings saved in posts, in the database, are not read.
+
+`php artisan pollora:binding:list` shows what can be bound: each Pollora source with its fields, the meta it may show (by post type or taxonomy) and the options it may read, then every block whose attributes WordPress lets bind. `--json` gives the same as JSON.
+
+```
+  acme/event Event ..................................... EventBinding · event
+  field: remaining_seats ............................... Remaining seats
+  field: booking_url ...................................... Booking link
+  pollora/post-meta Post meta (Pollora) ..................... PostMetaSource
+  key: starts_at ............................................ Start (event)
+```
 
 ## Security
 
