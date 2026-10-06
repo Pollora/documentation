@@ -1,8 +1,8 @@
 # Roles & Capabilities
 
-WordPress decides what a user may do with **capabilities** (`edit_posts`, `manage_options`…), which users get through their **roles** (`editor`, `author`…). Pollora connects them to Laravel's authorization — `$user->can()`, the `can:` middleware, `@can` in Blade — and lets you declare roles in code instead of storing them in the database.
+WordPress decides what a user may do with **capabilities** (`edit_posts`, `manage_options`…), which users get through their **roles** (`editor`, `author`…). Pollora connects them to Laravel's authorization — `$user->can()`, the `can:` middleware, `@can` in Blade — checks roles the same way (`hasRole()`, `role:`, `@role`), and lets you declare roles in code instead of storing them in the database.
 
-> **Experimental.** Declaring roles with `#[Role]`, `#[ModifyRole]` and `#[CapabilitySet]` is new: the API may still change before it is declared stable. Checking capabilities is stable.
+> **Experimental.** Declaring roles with `#[Role]`, `#[ModifyRole]` and `#[CapabilitySet]`, and checking roles with `hasRole()`, `role:` and `@role` on role classes, are new: the API may still change before it is declared stable. Checking capabilities is stable.
 
 ## Checking capabilities
 
@@ -37,6 +37,8 @@ Route::get('/reports', ReportController::class)->middleware('can:manage_options'
 
 A user without the capability gets a 403 response.
 
+In a WordPress REST route declared with `#[WpRestRoute]`, use the `Can` permission: `permissionCallback: new Can('edit_posts')` (see [REST API](wp-rest-api.md#checking-a-capability)).
+
 ### In Blade
 
 | Directive | Shows its content when | Provided by |
@@ -44,7 +46,7 @@ A user without the capability gets a 403 response.
 | `@can('edit_posts') … @endcan` | the user has the capability | Laravel |
 | `@cannot('manage_options') … @endcannot` | the user does not have it | Laravel |
 | `@canany(['edit_posts', 'moderate_comments']) … @endcanany` | the user has at least one of them | Laravel |
-| `@role('editor', 'author') … @endrole` | the user has one of these roles | Sage Directives |
+| `@role('editor', EventManager::class) … @endrole` | the user has one of these roles | Pollora |
 | `@user … @enduser` | a user is logged in | Sage Directives |
 | `@guest … @endguest` | nobody is logged in | Sage Directives |
 
@@ -63,6 +65,8 @@ A user without the capability gets a 403 response.
     <p>Nothing to manage here.</p>
 @endcan
 ```
+
+`@role` takes slugs, compared without regard to case, or the classes of [declared roles](#declaring-a-role) — in a view, write the class with its namespace or import it with `@use`. It replaces the directive of the same name from Sage Directives, which only took slugs.
 
 **Check a capability rather than a role.** `@can('export_attendees')` stays right when you later give that capability to a second role; `@role('event_manager')` becomes wrong. Keep `@role` for content that is about the role itself, such as a welcome message.
 
@@ -115,13 +119,24 @@ This role starts from the capabilities of an author, manages every event, can ex
 
 | Attribute | Parameters | Effect |
 |---|---|---|
-| `#[Role]` | `slug`, `label`, `inherits`, `allowSensitive` | Declares the role. `label` defaults to the class name. `inherits` names a role — a slug or the class of another `#[Role]` — whose capabilities are the starting point |
+| `#[Role]` | `slug`, `label`, `inherits`, `allowSensitive`, `textDomain` | Declares the role. `label` defaults to the class name. `inherits` names a role — a slug or the class of another `#[Role]` — whose capabilities are the starting point. `textDomain` translates the label ([see below](#translated-labels)) |
 | `#[Grants]` | capabilities, as strings or enum cases | Adds capabilities. Repeatable |
 | `#[Without]` | capabilities | Removes capabilities, typically inherited ones. Repeatable |
 | `#[GrantsPostType]` | post type class or slug, `Access` level | Adds the capabilities of a post type with its own capability type. Repeatable |
 | `#[GrantsTaxonomy]` | taxonomy class or slug | Adds the term capabilities of a taxonomy with its own capabilities. Repeatable |
 
 Inheritance follows the parent as it is on each request: when a plugin adds a capability to `author`, `event_manager` gets it too.
+
+### Translated labels
+
+WordPress looks for role names in its own catalogue only. Give the label your theme's or plugin's text domain to translate it from your catalogue:
+
+```php
+#[Role('event_manager', label: 'Event manager', textDomain: 'my-theme')]
+final class EventManager {}
+```
+
+The label is then translated wherever WordPress shows role names — users list, role dropdowns, profile screen. Add `Event manager` to your `.po` file as a plain string, without context: `__('Event manager', 'my-theme')` in a file the extraction tool scans is enough to collect it. Translation happens when the admin displays the role, so it never loads your catalogue too early.
 
 ### Post types and taxonomies
 
@@ -206,7 +221,42 @@ Distributing rights is easy to get wrong, so discovery refuses a declaration tha
 - **A capability both granted and removed** by the same class is refused.
 - **`#[Without]` removes a capability; it never sets it to `false`.** WordPress merges the roles of a user, and an explicit denial in one role would override or be overridden by another depending on their order.
 
-## Not available yet
+## Checking roles
 
-- Checking roles in PHP (`hasRole()`), a `role:` route middleware and a REST permission for capabilities are planned. Until then, check capabilities with `can()` and the `can:` middleware, and roles in Blade with `@role`.
-- Role labels are shown as declared; they are not translated yet.
+A role is named by its slug (`'editor'`) or by the class of a `#[Role]` (`EventManager::class`), which the IDE can follow and rename.
+
+### In PHP
+
+`Pollora\Models\User` has these methods:
+
+```php
+$user = auth()->user();
+
+$user->roles();                                // ['author', 'event_manager']
+$user->hasRole(EventManager::class);           // true
+$user->hasRole('editor', 'administrator');     // true if the user has one of them
+
+$user->assignRole(EventManager::class);        // adds the role, keeping the others
+$user->removeRole('event_manager');
+```
+
+`assignRole()` and `removeRole()` go through `WP_User`, so WordPress's hooks (`add_user_role`, `remove_user_role`) and user cache follow. `assignRole()` refuses a role WordPress does not know; `removeRole()` also removes a role that no longer exists. **Neither checks the rights of the code calling them**, like `WP_User::set_role()`: where a user can trigger them, check `promote_users` first.
+
+Your own user model gets the same methods with the `Pollora\Models\Concerns\HasRoles` trait, provided it has a `toWpUser(): WP_User` method.
+
+### In routes
+
+```php
+use Pollora\Role\Infrastructure\Middleware\EnsureUserHasRole;
+
+Route::middleware('role:event_manager,editor')->group(function () {
+    // …
+});
+
+Route::get('/events/scan', ScanController::class)
+    ->middleware(EnsureUserHasRole::using(EventManager::class));
+```
+
+A user who has none of the roles, or a guest, gets a 403 response. If your application already uses the `role` alias, for another package, Pollora keeps it: use `EnsureUserHasRole::using()`.
+
+As in Blade, prefer `can:` with a capability: `can:export_attendees` stays right when a second role is given that capability, `role:event_manager` does not.
