@@ -242,6 +242,39 @@ Both take `--json`.
 - **Capabilities given to users one by one**, outside the roles: they live in the database, not in the code.
 - **What a declaration could not apply**, such as a post type grant whose post type has no capabilities of its own (until now only logged).
 
+## Cleaning up and migrating
+
+These commands change the database. Each shows what it would do and changes nothing unless it is run again with `--force`.
+
+**`php artisan pollora:roles:prune --reassign=subscriber`** cleans up after roles removed from the code: it takes the dead role off the users who still carry it, gives those left with no role the `--reassign` one, and deletes the copies of removed roles a plugin wrote back to the database. Without `--reassign`, it refuses to leave a user with no role.
+
+```
+  jane ................................... remove event_manager → subscriber
+  joe ................................................ remove event_manager
+  stored role "event_manager" ......... delete the copy a plugin wrote back
+
+   WARN  Dry run: nothing changed. Run again with --force to apply.
+```
+
+**`php artisan pollora:roles:import venue_staff --inherits=author`** turns a role stored in the database — made by `add_role()` or a role editor plugin — into a `#[Role]` class, in `app/Cms/Roles` (or `--theme`, `--plugin`, `--module`). With `--inherits`, the class only holds the differences:
+
+```php
+#[Role('venue_staff', label: 'Venue staff', inherits: 'author')]
+#[Grants(
+    'scan_tickets',
+)]
+#[Without(
+    'publish_posts',
+)]
+final class VenueStaff
+{
+}
+```
+
+Review it before committing: a sensitive capability gets `allowSensitive: true` and a note, and a capability stored as denied (`false`) is listed in the docblock and left out, since a role only grants or removes. Core roles are refused: change them with `#[ModifyRole]`. Once the class is deployed, the code owns the role; the stored copy is ignored.
+
+**`php artisan pollora:roles:dump`** writes the roles as the code makes them into the `{prefix}user_roles` option, for a tool that reads the database without loading the site. The code stays the source of truth: roles are still injected on every request, and what the command writes is marked, so a role later removed from the code is still removed.
+
 ## Safety rules
 
 Distributing rights is easy to get wrong, so discovery refuses a declaration that would grant the wrong rights — the error is logged with the class named, and that declaration is not applied:
