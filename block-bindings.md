@@ -152,7 +152,7 @@ The title of a post, its link or date, and the name of a term are served by Word
 | `bool` | "Yes" or "No", translated | `true`, `false` for other words |
 | Date | The site's date format, in its language | `format`, a PHP date format |
 | Enum | Its `label()` when the enum defines one, else its value | none |
-| Array | Its items, as a list: "rock, jazz and blues" | as for one item |
+| Array | Its items, as a list: "rock, jazz, and blues" | as for one item |
 | Attachment ID | Depends on the bound attribute ([see below](#attachments)) | `size` |
 
 `format: raw` gives the value as stored, and `fallback` a text for an empty meta. An object meta is not shown.
