@@ -124,6 +124,9 @@ Several classes may declare meta for the same objects — one `#[UserMeta]` per 
 | `rules` | none | Laravel validation rules, checked on writes from PHP and REST ([see below](#validation)) |
 | `items` | the `@var list<…>` docblock | On an `array`, the item type: `'string'`, `'int'`, `'float'`, `'bool'` or a class |
 | `single` | `true` | On an `array`, `false` stores one row per item instead of one serialized array |
+| `control` | derived from the type | The input a UI driver builds ([see below](#input-fields)) |
+| `group` | none | The group of fields a UI driver puts the meta in |
+| `hints` | `[]` | Options passed as they are to UI drivers, by driver |
 
 ### Types
 
@@ -295,6 +298,72 @@ The schema follows the type: dates have the `date-time` format and enums list th
 **A post type exposes its meta in REST only if it supports `custom-fields`.** Pollora adds that support to a post type declared with `#[PostType]` as soon as one of its meta has `showInRest: true`. It does not change a post type it does not declare: core posts and pages support it already; for a plugin's post type targeted by `#[PostMeta]`, check that it does.
 
 A key starting with an underscore is protected: WordPress hides it from custom fields and REST. Exposing one requires an explicit `capability`.
+
+## Input fields
+
+Pollora does not draw admin fields: field plugins (ACF, Meta Box…) or an editor panel do. To avoid declaring each field twice, `#[Meta]` describes the field in neutral terms, and a **UI driver** — a separate package — turns the declarations into fields.
+
+```php
+use Pollora\Meta\Domain\Enums\Control;
+
+#[Meta(label: 'Job title', group: 'Profile')]
+public ?string $jobTitle = null;                       // Control::Text, from the type
+
+#[Meta(control: Control::Color, hints: ['acf' => ['wrapper' => ['width' => 50]]])]
+public ?string $accent = null;
+```
+
+| Type | Control derived |
+|---|---|
+| `string` | `Text`, or `RichText` with `sanitize: 'wp_kses_post'` |
+| `int`, `float` | `Number` |
+| `bool` | `Toggle` |
+| date | `DateTime` |
+| enum | `Select` |
+| array, object | none: the driver decides |
+
+The other controls are `Textarea`, `Date`, `Media`, `Url` and `Email`. `hints` is the only place for an option specific to a plugin: Pollora passes it as it is.
+
+Pick the driver in `config/meta.php`:
+
+```php
+return [
+    'ui' => 'acf',      // null by default: no field is generated
+];
+```
+
+On `init`, once the meta are registered, the driver receives each schema with the meta it supports; a meta it cannot handle gets no field. Values keep going through WordPress's meta API, so sanitization, `rules` and `capability` apply to what the fields save.
+
+### Writing a driver
+
+A driver implements `Pollora\Meta\Domain\Contracts\MetaUiDriver` and its package registers it:
+
+```php
+use Pollora\Meta\Domain\Contracts\MetaUiDriver;
+use Pollora\Meta\Domain\Models\MetaDefinition;
+use Pollora\Meta\Domain\Models\MetaSchema;
+
+final class AcfDriver implements MetaUiDriver
+{
+    public function supports(MetaDefinition $definition): bool
+    {
+        return $definition->control !== null;   // what the plugin can store in the schema's form
+    }
+
+    public function register(MetaSchema $schema): void
+    {
+        // $schema->objectType, $schema->subtypes, and for each $schema->definitions:
+        // key, label, description, control, group, hints, rules, default…
+    }
+}
+
+// In the package's service provider
+Meta::extend('acf', AcfDriver::class);
+```
+
+A driver writes values in the form the schema stores them (`supports()` says false otherwise) and lets WordPress's meta API save them. `Pollora\Meta\Testing\MetaUiDriverConformance::check($driver)` returns what breaks the contract, from any test framework: `expect(MetaUiDriverConformance::check(new AcfDriver))->toBe([])`.
+
+Tooling can read the compiled schemas with `Meta::schemas()` and `Meta::schemaFor('post', 'event')`, or listen to the `Pollora\Meta\Domain\Events\MetaSchemasRegistered` event.
 
 ## Errors at discovery
 
