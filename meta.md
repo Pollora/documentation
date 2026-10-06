@@ -367,6 +367,32 @@ A driver writes values in the form the schema stores them (`supports()` says fal
 
 Tooling can read the compiled schemas with `Meta::schemas()` and `Meta::schemaFor('post', 'event')`, or listen to the `Pollora\Meta\Domain\Events\MetaSchemasRegistered` event.
 
+## Checking typed meta
+
+`php artisan pollora:meta:list` lists every typed meta by class: the object it belongs to, then each meta with its key, its type and its options (`rest`, `media`, `public`, `rules`…). `--json` gives the same as JSON.
+
+`php artisan pollora:doctor`, and **Tools › Site Health** in wp-admin, check that every declaration is registered and reachable:
+
+- a class discovery refused (see [below](#errors-at-discovery)): its meta are never registered;
+- a post type or taxonomy named by `#[PostMeta]` or `#[TermMeta]` that does not exist — a typo registers meta nothing uses;
+- meta marked `showInRest` on a post type or taxonomy that is not in REST: WordPress leaves them out of every response;
+- stored values that cannot be read as their type, on a sample of each key.
+
+`php artisan pollora:meta:audit` reads every stored value (up to `--limit`, 10,000 per key by default):
+
+```
+   ERROR  1 meta have stored values that read as the default.
+
+  Event::$capacity post "event" .............................. 2 / 340 object(s)
+    The stored value of the meta "capacity" cannot be read as integer: 'a lot'. — objects 118, 214
+
+   WARN  1 key(s) stored on your post types and taxonomies are declared by no #[Meta]: left by a renamed property, or written by a plugin.
+
+  seats post "event" ........................................... 340 object(s)
+```
+
+A value that cannot be read as its type reads as the property default (and is logged): the page shows the default, with no error. Writes through `Meta::of()`, the models and `update_post_meta()` are sanitized to the type, so such a value comes from elsewhere — a SQL import, a plugin writing the table, a property whose type changed. The command exits with 1 when it finds one, so it can run in CI against a copy of production. The keys nothing declares are listed for information: on the post types and taxonomies the project declares, keys not starting with `_`.
+
 ## Errors at discovery
 
 A declaration WordPress cannot register is refused at discovery, and the error is logged with the class and the property named; the other meta of the project still register:
