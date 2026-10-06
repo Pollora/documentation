@@ -18,7 +18,7 @@ use Pollora\Attributes\PostType\Supports;
 
 #[PostType('event')]
 #[ShowInRest]
-#[Supports(['title', 'editor', 'custom-fields'])]
+#[Supports(['title', 'editor'])]
 class Event
 {
     #[Meta(showInRest: true, label: 'Start')]
@@ -224,7 +224,7 @@ With `showInRest: true`, the meta appears under `meta` in the REST response of t
 
 The schema follows the type: dates have the `date-time` format and enums list their values, so a write with an unknown value is refused with a 400 error (`rest_not_in_enum`).
 
-**A post type exposes its meta in REST only if it supports `custom-fields`**: add it to `#[Supports]`, as in the example above. Without it, WordPress leaves `meta` out of the response. Core posts and pages support it; for a plugin's post type targeted by `#[PostMeta]`, check that it does.
+**A post type exposes its meta in REST only if it supports `custom-fields`.** Pollora adds that support to a post type declared with `#[PostType]` as soon as one of its meta has `showInRest: true`. It does not change a post type it does not declare: core posts and pages support it already; for a plugin's post type targeted by `#[PostMeta]`, check that it does.
 
 A key starting with an underscore is protected: WordPress hides it from custom fields and REST. Exposing one requires an explicit `capability`.
 
