@@ -127,6 +127,8 @@ Several classes may declare meta for the same objects — one `#[UserMeta]` per 
 | `control` | derived from the type | The input a UI driver builds ([see below](#input-fields)) |
 | `group` | none | The group of fields a UI driver puts the meta in |
 | `hints` | `[]` | Options passed as they are to UI drivers, by driver |
+| `media` | `false` | On an `int`, the value is an attachment ID: a [block binding](block-bindings.md#attachments) gives its URL, alternative text or caption |
+| `public` | `false` | The value may be shown to anyone: required for a user meta to be read by the [`pollora/author-meta`](block-bindings.md#typed-meta-in-core-blocks) binding |
 
 ### Types
 
