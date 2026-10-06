@@ -211,6 +211,37 @@ WordPress stores roles in the database (the `{prefix}user_roles` option), and `a
 
 A tool that reads the `user_roles` option directly, without loading the site, does not see declared roles.
 
+## Inspecting roles
+
+`php artisan pollora:roles:list` lists the roles WordPress has once the code is applied, with where each comes from — declared by a class, stored and modified by a `#[ModifyRole]`, or stored as it is — its number of capabilities and the number of users who carry it.
+
+`php artisan pollora:roles:show event_manager` (or `EventManager::class`) lists the effective capabilities of a role and where each comes from, then what the code removes:
+
+```
+  event_manager Event manager ............................ App\Cms\Roles\EventManager
+  inherits ............................................................. author
+
++------------------------+---------------------------+
+| Capability             | From                      |
++------------------------+---------------------------+
+| edit_events            | granted by EventManager   |
+| edit_posts             | inherited from author     |
+| export_attendees       | granted by EventManager   |
+| ...                    |                           |
++------------------------+---------------------------+
+
+   INFO  Removed by the code: publish_posts.
+```
+
+Both take `--json`.
+
+`php artisan pollora:doctor`, and **Tools › Site Health** in wp-admin, check what no error ever shows:
+
+- **Users carrying a role removed from the code.** They keep its slug and get no capability from it: the check names the role and the users. Give them another role.
+- **A `default_role` naming a role that no longer exists**: every new user would get no capability.
+- **Capabilities given to users one by one**, outside the roles: they live in the database, not in the code.
+- **What a declaration could not apply**, such as a post type grant whose post type has no capabilities of its own (until now only logged).
+
 ## Safety rules
 
 Distributing rights is easy to get wrong, so discovery refuses a declaration that would grant the wrong rights — the error is logged with the class named, and that declaration is not applied:
