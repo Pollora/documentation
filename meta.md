@@ -122,6 +122,8 @@ Several classes may declare meta for the same objects — one `#[UserMeta]` per 
 | `capability` | the right to edit the post or term | Capability required to write the meta through REST and the editor |
 | `revisions` | `false` | Versions the meta with post revisions (post types only; the post type needs `revisions` support) |
 | `rules` | none | Laravel validation rules, checked on writes from PHP and REST ([see below](#validation)) |
+| `items` | the `@var list<…>` docblock | On an `array`, the item type: `'string'`, `'int'`, `'float'`, `'bool'` or a class |
+| `single` | `true` | On an `array`, `false` stores one row per item instead of one serialized array |
 
 ### Types
 
@@ -133,10 +135,55 @@ Several classes may declare meta for the same objects — one `#[UserMeta]` per 
 | `bool` | `"1"` or `"0"` | `1`, `true`, `yes`, `on` / `0`, `false`, `no`, `off` |
 | `DateTimeInterface`, Carbon | ISO 8601 in UTC: `2026-11-14T09:00:00+00:00` | parsed; a value that is not a date is emptied |
 | backed enum | the case value | `tryFrom()`; an unknown value is emptied |
+| `array` | one serialized array, or one row per item with `single: false` | each item, by its type ([see below](#arrays)) |
+| a class with public typed properties | a serialized array, by property | each property, by its type ([see below](#objects)) |
 
 A nullable type (`?int`) allows the meta to be absent. A date property typed with an interface (`DateTimeInterface`, `CarbonInterface`) reads as a `CarbonImmutable`; a concrete class (`Carbon`, `DateTimeImmutable`) reads as that class.
 
 The sanitization applies to every write, wherever it comes from: `Meta::of()`, `update_post_meta()`, the REST API, the block editor. A value it cannot read is emptied, and an empty meta reads as the property's default.
+
+### Arrays
+
+An `array` property says what it holds, with `items:` or a docblock:
+
+```php
+/** @var list<string> */
+#[Meta(showInRest: true, single: false)]
+public array $speakers = [];          // one row per speaker
+
+#[Meta(showInRest: true, items: 'int')]
+public array $roomIds = [];           // one serialized array
+
+#[Meta(items: Schedule::class)]
+public array $sessions = [];          // a list of objects
+```
+
+- **`single: false`** stores one row per item, as WordPress does for a meta added several times: `get_post_meta($id, 'speakers')` returns the list, and `whereMeta('speakers', 'Ada')` finds the posts where one of the speakers is Ada. Items can be strings, numbers, booleans, dates or enums.
+- **Single** (the default) stores the whole array in one row, serialized by WordPress. It cannot be filtered with `whereMeta()`.
+
+A docblock class must be fully qualified (`list<\App\Cms\Schedule>`); otherwise use `items: Schedule::class`. An array of arrays is refused: use a class.
+
+### Objects
+
+A class with public typed properties groups several values in one meta:
+
+```php
+final class Schedule
+{
+    public ?CarbonImmutable $startsAt = null;
+    public int $durationMinutes = 60;
+    public EventStatus $status = EventStatus::Draft;
+
+    public function __construct(public bool $public = true) {}
+}
+
+#[Meta(showInRest: true)]
+public Schedule $schedule;
+```
+
+It is stored as an array of its properties, by key in snake_case — never as a serialized PHP object — and read back as an instance. An absent meta reads as an instance with the class's defaults; declare `?Schedule $schedule = null` to read it as null instead. Properties can be strings, numbers, booleans, dates and enums, each with a default or nullable; an array or an object inside is refused.
+
+In REST, arrays publish their `items` schema and objects their `properties`: WordPress refuses an item or a property of the wrong type, or an unknown property, with a 400 error. `rules` apply to the whole value: `rules: ['max:3']` limits an array to three items.
 
 ## Reading and writing
 
@@ -253,13 +300,11 @@ A key starting with an underscore is protected: WordPress hides it from custom f
 
 A declaration WordPress cannot register is refused at discovery, and the error is logged with the class and the property named; the other meta of the project still register:
 
-- a union type, an untyped property, or an unsupported type (arrays and objects are not supported yet);
+- a union type, an untyped property, or an unsupported type;
+- an array without item type, an array of arrays, `single: false` on something else than an array of scalars, dates or enums;
+- an object property that is an array or an object, or that has neither default nor nullable type;
 - an enum without backing values (`enum Mood { … }` instead of `enum Mood: string { … }`);
 - a non-nullable property without a default value;
 - a protected key exposed in REST without a `capability`;
 - `revisions: true` on anything but posts;
 - the same key declared twice, in one class or by two classes for the same objects (a post type in common, users, comments).
-
-## Not available yet
-
-- Arrays and structured objects.
