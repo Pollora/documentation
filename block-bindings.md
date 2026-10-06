@@ -105,7 +105,7 @@ Pollora escapes the value for the place it lands in, so a source cannot forget t
 | A boolean in a paragraph | "Yes" or "No", translated |
 | An attribute of a Blade block | As returned: the template escapes it, like any attribute |
 
-`null` keeps what the block holds. A field that throws is logged and treated as `null`, so a failing source never takes a page down; with `APP_DEBUG` on, the exception is thrown.
+`null` keeps what the block holds. A field that throws is logged and treated as `null`, so a failing source never takes a page down; with `APP_DEBUG` on, the exception is thrown. With `APP_DEBUG` on too, a field that takes more than 50 ms is logged as a warning, with its source, its field and its post: every bound block of the page waits for it.
 
 ## Bindable Blade blocks
 
