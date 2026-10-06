@@ -121,6 +121,7 @@ Several classes may declare meta for the same objects — one `#[UserMeta]` per 
 | `sanitize` | derived from the type | A callable (`'wp_kses_post'`, `[MyClass::class, 'method']`) replacing the sanitization |
 | `capability` | the right to edit the post or term | Capability required to write the meta through REST and the editor |
 | `revisions` | `false` | Versions the meta with post revisions (post types only; the post type needs `revisions` support) |
+| `rules` | none | Laravel validation rules, checked on writes from PHP and REST ([see below](#validation)) |
 
 ### Types
 
@@ -206,6 +207,26 @@ If the database holds a value that does not match the declared type (`"many"` fo
 - in debug mode (`APP_DEBUG=true`), throws an `InvalidMetaValueException` naming the meta, so it shows during development;
 - in production, returns the property's default and logs a warning, so a damaged value never takes a page down.
 
+### Validation
+
+`rules` takes Laravel validation rules:
+
+```php
+#[Meta(showInRest: true, label: 'Capacity', rules: ['min:0', 'max:5000'])]
+public int $capacity = 0;
+
+#[Meta(rules: ['email'])]
+public ?string $contact = null;
+```
+
+The type rule is implied — `integer` for an `int`, `numeric` for a `float`, `date` for a date — so `max:5000` compares numbers, not lengths. An enum is checked by its backing value (`rules: ['in:published,archived']`). Null passes on a nullable meta: it deletes the value.
+
+- **From PHP**, `Meta::of()->set()` and a model attribute (`$event->capacity = 6000`) throw a `MetaValidationException` at once, with the message of the rule; nothing is written.
+- **Through REST**, a write to a post, term, user or comment that breaks a rule is refused with a 400 error before anything is stored, the message under `data.params["meta.capacity"]`, as WordPress reports an invalid parameter.
+- **WordPress's own functions** (`update_post_meta()`) cannot refuse a value: they only apply the sanitization.
+
+Messages come from Laravel's translations; the attribute is named by `label`, or by the key.
+
 ## REST API
 
 With `showInRest: true`, the meta appears under `meta` in the REST response of the post, term, user or comment, with its type:
@@ -241,4 +262,4 @@ A declaration WordPress cannot register is refused at discovery, and the error i
 
 ## Not available yet
 
-- Arrays and structured objects, validation rules.
+- Arrays and structured objects.
