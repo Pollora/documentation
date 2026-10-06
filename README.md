@@ -38,6 +38,7 @@
 - [Post Types](post-types.md) — `#[PostType]` attribute, config-based registration
 - [Taxonomies](taxonomies.md) — `#[Taxonomy]` attribute, custom taxonomies
 - [Typed Meta](meta.md) — `#[Meta]` properties, `Meta::of()`, typed reads and writes, REST schema
+- [Block Bindings](block-bindings.md) — `#[BlockBinding]` sources, typed meta in core blocks, bindable Blade blocks
 - [Options](options.md) — WordPress options with Laravel's fluent API
 
 ## WordPress Integration
