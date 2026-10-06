@@ -4,7 +4,7 @@ A Block Binding fills an attribute of a block — the text of a paragraph, the U
 
 Pollora lets you declare a source as a PHP class, ships sources that read [typed meta](meta.md) formatted by their type, and makes your own Blade blocks bindable with one line of `block.json`.
 
-> **Experimental.** The API may still change before it is declared stable. The editor shows a bound block with the name of its source; choosing a field from the editor and previewing its value are not available yet.
+> **Experimental.** The API may still change before it is declared stable.
 
 ## Declaring a source
 
@@ -54,6 +54,16 @@ A block binds an attribute to a field in its markup:
 ```
 
 The text saved in the block is a fallback: it shows when the field returns `null`.
+
+## In the editor
+
+Nothing to write in JavaScript: the fields come from the class.
+
+- **Choosing a field.** Select a bindable block, open **Attributes** in the block settings, pick the attribute, then a source and one of its fields. A source limited by `postTypes` is only offered on those post types; `pollora/post-meta` offers the meta of the post type being edited that it may show.
+- **Previewing the value.** A bound block shows the value of the post being edited, computed on the server by the same code as the page, and escaped the same way. The values of the blocks on screen are asked in one request, to `POST /wp-json/pollora/v1/block-bindings/resolve`, which answers only a user who can edit the post.
+- **Read-only.** A block bound to a Pollora source cannot be edited from the canvas. While its value loads, and when the field gives none, it shows the field's label. To edit a meta from a block, bind it to WordPress's `core/post-meta`.
+
+The editor offers a field to an attribute of the same data type: every field gives a string, so it is offered to text and URL attributes alike, and an attachment meta is also offered to an image's `id`.
 
 ### Parameters
 
