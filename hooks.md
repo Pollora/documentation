@@ -217,6 +217,10 @@ $callbacks = Action::callbacks('init');
 $filterCallbacks = Filter::callbacks('the_content');
 ```
 
+## Asynchronous actions
+
+An action can run after the request instead of inside it: add `->async()` after `Action::add()`, or `#[Async]` next to `#[Action]`. See [Asynchronous Actions](async-actions.md).
+
 ## Deferred callbacks
 
 Pollora aligns with WordPress behavior for callback registration: callbacks that are not yet callable at registration time (e.g., functions defined by plugins loaded later) are accepted without throwing an exception. Validation occurs at execution time, just like WordPress's native `add_action()`/`add_filter()`.
@@ -252,5 +256,6 @@ class MyService {
 
 ## See also
 
+- [Asynchronous Actions](async-actions.md)
 - [WordPress hooks with PHP 8 attributes](https://pollora.dev/guides/wordpress-hooks-php-attributes/)
 - [How Pollora runs WordPress inside Laravel](https://pollora.dev/guides/how-pollora-runs-wordpress-inside-laravel/)
