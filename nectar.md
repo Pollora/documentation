@@ -19,7 +19,7 @@
 When working with AI coding assistants (Claude Code, Cursor, Windsurf, etc.), the quality of generated code depends heavily on the context available. Nectar bridges this gap by:
 
 - **Injecting Pollora-specific guidelines** into your AI agent's context via Laravel Boost
-- **Providing 9 on-demand skills** for domain-specific tasks (post types, themes, hooks, blocks, abilities, etc.)
+- **Providing 12 on-demand skills** for domain-specific tasks (post types, typed meta, roles, themes, hooks, blocks and Block Bindings, abilities, etc.)
 - **Exposing 10 MCP tools** for live introspection of your WordPress and Pollora environment
 - **Offering upgrade prompts** that guide AI agents step-by-step through Pollora version upgrades
 
@@ -193,6 +193,9 @@ Skills are activated on-demand when working on specific tasks:
 | `pollora-scheduling` | Scheduled tasks with `#[Schedule]` and WordPress cron |
 | `pollora-modules` | Laravel Modules (nwidart) with auto-discovery integration |
 | `pollora-abilities` | WordPress Abilities API with `#[Ability]` and the `Ability` facade |
+| `pollora-typed-meta` | Post, term, user and comment meta as typed properties with `#[Meta]`, `Meta::of()`, `pollora:meta:audit` |
+| `pollora-roles` | Capabilities through Laravel's Gate, roles declared with `#[Role]`, `#[ModifyRole]`, `#[CapabilitySet]`, `pollora:roles:*` |
+| `pollora-block-bindings` | `#[BlockBinding]` sources, `pollora/post-meta` and the other sources for core blocks, bindable Blade blocks |
 
 Each skill provides detailed instructions, code examples, and best practices specific to its domain.
 
@@ -226,7 +229,7 @@ The prompt follows a systematic 6-step process: assess → create safety net →
 
 The `upgrade-pollora-v13-32` prompt covers the move from 13.0–13.4 to 13.32, whose version now tracks the Laravel release it targets:
 
-- **Dependencies** — `laravel/framework` `^13.34` (`pollora/framework` 13.34 requires it), `johnpbloch/wordpress` `^7.1`, WordPress packages from wp-packages instead of wpackagist
+- **Dependencies** — `laravel/framework` `^13.35` (`pollora/framework` 13.35 requires it), `johnpbloch/wordpress` `^7.1`, WordPress packages from wp-packages instead of wpackagist
 - **WordPress patching** — `cweagans/composer-patches` 2, `patches.lock.json`, the `patches-relock` script, and checking that WordPress's `__()` is patched
 - **Renamed Artisan commands** — the colon convention (`pollora:make:theme`…), former names kept as aliases
 - **Extracted packages** — the classes moved to `pollora/hook`, `pollora/option` and `pollora/ajax`
