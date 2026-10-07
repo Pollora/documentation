@@ -1,23 +1,16 @@
 <p align="center">
-  <a href="https://github.com/Pollora/framework">
-    <img src="https://raw.githubusercontent.com/Pollora/framework/main/resources/images/pollora-logo.svg" width="400" alt="Pollora">
+  <a href="https://pollora.dev">
+    <img src="https://raw.githubusercontent.com/Pollora/.github/main/brand/banners/documentation.png" width="100%" alt="Pollora documentation: The Laravel framework for WordPress">
   </a>
 </p>
 
-<h3 align="center">Documentation</h3>
-
 <p align="center">
-  The Laravel & WordPress integration framework.
-  <br>
-  <a href="https://pollora.dev"><strong>Read the docs on pollora.dev</strong></a> &middot;
-  <a href="https://github.com/Pollora/framework"><strong>Framework</strong></a> &middot;
-  <a href="https://github.com/Pollora/pollora"><strong>Skeleton</strong></a> &middot;
-  <a href="https://github.com/Pollora/framework/blob/main/CHANGELOG.md"><strong>Changelog</strong></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/Pollora/documentation" alt="License"></a>
 </p>
 
----
+This repository is the source of the documentation of **Pollora, the Laravel framework for WordPress**, published at **[pollora.dev](https://pollora.dev)**. Read it there for search, navigation and the latest version; open pull requests here to change it: the site copies these pages, so a fix made anywhere else is overwritten on the next sync.
 
-> This repository is the source of the documentation published at **[pollora.dev](https://pollora.dev)**. Read it there for search, navigation and the latest version; open pull requests here to change it.
+[Read the docs on pollora.dev](https://pollora.dev) · [Framework](https://github.com/Pollora/framework) · [Skeleton](https://github.com/Pollora/pollora) · [Changelog](https://github.com/Pollora/framework/blob/main/CHANGELOG.md)
 
 ## Getting Started
 
@@ -36,6 +29,7 @@
 ## Content Management
 
 - [Post Types](post-types.md) — `#[PostType]` attribute, config-based registration
+- [Post Type Attributes Reference](post-types-reference.md) — Every attribute available for post type registration
 - [Taxonomies](taxonomies.md) — `#[Taxonomy]` attribute, custom taxonomies
 - [Typed Meta](meta.md) — `#[Meta]` properties, `Meta::of()`, typed reads and writes, REST schema
 - [Block Bindings](block-bindings.md) — `#[BlockBinding]` sources, typed meta in core blocks, bindable Blade blocks
@@ -71,6 +65,7 @@
 - [Modules](modules.md) — Modular architecture with nwidart/laravel-modules
 - [Plugins](plugins.md) — Plugin development with modern tooling
 - [Events & Listeners](events-listeners.md) — WordPress event dispatching and Laravel listeners
+- [WordPress Events Reference](wordpress-events-reference.md) — Every WordPress and plugin event Pollora dispatches
 - [Scheduling](schedule-events.md) — `#[Schedule]` attribute, WordPress cron management
 - [AJAX](ajax.md) — Handling AJAX requests
 - [Menu](menu.md) — Admin menu management
@@ -79,14 +74,14 @@
 
 | Dependency | Version |
 |---|---|
-| PHP | ^8.3 |
-| Laravel | 13.x |
-| WordPress | 6.9+ |
+| PHP | 8.4+ for a new project (the framework alone accepts 8.3) |
+| Laravel | 13.35 |
+| WordPress | 7.1+ |
 
 ## Contributing
 
-We welcome contributions to both the framework and documentation. See the [Contributing Guide](https://github.com/Pollora/framework/blob/main/CONTRIBUTING.md) for details.
+Contributions are welcome: see the [contributing guide](https://github.com/Pollora/.github/blob/main/CONTRIBUTING.md). Report security issues privately, as described in the [security policy](https://github.com/Pollora/.github/blob/main/SECURITY.md).
 
 ## License
 
-Pollora is open-source software licensed under the [MIT license](https://github.com/Pollora/framework/blob/main/LICENSE).
+The Pollora documentation is open-source software licensed under the [MIT license](LICENSE). © [RuBee group](https://rubee.group)
