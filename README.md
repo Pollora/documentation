@@ -38,6 +38,7 @@ This repository is the source of the documentation of **Pollora, the Laravel fra
 ## WordPress Integration
 
 - [Hooks](hooks.md) — `#[Action]` / `#[Filter]` attributes, hookable classes
+- [Asynchronous Actions](async-actions.md) — `->async()` and `#[Async]`: run an action after the request, through WP-Cron, Action Scheduler or a Laravel queue
 - [Authentication](auth.md) — WordPress authentication guard
 - [Roles & Capabilities](roles.md) — `$user->can()`, `@can`, `#[Role]`, `#[ModifyRole]`, post types with their own capabilities
 - [WP REST API](wp-rest-api.md) — `#[WpRestRoute]` attribute, custom REST endpoints

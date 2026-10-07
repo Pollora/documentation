@@ -163,6 +163,7 @@ It looks for failures that stay silent — the site renders, every command exits
 | Theme pattern cache | pattern files missing from WordPress's cached list |
 | Routes over block templates | `Route::wp()` routes answering in place of a block theme's templates |
 | Blocks in the legacy folder | blocks still in `resources/blocks`, which stops loading in v15 |
+| Asynchronous actions | an ignored `#[Async]`, an unavailable driver, WP-Cron events overdue or queued jobs waiting with nothing to run them — see [Asynchronous Actions](async-actions.md#something-must-run-the-queue) |
 
 The builds, directories, placeholders and blocks are checked for the active theme, every Pollora plugin and every enabled Laravel module.
 
