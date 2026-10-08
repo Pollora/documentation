@@ -6,6 +6,7 @@
 - [When it runs](#when-it-runs)
 - [The tabs](#the-tabs)
 - [REST and admin-ajax requests](#rest-and-admin-ajax-requests)
+- [In wp-admin](#in-wp-admin)
 - [Configuration](#configuration)
 - [Adding your own data](#adding-your-own-data)
   - [From a WordPress plugin or theme](#from-a-wordpress-plugin-or-theme)
@@ -37,9 +38,10 @@ Pollora's tab comes right after Laravel's, then the WordPress tabs, prefixed `WP
 | --- | --- |
 | **Pollora** | What answered the request — a `Route::wp()` route and its condition, the template hierarchy with the Blade view and the conditional that picked it, a Laravel route, or WordPress alone — then the versions, discovery (where each location's classes came from and how long it took), modules, the theme, async actions registered and queued by this request, WordPress constants and drop-ins |
 | **Doctor** | A **Run doctor** button that runs `pollora:doctor`'s web checks on demand and lists them, errors first. Nothing runs with the page |
-| **WP Request** | The rewrite rule that matched, query vars, the queried object, the main query and its results, the conditional tags that are true, the template file and the candidates of each template hierarchy |
+| **WP Request** | The rewrite rule that matched, query vars, the queried object, the main query and its results, the conditional tags that are true, the template file and the candidates of each template hierarchy. In wp-admin, the admin page and screen. On a multisite, the site and network, every switch between sites and who made it, and a warning when the request ends still switched |
 | **WP Queries** | The queries WordPress ran through `$wpdb`, with their time, full backtrace, rows, errors, duplicates, slow ones, and the main query marked, grouped by component: core, a plugin, a theme, a module, the application. Laravel's **Queries** tab keeps Eloquent's |
 | **WP Hooks** | The actions that fired and how often, how many callbacks each had, and the callbacks Pollora registered, by class and method |
+| **WP Hook timings** | Off by default. The slowest hook callbacks, by their own time (without the hooks they fire in turn) and in total, with their hook, priority, calls and component |
 | **WP HTTP** | The calls made through `wp_remote_*`: result, time, transport, and who made them; a call a plugin answered in `pre_http_request` says so |
 | **WP Cache** | Object-cache hits and misses, whether the cache is persistent, the transients set and who set them, OPcache |
 | **WP Capabilities** | The `current_user_can()` checks: each distinct check once, granted or refused, and how many times it was made |
@@ -58,6 +60,10 @@ A `wp_redirect()` exits too: its request is kept, and the page it leads to shows
 
 Stored requests are opened through `_debugbar/open`, and the doctor through `_debugbar/pollora/doctor`; Laravel Debugbar limits both to local and private addresses by default.
 
+## In wp-admin
+
+WordPress prints admin pages itself, without Laravel's kernel, so Laravel Debugbar alone never shows there. With this package, the bar is printed at the bottom of admin pages and the request is stored like any other. Laravel's tabs about a request it answered (route, views, session) are left out. The REST calls the block editor makes are listed in the bar's request list. Set `DEBUGBAR_POLLORA_ADMIN=false` to keep wp-admin without the bar.
+
 ## Configuration
 
 ```bash
@@ -73,6 +79,10 @@ php artisan vendor:publish --tag=debugbar-pollora-config
 | `options.wp_queries.soft_limit` / `hard_limit` | `100` / `500` | Past the first, no caller is kept; past the second, queries are left out |
 | `options.wp_queries.trace` | `true` | Full backtrace, error, rows and component for each query |
 | `options.wp_hooks.count_filters` | `false` | Count filters too. It listens to every hook call, so it costs on every `apply_filters()` |
+| `options.wp_hooks.timings` | `false` | Time every hook callback (**WP Hook timings**). Each callback is wrapped in place in `$wp_filter`, so code reading `$wp_filter` directly sees the wrapper; callbacks taking parameters by reference are not timed |
+| `options.wp_hooks.timings_limit` | `200` | How many callbacks the timings tab lists |
+| `admin.enabled` | `true` | Show the bar on wp-admin pages |
+| `admin.hidden_collectors` | `route`, `views`, `session`, `livewire`, `inertia` | Laravel Debugbar tabs left out in wp-admin |
 | `options.wp_capabilities.backtrace` | `false` | Say who made each distinct capability check |
 | `options.bridges.query_monitor` | `true` | Keep Query Monitor's `qm/*` logging actions working |
 
@@ -160,5 +170,7 @@ The two can run side by side while you switch. What Query Monitor shows and wher
 | Logs (`qm/debug`…) and timings (`qm/start`, `qm/stop`) | Still work, in **Messages** and the **Timeline** |
 | Overview | Laravel Debugbar's time and memory |
 | Redirects | Kept: the next page shows both requests |
+| Admin screen | **WP Request**, in wp-admin |
+| Multisite | **WP Request**, on a multisite |
 
 Query Monitor cannot install its own `db.php` next to Pollora's, so its query panel loses callers and components in a Pollora project; **WP Queries** has them.
