@@ -35,17 +35,28 @@ Pollora's tab comes right after Laravel's, then the WordPress tabs, prefixed `WP
 
 | Tab | Shows |
 | --- | --- |
-| **Pollora** | What answered the request — a `Route::wp()` route and its condition, the template hierarchy with the Blade view and the conditional that picked it, a Laravel route, or WordPress alone — then the versions, discovery (where each location's classes came from and how long it took), modules, the theme and async actions |
+| **Pollora** | What answered the request — a `Route::wp()` route and its condition, the template hierarchy with the Blade view and the conditional that picked it, a Laravel route, or WordPress alone — then the versions, discovery (where each location's classes came from and how long it took), modules, the theme, async actions registered and queued by this request, WordPress constants and drop-ins |
+| **Doctor** | A **Run doctor** button that runs `pollora:doctor`'s web checks on demand and lists them, errors first. Nothing runs with the page |
 | **WP Request** | The rewrite rule that matched, query vars, the queried object, the main query and its results, the conditional tags that are true, the template file and the candidates of each template hierarchy |
-| **WP Queries** | The queries WordPress ran through `$wpdb`, with their time and caller, duplicates, slow ones, and the main query marked. Laravel's **Queries** tab keeps Eloquent's |
+| **WP Queries** | The queries WordPress ran through `$wpdb`, with their time, full backtrace, rows, errors, duplicates, slow ones, and the main query marked, grouped by component: core, a plugin, a theme, a module, the application. Laravel's **Queries** tab keeps Eloquent's |
 | **WP Hooks** | The actions that fired and how often, how many callbacks each had, and the callbacks Pollora registered, by class and method |
+| **WP HTTP** | The calls made through `wp_remote_*`: result, time, transport, and who made them; a call a plugin answered in `pre_http_request` says so |
+| **WP Cache** | Object-cache hits and misses, whether the cache is persistent, the transients set and who set them, OPcache |
+| **WP Capabilities** | The `current_user_can()` checks: each distinct check once, granted or refused, and how many times it was made |
+| **WP Blocks** | The blocks rendered by type, with their time and nesting; Pollora's Blade blocks marked; the block bindings that gave them values |
+| **WP Assets** | Scripts, styles and script modules, printed in the header or the footer, with dependencies nobody registered; the Vite build or dev server of each theme, plugin and module |
+| **WP Languages** | The locale, and the translation files WordPress looked for, found or not |
 | **Timeline** | WordPress loading and the callbacks of `muplugins_loaded`, `init`, `wp_loaded`, `template_redirect`, `wp_head`… beside Laravel's measures |
+
+WordPress queries are traced through two core filters, `log_query_custom_data` and `query`, rather than a `wpdb` class of its own: it works with Pollora's `db.php` drop-in, and with any other.
 
 ## REST and admin-ajax requests
 
 A WordPress REST request or an admin-ajax call ends with `exit` before Laravel finishes the response, so Laravel Debugbar alone never records it. With this package, the request is stored and its id sent in the `phpdebugbar-id` header: a `fetch()` or XHR made from a page with the bar shows up in the bar's request list, with all its tabs.
 
-Stored requests are opened through `_debugbar/open`, which Laravel Debugbar limits to local and private addresses by default.
+A `wp_redirect()` exits too: its request is kept, and the page it leads to shows both.
+
+Stored requests are opened through `_debugbar/open`, and the doctor through `_debugbar/pollora/doctor`; Laravel Debugbar limits both to local and private addresses by default.
 
 ## Configuration
 
@@ -60,7 +71,9 @@ php artisan vendor:publish --tag=debugbar-pollora-config
 | `collectors.wp_queries` | `true` | Also turns `SAVEQUERIES` on; off, WordPress keeps no queries |
 | `options.wp_queries.slow_threshold` | `50` | Milliseconds from which a query is highlighted |
 | `options.wp_queries.soft_limit` / `hard_limit` | `100` / `500` | Past the first, no caller is kept; past the second, queries are left out |
+| `options.wp_queries.trace` | `true` | Full backtrace, error, rows and component for each query |
 | `options.wp_hooks.count_filters` | `false` | Count filters too. It listens to every hook call, so it costs on every `apply_filters()` |
+| `options.wp_capabilities.backtrace` | `false` | Say who made each distinct capability check |
 | `options.bridges.query_monitor` | `true` | Keep Query Monitor's `qm/*` logging actions working |
 
 ## Adding your own data
@@ -133,11 +146,19 @@ The two can run side by side while you switch. What Query Monitor shows and wher
 
 | Query Monitor | Here |
 | --- | --- |
-| Queries, duplicates | **WP Queries** |
+| Queries, by caller and component, duplicates, errors | **WP Queries** |
 | Request, conditionals, template | **WP Request**, and **Pollora** for the route or Blade view that answered |
 | Hooks & actions | **WP Hooks** |
+| HTTP API calls | **WP HTTP** |
+| Transients, object cache | **WP Cache** |
+| Capability checks | **WP Capabilities**, on by default here since checks are aggregated |
+| Blocks | **WP Blocks** |
+| Scripts, styles | **WP Assets** |
+| Languages | **WP Languages** |
+| Environment | **Pollora** (versions, constants, drop-ins) |
 | PHP errors, doing it wrong | Laravel Debugbar's **Exceptions** tab; WordPress's notices go to the `wordpress` log channel ([WordPress Logging](wordpress-logging.md)) |
 | Logs (`qm/debug`…) and timings (`qm/start`, `qm/stop`) | Still work, in **Messages** and the **Timeline** |
 | Overview | Laravel Debugbar's time and memory |
+| Redirects | Kept: the next page shows both requests |
 
-HTTP API calls, transients and object cache, capabilities, blocks, enqueued assets and languages come in a later release of the package.
+Query Monitor cannot install its own `db.php` next to Pollora's, so its query panel loses callers and components in a Pollora project; **WP Queries** has them.
