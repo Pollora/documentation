@@ -12,63 +12,107 @@ All functionalities available in the main application directory (`app/`), such a
 
 A module in Pollora groups autonomous functionalities that can be enabled or disabled on demand. Each module has its own file structure, allowing clear management of associated resources, routes, views, configurations, migrations, models, and tests.
 
-## Creating a New Module
-
-To create a module named `Portfolio`, use the following artisan command:
+## Creating a Module
 
 ```shell
-php artisan module:make Portfolio
+php artisan pollora:make:module Portfolio
 ```
 
-This automatically generates a basic structure in the `Modules/Portfolio` directory with the following architecture:
+The command downloads the [module-default](https://github.com/Pollora/module-default) template, fills in its name, enables the module, runs `composer dump-autoload` (the module's `composer.json` is merged into the project's) and builds its assets with npm. The default module holds what a Pollora module uses, and nothing it would have to delete:
 
 ```
-Modules
-└── Portfolio
-    ├── app
-    │   ├── Http
-    │   │   └── Controllers
-    │   │       └── PortfolioController.php
-    │   ├── Models
-    │   └── Providers
-    │       ├── PortfolioServiceProvider.php
-    │       └── RouteServiceProvider.php
-    ├── config
-    │   └── config.php
-    ├── database
-    │   ├── factories
-    │   ├── migrations
-    │   └── seeders
-    │       └── PortfolioDatabaseSeeder.php
-    ├── resources
-    │   ├── assets
-    │   │   ├── js
-    │   │   │   └── app.js
-    │   │   └── sass
-    │   │       └── app.scss
-    │   └── views
-    │       ├── layouts
-    │       │   └── master.blade.php
-    │       └── index.blade.php
-    ├── routes
-    │   ├── api.php
-    │   └── web.php
-    ├── tests
-    │   ├── Feature
-    │   └── Unit
-    ├── composer.json
-    ├── module.json
-    ├── package.json
-    └── vite.config.js
+Modules/Portfolio/
+├── app/
+│   └── Cms/Hooks/PortfolioHooks.php  # an #[Action] example, discovered without a provider
+├── resources/
+│   ├── assets/app.js, app.css         # Tailwind CSS v4, without its preflight
+│   └── views/blocks/                  # Gutenberg blocks, registered by Pollora
+├── composer.json                      # PSR-4 Modules\Portfolio\ → app/
+├── module.json                        # "providers": [] — discovery does the registering
+├── package.json
+└── vite.config.js                     # @pollora/vite-config, type "module"
 ```
 
-Each file serves a specific role:
-- `Providers`: Configure module-specific services and routes.
-- `Controllers`: Handle HTTP logic.
-- `Models`: Eloquent models.
-- `Views`: Blade views specific to the module.
-- `Routes`: Define web and API routes for the module.
-- `composer.json`: Define module-specific dependencies (merged via [wikimedia/composer-merge-plugin](https://github.com/wikimedia/composer-merge-plugin)).
+There is no service provider, controller, route file, configuration, seeder or test folder by default: classes declared with attributes in `app/` are discovered. Each Laravel layer is one flag away:
+
+| Flag | Adds |
+| --- | --- |
+| `--provider` | `app/Providers/PortfolioServiceProvider.php`, listed in `module.json` |
+| `--routes` | `routes/web.php` and the `RouteServiceProvider` that loads it (implies `--provider`) |
+| `--api` | `routes/api.php`, under `/api` (implies `--routes`) |
+| `--config` | `config/config.php`, read as `config('portfolio.*')` (implies `--provider`) |
+| `--database` | `database/migrations`, `seeders` and `factories`, with their PSR-4 entries |
+| `--tests` | `tests/Feature`, `tests/Unit` and a Pest test |
+| `--full` | every layer above |
+| `--no-assets` | no `package.json`, `vite.config.js` or `resources/assets`, for a PHP-only module |
+
+Other options: `--description`, `--author`, `--no-enable`, `--no-npm`, `--repository=owner/repo` and `--repo-version=tag` for another template, `--offline` for the copy bundled with the framework (also used when GitHub cannot be reached), `--force` to replace an existing module.
+
+A layer added later uses nwidart's own generators: `php artisan module:make-provider PortfolioServiceProvider Portfolio`, `module:make-migration`, and so on.
+
+### `module:make`
+
+nwidart's `php artisan module:make Portfolio` writes the same lean module, offline, from the copy bundled with the framework. A project whose `config/modules.php` sets nwidart's `paths` or `stubs` (its own published configuration) keeps nwidart's stock module instead.
+
+### Generating into a module
+
+Pollora's generators take `--module`, and write where nwidart found the module, under the namespace its `composer.json` maps onto `app/` — a module may use `Module\Portfolio\` rather than `Modules\Portfolio\`:
+
+```shell
+php artisan pollora:make:post-type Project --module=Portfolio
+php artisan pollora:make:block project-card --module=Portfolio
+```
+
+A block lands in `resources/views/blocks/project-card`, named `portfolio/project-card`.
+
+## Frontend
+
+A module builds like a theme or a plugin, with the same Vite, Tailwind CSS v4 and block tooling, through [`@pollora/vite-config`](https://github.com/Pollora/vite-config):
+
+```js
+// Modules/Portfolio/vite.config.js
+import { defineConfig } from 'vite';
+import pollora from '@pollora/vite-config';
+
+export default defineConfig({
+    plugins: [pollora({ type: 'module', name: 'portfolio' })],
+});
+```
+
+| | |
+| --- | --- |
+| Build | `public/build/module/<kebab-name>`, with its `manifest.json` |
+| Hot file | `public/<kebab-name>.hot` |
+| Dev server | DDEV-aware, port 5175 (`VITE_PORT` to change it) |
+| Entries | `resources/assets/app.js`, and every block in `resources/views/blocks` |
+
+```shell
+cd Modules/Portfolio
+npm install
+npm run dev      # hot reload
+npm run build
+```
+
+Every enabled module with a `vite.config.js` gets the `module.<kebab-name>` asset container:
+
+```php
+use Pollora\Support\Facades\Asset;
+
+Asset::add('portfolio/app', 'app.js')
+    ->container('module.portfolio')
+    ->toFrontend()
+    ->useVite();
+```
+
+### A module made by an older `module:make`
+
+nwidart's stock `vite.config.js` builds into `public/build-<lower>`, where Pollora never looks; `pollora:doctor` says so. Move the module onto the template's build:
+
+```shell
+php artisan pollora:module:frontend Portfolio
+```
+
+It writes `package.json`, `vite.config.js` and `resources/assets/app.{js,css}`, keeping a `.bak` of each file it replaces (`--no-backup` to skip them). Entries other than `app.js` go in the `input` option of `pollora()`. Nothing runs at upgrade: a project's modules are its own code.
 
 ## Dependency Management
 
@@ -135,98 +179,126 @@ The module's `composer.json` declares the type and the folder name:
 
 ### Enabling it
 
-An installed module is not enabled yet: add it to `modules_statuses.json`, or run `php artisan module:enable MeiliFacets`.
+An installed module is not enabled yet: `php artisan module:enable MeiliFacets`, or Plugins › Modules (below).
 
-```json
-{
-    "MeiliFacets": true
-}
+`composer remove pollora/meilifacets` deletes `Modules/MeiliFacets/`; remove its state too (`pollora:doctor` lists states left for modules no longer on disk).
+
+### Updates
+
+A module installed with Composer carries its package's version, matched by install path; a local module has none and is never checked. Pollora reads the latest release from where the project's `composer.json` gets the package: a `composer` repository (Private Packagist, Satis), a GitHub `vcs` repository (`MODULES_GITHUB_TOKEN` for a private one), or Packagist. It checks once a day from WP-Cron and caches the answer for 12 hours — never during a front-end request:
+
+```shell
+php artisan pollora:module:outdated          # checks now
+php artisan pollora:module:outdated --json
 ```
 
-`composer remove pollora/meilifacets` deletes `Modules/MeiliFacets/`; remove its line from `modules_statuses.json` too.
+An update shows in Plugins › Modules ("1.3.0 · 1.4.0 available", with the `composer update` command), in Site Health ("Pollora modules are up to date") and in `pollora:status`. Code still arrives through Composer: there is no one-click update. A `dev-*` version is never reported outdated.
 
 ## Enabling and Disabling Modules
 
-Modules can be activated or deactivated at any time, allowing dynamic management of available features:
-
 ```shell
-# Enable a module
 php artisan module:enable Portfolio
-
-# Disable a module
 php artisan module:disable Portfolio
 ```
 
-Managing module states (enabled/disabled) is useful for:
-- Gradually deploying features.
-- Simplifying debugging by isolating feature sets.
-- Reducing memory footprint or attack surface by temporarily disabling features.
+Module providers register during Laravel's register phase, before anything can switch them: a change applies from the next request.
+
+### Plugins › Modules
+
+The Plugins screen has a **Modules (n)** view next to All, Active and Must-Use: every module, its description and path, its state, its version and where its state is stored, with Enable / Disable on each row and as bulk actions. Switching needs the `activate_plugins` capability (`modules.admin.capability`). WordPress's own plugin rows are untouched: a module has no plugin file for WordPress to load.
+
+- A **locked** module has no switch, and the row says why (see below).
+- `MODULES_ADMIN_TOGGLE=false` turns every switch off; they are on by default, production included.
+- With the JSON file, the view warns that the next deployment resets a change, and each switch asks first. When the file cannot be written (a read-only release directory), switches are off and the view says how to change states.
+
+Tools › Pollora and `pollora:status` also show where module states are stored.
+
+### Where the state lives
+
+Whether a module is enabled comes from a **connector**:
+
+| Connector | Reads and writes | Survives a deployment | For |
+| --- | --- | --- | --- |
+| `json` (default) | `modules_statuses.json`, nwidart's file | Only if committed | Local work, simple deploys |
+| `database` | the `pollora_modules` WordPress option (JSON, not autoloaded) | Yes | Sites switched from the admin |
+| `config` | `connectors.config.states`, or `MODULES_ENABLED` / `MODULES_DISABLED` | Yes, it ships with the code | Immutable deploys, containers |
+
+nwidart asks which modules are enabled while it registers, before any provider of the application and before WordPress loads. The connector is therefore chosen in a published `config/modules.php`, never from a provider:
+
+```shell
+php artisan vendor:publish --tag=pollora-modules
+```
+
+```php
+// config/modules.php — use Pollora\Modules\Infrastructure\Activation\ModuleConnectors;
+'activator' => 'pollora',
+'connector' => env('MODULES_CONNECTOR', 'json'),
+'connectors' => [
+    'json' => ['path' => base_path('modules_statuses.json')],
+    'database' => ['option' => 'pollora_modules', 'fallback' => 'json'],
+    'config' => [
+        'states' => [],
+        'enabled' => ModuleConnectors::names(env('MODULES_ENABLED', '')),
+        'disabled' => ModuleConnectors::names(env('MODULES_DISABLED', '')),
+    ],
+],
+'locked' => [
+    'enabled' => ModuleConnectors::names(env('MODULES_LOCKED_ENABLED', '')),
+    'disabled' => ModuleConnectors::names(env('MODULES_LOCKED_DISABLED', '')),
+],
+```
+
+Without this file, nwidart's own activator keeps reading `modules_statuses.json`, and `MODULES_CONNECTOR` or `MODULES_LOCKED_*` are ignored (`pollora:doctor` warns).
+
+The `database` connector reads the option with Laravel's connection, which shares WordPress's database and table prefix, and writes it with `update_option()` once WordPress is loaded. While the options table cannot be read (a fresh install), it reads its `fallback` and `pollora:doctor` says so. Switch connector after copying the current states into the new one:
+
+```shell
+php artisan pollora:module:connector                    # where the states live now
+php artisan pollora:module:connector database --import  # copy them, then set MODULES_CONNECTOR=database
+```
+
+**Locked modules.** `locked.enabled` and `locked.disabled` force a state over any connector; switching a locked module from the console throws `ModuleLockedException`, and the admin shows no switch for it.
+
+**Your own connector** implements `Pollora\Modules\Domain\Contracts\ModuleStateConnector` (`all`, `set`, `forget`, `writable`, `persistent`, `label`) and is declared by class, or registered in `bootstrap/app.php`:
+
+```php
+'connectors' => [
+    'redis' => ['class' => App\Modules\RedisStateConnector::class],
+],
+```
+
+```php
+// bootstrap/app.php, before ->create()
+use Pollora\Modules\Infrastructure\Activation\ModuleConnectors;
+
+ModuleConnectors::extend('redis', fn ($app, array $config) => new RedisStateConnector($app['redis']));
+```
+
+A switch clears nwidart's provider manifest and the discovery cache, and fires `Pollora\Modules\Domain\Events\ModuleEnabled` or `ModuleDisabled` (module, source `admin` or `console`, WordPress user). A configuration or route cache written before the switch still holds the old state: `php artisan optimize:clear` (`pollora:doctor` warns). Multisite sites share one state for the whole network.
 
 ## Automatic Discovery System
 
-Pollora includes a powerful **automatic discovery system** that automatically detects and registers various components within your modules without requiring manual configuration.
+Pollora discovers the classes of every enabled module in its `app/` directory, with no registration:
 
-### What Gets Discovered Automatically
-
-The discovery system automatically finds and registers:
-
-- **Service Providers**: Classes extending `Illuminate\Support\ServiceProvider`
-- **Post Types**: Classes with `#[PostType]` attributes
-- **Taxonomies**: Classes with `#[Taxonomy]` attributes  
-- **WordPress Hooks**: Methods with `#[Action]` and `#[Filter]` attributes
-- **REST API Routes**: Classes and methods with `#[WpRestRoute]` attributes
-- **Scheduled Tasks**: Classes with `#[Schedule]` attributes
-
-### How Discovery Works
-
-When a module is registered, Pollora automatically:
-
-1. **Scans** the module directory for PHP classes
-2. **Discovers** classes and methods with relevant attributes or inheritance
-3. **Registers** found components with WordPress and Laravel
-4. **Applies** the discovered configurations
-
-### Discovery in Action
-
-For example, if you create a service provider in your module:
+- **Post types** and **taxonomies**: classes with `#[PostType]` and `#[Taxonomy]`
+- **WordPress hooks**: methods with `#[Action]` and `#[Filter]`
+- **REST routes**: `#[WpRestRoute]`
+- **Scheduled tasks**: `#[Schedule]`
+- **Gutenberg blocks**: folders in `resources/views/blocks`
 
 ```php
-// Modules/Portfolio/app/Providers/PortfolioServiceProvider.php
-namespace Modules\Portfolio\Providers;
-
-use Illuminate\Support\ServiceProvider;
-
-class PortfolioServiceProvider extends ServiceProvider
-{
-    public function register(): void
-    {
-        // Your service registrations
-    }
-}
-```
-
-This service provider will be **automatically discovered and registered** - no manual configuration needed!
-
-Similarly, for WordPress post types:
-
-```php
-// Modules/Portfolio/app/Models/Project.php
-namespace Modules\Portfolio\Models;
+// Modules/Portfolio/app/Cms/PostTypes/Project.php
+namespace Modules\Portfolio\Cms\PostTypes;
 
 use Pollora\Attributes\PostType;
+use Pollora\Attributes\PostType\Supports;
 
-#[PostType(
-    name: 'project',
-    public: true,
-    supports: ['title', 'editor', 'thumbnail']
-)]
-class Project
-{
-    // Your model logic
-}
+#[PostType('project')]
+#[Supports(['title', 'editor', 'thumbnail'])]
+class Project {}
 ```
 
-The post type will be automatically registered with WordPress.
+After adding such a class with the discovery cache on, run `php artisan discovery:clear`.
 
 ### Manual Discovery Control
 
@@ -254,10 +326,14 @@ $discovery->discover('/path/to/module');
 - Keep each module focused on a single responsibility (Single Responsibility Principle).
 - Use modules to clearly separate business contexts (Domain-Driven Design).
 - Prefer using module-specific namespaces to avoid conflicts.
-- Individually test modules using unit and integration tests within the `tests` directory.
+- Test a module in its own `tests` directory (`pollora:make:module --tests`).
 - **Leverage automatic discovery**: Use PHP 8 attributes instead of manual registrations for cleaner, more maintainable code.
 - **Organize by feature**: Group related service providers, models, and controllers within logical subdirectories.
 - **Follow naming conventions**: Use descriptive class names that clearly indicate their purpose and functionality.
+
+## Checks
+
+`pollora:doctor` (and Tools › Site Health) checks modules too: an unbuilt module or one built where Pollora does not look, a stock nwidart Vite config, a connector reading its fallback, a state for a module no longer on disk, a state file that cannot be written while the admin is the way to switch, caches older than the last switch, and `MODULES_*` settings ignored without `config/modules.php`.
 
 ## Learn More
 
