@@ -62,7 +62,7 @@ Stored requests are opened through `_debugbar/open`, and the doctor through `_de
 
 ## In wp-admin
 
-WordPress prints admin pages itself, without Laravel's kernel, so Laravel Debugbar alone never shows there. With this package, the bar is printed at the bottom of admin pages and the request is stored like any other. Laravel's tabs about a request it answered (route, views, session) are left out. The REST calls the block editor makes are listed in the bar's request list. Set `DEBUGBAR_POLLORA_ADMIN=false` to keep wp-admin without the bar.
+WordPress prints admin pages itself, without Laravel's kernel, so Laravel Debugbar alone never shows there. With this package, the bar is printed at the bottom of admin pages and the request is stored like any other. Laravel's tabs about a request it answered (route, views, session) are left out. The REST calls the block editor makes are listed in the bar's request list. Set `DEBUGBAR_POLLORA_ADMIN=false` to keep wp-admin without the bar. The front end the Site Editor shows in its canvas gets no second bar; open that request from the bar's request list.
 
 ## Configuration
 
@@ -81,6 +81,7 @@ php artisan vendor:publish --tag=debugbar-pollora-config
 | `options.wp_hooks.count_filters` | `false` | Count filters too. It listens to every hook call, so it costs on every `apply_filters()` |
 | `options.wp_hooks.timings` | `false` | Time every hook callback (**WP Hook timings**). Each callback is wrapped in place in `$wp_filter`, so code reading `$wp_filter` directly sees the wrapper; callbacks taking parameters by reference are not timed |
 | `options.wp_hooks.timings_limit` | `200` | How many callbacks the timings tab lists |
+| `iframes` | `false` | Print the bar inside pages loaded in an iframe (Site Editor canvas, Customizer preview). Off, those requests are still stored and open from the bar's request list |
 | `admin.enabled` | `true` | Show the bar on wp-admin pages |
 | `admin.hidden_collectors` | `route`, `views`, `session`, `livewire`, `inertia` | Laravel Debugbar tabs left out in wp-admin |
 | `options.wp_capabilities.backtrace` | `false` | Say who made each distinct capability check |
