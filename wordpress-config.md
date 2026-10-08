@@ -169,6 +169,21 @@ This means you can add any WordPress constant to this array, not just the ones s
 ],
 ```
 
+#### WordPress Environment Type
+
+When the process environment does not contain `WP_ENVIRONMENT_TYPE`, Pollora derives the default from Laravel's `app.env` configuration. This is normally `APP_ENV`, or its value in Laravel's cached configuration:
+
+| `app.env` | WordPress environment type |
+| --- | --- |
+| `local` | `local` |
+| `dev`, `development`, `testing` | `development` |
+| `staging` | `staging` |
+| `prod`, `production`, any other or missing value | `production` |
+
+This mapping is independent of `APP_DEBUG`. A process-level `WP_ENVIRONMENT_TYPE` bypasses the mapping, including an empty or invalid value. Laravel's normal `.env` loading exposes these values to the process environment.
+
+An explicit `WP_ENVIRONMENT_TYPE` entry in `wordpress.constants` overrides the default; constants that are already defined are preserved. Explicit values are passed through without alias mapping. WordPress gives a truthy defined constant precedence over the process environment and validates the result against `local`, `development`, `staging`, and `production`; see [`wp_get_environment_type()`](https://developer.wordpress.org/reference/functions/wp_get_environment_type/).
+
 #### Common WordPress Constants
 
 Here are some common WordPress constants you might want to add:
