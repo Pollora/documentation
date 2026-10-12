@@ -2,6 +2,8 @@
 
 The Pollora Discovery system provides automatic component discovery in your application, WordPress themes, and Laravel modules. It uses a modern architecture inspired by Tempest Framework while leveraging Spatie's structure discovery capabilities to identify and process different types of components according to your needs.
 
+The engine lives in its own package, [`pollora/discovery`](https://github.com/Pollora/discovery), which the framework installs and wires: in a Pollora project there is nothing to install. The package also runs without Laravel, in a WordPress plugin or any PHP project; see [Outside Laravel](#outside-laravel).
+
 ## Table of Contents
 
 - [Overview](#overview)
@@ -12,6 +14,7 @@ The Pollora Discovery system provides automatic component discovery in your appl
 - [Creating Custom Discovery Classes](#creating-custom-discovery-classes)
 - [Discovery Engine](#discovery-engine)
 - [Caching System](#caching-system)
+- [Outside Laravel](#outside-laravel)
 - [Console Commands](#console-commands)
 - [Configuration](#configuration)
 - [Usage Examples](#usage-examples)
@@ -37,6 +40,7 @@ The Discovery system automatically scans your codebase to find and register comp
 - **Extensible**: Easy to create custom discovery classes for any component type
 - **Type Safe**: Full PHPDoc coverage and strict type declarations
 - **Laravel Integration**: Seamless integration with Laravel's service container
+- **Standalone**: the engine (`pollora/discovery`) runs without Laravel's application
 
 ## Architecture
 
@@ -57,7 +61,7 @@ The Discovery system automatically scans your codebase to find and register comp
     │                      │                      │
 ┌───▼─────────┐  ┌─────────▼──────┐  ┌───────────▼──────────┐
 │ Discovery   │  │   Discovery    │  │   Discovery Cache    │
-│ Locations   │  │   Classes      │  │   (Laravel Cache)    │
+│ Locations   │  │   Classes      │  │   (Spatie driver)    │
 └─────────────┘  └────────────────┘  └──────────────────────┘
 ```
 
@@ -380,74 +384,7 @@ final class CustomComponentDiscovery implements DiscoveryInterface
 
 ### 2. Path-Aware Discovery Class
 
-```php
-<?php
-
-declare(strict_types=1);
-
-namespace MyTheme\Discovery;
-
-use Pollora\Discovery\Domain\Contracts\DiscoversPathInterface;
-use Pollora\Discovery\Domain\Contracts\DiscoveryLocationInterface;
-use Pollora\Discovery\Domain\Services\IsDiscovery;
-use Spatie\StructureDiscoverer\Data\DiscoveredStructure;
-
-/**
- * Template Discovery
- *
- * Discovers both PHP classes and template files
- */
-final class TemplateDiscovery implements DiscoversPathInterface
-{
-    use IsDiscovery;
-
-    public function discover(DiscoveryLocationInterface $location, DiscoveredStructure $structure): void
-    {
-        // Discover PHP template classes
-        if ($structure instanceof \Spatie\StructureDiscoverer\Data\DiscoveredClass) {
-            if (str_contains($structure->name, 'Template')) {
-                $this->getItems()->add($location, [
-                    'type' => 'class',
-                    'class' => $structure->name,
-                ]);
-            }
-        }
-    }
-
-    public function discoverPath(DiscoveryLocationInterface $location, string $path): void
-    {
-        // Discover template files
-        if (str_ends_with($path, '.blade.php') || str_ends_with($path, '.php')) {
-            if (str_contains($path, '/templates/')) {
-                $this->getItems()->add($location, [
-                    'type' => 'file',
-                    'path' => $path,
-                ]);
-            }
-        }
-    }
-
-    public function apply(): void
-    {
-        foreach ($this->getItems() as $discoveredItem) {
-            $type = $discoveredItem['type'];
-            
-            if ($type === 'class') {
-                // Register PHP template class
-                $this->registerTemplateClass($discoveredItem['class']);
-            } elseif ($type === 'file') {
-                // Register template file
-                $this->registerTemplateFile($discoveredItem['path']);
-            }
-        }
-    }
-
-    public function getIdentifier(): string
-    {
-        return 'templates';
-    }
-}
-```
+`DiscoversPathInterface` declares a `discoverPath()` method for discoveries that read files rather than classes. The engine does not call it yet: a discovery that needs files reads them from its location in `discover()` or `apply()`.
 
 ### 3. Registering Custom Discovery
 
@@ -516,43 +453,61 @@ $locations = $engine->getLocations();
 
 ## Caching System
 
-### Automatic Caching
+### What is cached
 
-The system automatically caches discovery results using Laravel's cache system:
+Discovery scans each location once per process and keeps the result in memory. Outside debug mode, scans are also stored in Laravel's cache, through Spatie's `LaravelDiscoverCacheDriver` under the `pollora` prefix, one entry per location. In debug mode (`APP_DEBUG=true`) the persistent cache is off and every request scans the disk; a location whose scan takes more than 250 ms is logged, as it usually holds `node_modules`, `vendor` or a build output.
+
+To use another store, or another Spatie driver, set `structure-discoverer.cache` in `config/structure-discoverer.php`:
 
 ```php
-use Pollora\Discovery\Infrastructure\Adapters\LaravelDiscoveryCache;
+return [
+    'cache' => [
+        'driver' => \Spatie\StructureDiscoverer\Cache\LaravelDiscoverCacheDriver::class,
+        'store' => 'redis',
+    ],
+];
+```
 
-// Cache is automatically configured in the service provider
-// but you can customize it:
+### Clearing the cache
 
-$cache = new LaravelDiscoveryCache(
-    cache: app('cache.store'),
-    prefix: 'my_app.discovery.',
-    defaultTtl: 3600 // 1 hour
+A class added after the cache was filled is not discovered until the cache is cleared:
+
+```bash
+php artisan discovery:clear
+```
+
+`php artisan pollora:doctor` names the classes on disk that the cache lacks.
+
+> `DiscoveryCacheInterface` and `LaravelDiscoveryCache` are deprecated and removed in 15.0: nothing reads that cache.
+
+## Outside Laravel
+
+`pollora/discovery` runs without Laravel's application: in a WordPress plugin, a Bedrock site or any PHP project.
+
+```bash
+composer require pollora/discovery
+```
+
+Every dependency of the engine is optional. Without them, it builds classes by reflection, keeps no persistent cache and runs only the discoveries added to it:
+
+```php
+use Pollora\Discovery\Domain\Models\DiscoveryLocation;
+use Pollora\Discovery\Infrastructure\Cache\Psr16DiscoverCacheDriver;
+use Pollora\Discovery\Infrastructure\Services\DiscoveryCacheManager;
+use Pollora\Discovery\Infrastructure\Services\DiscoveryEngine;
+
+$engine = new DiscoveryEngine(
+    // Optional: cache scans in any PSR-16 cache (transients, object cache)
+    cacheManager: new DiscoveryCacheManager(new Psr16DiscoverCacheDriver($psr16Cache)),
 );
+
+$engine
+    ->addLocation(new DiscoveryLocation('MyPlugin\\', __DIR__.'/src'))
+    ->addDiscovery('shortcodes', new ShortcodeDiscovery)
+    ->run();
 ```
 
-### Manual Cache Management
-
-```php
-use Pollora\Discovery\Domain\Contracts\DiscoveryCacheInterface;
-
-/** @var DiscoveryCacheInterface $cache */
-$cache = app(DiscoveryCacheInterface::class);
-
-// Check if cached
-$cacheKey = $cache->generateKey('post_types', $locations);
-if ($cache->has($cacheKey)) {
-    $items = $cache->get($cacheKey);
-}
-
-// Clear specific cache
-$cache->forget($cacheKey);
-
-// Clear all discovery caches
-$cache->flush();
-```
+Two contracts let an environment plug in: `InstanceResolverInterface` builds the classes discovery needs (`ContainerInstanceResolver` wraps any PSR-11 container), and `DiscoveryRegistrarInterface` adds the environment's discoveries before each run, as the framework's `DiscoveryRegistrar` does with the container. See the [package README](https://github.com/Pollora/discovery#readme).
 
 ## Console Commands
 
@@ -580,14 +535,6 @@ php artisan discovery:clear
 ```
 
 ## Configuration
-
-### Environment Configuration
-
-```php
-// In your .env file
-DISCOVERY_CACHE_TTL=3600           # Cache time-to-live in seconds
-DISCOVERY_CACHE_PREFIX=app.discovery. # Cache key prefix
-```
 
 ### Service Provider Configuration
 
