@@ -188,24 +188,7 @@ QUEUE_CONNECTION=sync
 
 ## Performance Integration
 
-The environment system is integrated with performance-critical components like the [Discovery Engine](discovery.md):
-
-```php
-class DiscoveryEngine
-{
-    private function getCacheDriver(): DiscoverCacheDriver
-    {
-        // Disable cache in development for faster iteration
-        if ($this->environment->isDevelopment() || 
-            $this->environment->isEnvironment('local')) {
-            return new NullDiscoverCacheDriver();
-        }
-
-        // Enable cache in production for performance
-        return new LaravelDiscoverCacheDriver();
-    }
-}
-```
+Debug mode decides how [discovery](discovery.md) caches its scans. With `APP_DEBUG=true` the persistent cache is off, so a class you add is found on the next request, and a slow location is logged; otherwise scans are stored in Laravel's cache until `php artisan discovery:clear`. The choice is made when the framework builds the discovery cache manager (`LaravelDiscoveryCacheManagerFactory`), from the application's debug mode rather than its environment name.
 
 ## Advanced Usage
 
