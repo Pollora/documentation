@@ -68,7 +68,7 @@ This repository is the source of the documentation of **Pollora, the Laravel fra
 - [Plugins](plugins.md) — Plugin development with modern tooling
 - [Events & Listeners](events-listeners.md) — WordPress event dispatching and Laravel listeners
 - [WordPress Events Reference](wordpress-events-reference.md) — Every WordPress and plugin event Pollora dispatches
-- [Scheduling](schedule-events.md) — `#[Schedule]` attribute, WordPress cron management
+- [Scheduling](schedule-events.md) — `#[Schedule]` and a fluent API, with WP-Cron, Action Scheduler or the Laravel queue as driver
 - [AJAX](ajax.md) — Handling AJAX requests
 - [Menu](menu.md) — Admin menu management
 

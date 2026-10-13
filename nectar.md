@@ -20,7 +20,7 @@ When working with AI coding assistants (Claude Code, Cursor, Windsurf, etc.), th
 
 - **Injecting Pollora-specific guidelines** into your AI agent's context via Laravel Boost
 - **Providing 12 on-demand skills** for domain-specific tasks (post types, typed meta, roles, themes, hooks, blocks and Block Bindings, abilities, etc.)
-- **Exposing 10 MCP tools** for live introspection of your WordPress and Pollora environment
+- **Exposing 11 MCP tools** for live introspection of your WordPress and Pollora environment
 - **Offering upgrade prompts** that guide AI agents step-by-step through Pollora version upgrades
 
 Nectar is a development-only package — it only loads in `local` and `development` environments.
@@ -155,6 +155,18 @@ Returns: URI, HTTP methods, route name, middleware, WordPress condition and para
 
 Lists installed Laravel Modules (nwidart) with their name, path, and enabled status. Reports if the module system is not installed.
 
+### `scheduled_events`
+
+Lists the scheduled events with the driver that keeps each (WP-Cron, Action Scheduler, the Laravel queue), read from the `cron` option: no query reaches the driver. Needs framework v13.36 for the `schedule` configuration; on an older 13.x every event reads as WP-Cron's.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `type` | string | Optional. `"once"` or `"recurring"` |
+| `driver` | string | Optional. Only events kept by this driver (`"wp-cron"`, `"action-scheduler"`, `"laravel"`) |
+| `limit` | integer | Optional. Maximum number of events, soonest first (default 100) |
+
+Returns the configured driver and whether it is available, the protected hooks, how many events are left to migrate by driver, late events of the `laravel` driver, the failures of the last week, and each event (hook, type, recurrence, next run, driver, arguments, and where it stands: `active`, `protected`, `fallback` or `to migrate`).
+
 ### `wp_option`
 
 Reads a WordPress option value by key (read-only).
@@ -190,7 +202,7 @@ Skills are activated on-demand when working on specific tasks:
 | `pollora-hooks` | Registering WordPress actions and filters with attributes |
 | `pollora-blocks` | Gutenberg blocks with JSX/TSX, Blade rendering, `<InnerBlocks />` and Tailwind |
 | `pollora-rest-api` | REST API endpoints with `#[WpRestRoute]`, AJAX handlers with `#[Ajax]` |
-| `pollora-scheduling` | Scheduled tasks with `#[Schedule]` and WordPress cron |
+| `pollora-scheduling` | Scheduled tasks with `#[Schedule]` and the fluent API, on WP-Cron, Action Scheduler or the Laravel queue |
 | `pollora-modules` | Laravel Modules (nwidart) with auto-discovery integration |
 | `pollora-abilities` | WordPress Abilities API with `#[Ability]` and the `Ability` facade |
 | `pollora-typed-meta` | Post, term, user and comment meta as typed properties with `#[Meta]`, `Meta::of()`, `pollora:meta:audit` |
@@ -287,7 +299,7 @@ Nectar extends Laravel Boost with three layers:
 │  (Blade)     │  │  (Markdown)    │  │  (Tools +    │
 ├──────────────┤  ├────────────────┤  │   Prompts)   │
 │ core.blade   │  │ pollora-hooks  │  ├─────────────┤
-│ framework    │  │ pollora-blocks │  │ 10 tools    │
+│ framework    │  │ pollora-blocks │  │ 11 tools    │
 │   .blade     │  │ pollora-theme  │  │ 2 upgrade   │
 │              │  │ ...6 more      │  │   prompts   │
 └──────────────┘  └────────────────┘  └─────────────┘

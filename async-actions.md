@@ -228,7 +228,7 @@ Nothing tells you when queued work never runs. Check that the driver you use has
   * * * * * cd /path/to/project && wp cron event run --due-now
   ```
 
-  With `wordpress.use_laravel_scheduler`, WP-Cron events are Laravel jobs: a queue worker runs them instead.
+  With the `laravel` [scheduling driver](schedule-events.md#the-laravel-driver), the site's scheduled events are Laravel jobs: a queue worker runs them instead.
 - **The queue.** Keep a worker running on the connection, under Supervisor or systemd:
 
   ```bash
