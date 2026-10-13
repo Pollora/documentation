@@ -185,7 +185,7 @@ By default, Pollora sets several constants for security and performance:
 - `WP_AUTO_UPDATE_CORE`: Disables WordPress core auto-updates
 - `DISALLOW_FILE_MODS`: Prevents plugin and theme installations from the admin
 - `DISALLOW_FILE_EDIT`: Disables the built-in file editor
-- `DISABLE_WP_CRON`: Disables the WordPress cron system (use Laravel's scheduler instead)
+- `DISABLE_WP_CRON`: Disables the WordPress cron system (a system cron requests `wp-cron.php`, or [choose another scheduling driver](schedule-events.md#drivers))
 - `WP_POST_REVISIONS`: Limits the number of post revisions stored
 
 You can override these defaults or add your own constants in your application's configuration file.
