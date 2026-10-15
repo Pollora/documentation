@@ -55,21 +55,14 @@ The root container configuration:
 
 ### Configuring Custom Asset Containers
 
-You can configure additional Asset Containers in your service provider or configuration file:
+The framework declares the containers of the theme (`theme`), of each plugin (`plugin.<slug>`) and of each module (`module.<slug>`) itself, on the layout `@pollora/vite-config` builds to. To add your own, declare it with `Asset::addContainer()`, for example in a service provider:
 
 ```php
-app(\Pollora\Asset\AssetContainerManager::class)->addContainer('my-plugin', [
-    'hot_file' => public_path("my-plugin.hot"),
-    'build_directory' => "build/my-plugin",
-    'manifest_path' => public_path("build/my-plugin/manifest.json"),
-    'base_path' => '',
-    'asset_dir' => [
-        'root' => 'assets',
-        'images' => 'images',
-        'fonts' => 'fonts',
-        'css' => 'css',
-        'js' => 'js',
-    ]
+Asset::addContainer('my-package', [
+    'hot_file' => public_path('my-package.hot'),   // exists while the dev server runs
+    'build_directory' => 'build/my-package',       // where Vite built, relative to the public directory
+    'manifest_path' => 'manifest.json',            // in the build directory
+    'base_path' => 'resources/assets/',            // what Asset::add('…', 'app.js') is relative to
 ]);
 ```
 
@@ -245,3 +238,39 @@ This updated approach provides greater flexibility and maintains clarity in your
 It is essential to declare assets in a **Service Provider** rather than a hook class. The service provider ensures the assets are properly enqueued via the WordPress `wp_enqueue_scripts` hook.
 
 By following these guidelines, you can ensure consistent and efficient asset management across your entire WordPress setup, leveraging the power of ViteJS and Pollora's asset management system.
+
+## Without Laravel: a classic theme, a plugin or Bedrock
+
+The asset classes are the package [`pollora/assets`](https://github.com/Pollora/assets), which the framework requires. It also runs in a WordPress project that is not a Pollora application: a classic theme, a plugin, a Bedrock site. There, `Pollora\Asset\Asset` is the same facade, forwarding to the same asset manager wired to WordPress, and you declare the containers yourself:
+
+```php
+use Pollora\Asset\Asset;
+
+Asset::addContainer('theme', [
+    'hot_file' => get_stylesheet_directory().'/hot',
+    'build_directory' => 'build',
+    'manifest_path' => 'manifest.json',
+    'base_path' => 'resources/assets/',
+    'public_path' => get_stylesheet_directory(),
+    'public_url' => get_stylesheet_directory_uri(),
+]);
+
+Asset::add('my-theme/app', 'app.js')->container('theme')->useVite()->toFrontend();
+```
+
+The first four keys are the ones above. `public_path` and `public_url` are the only addition: a Pollora application has one public directory for every container (`public_path()`, and the application's URL), where a classic theme or a plugin is its own root and says where it is. Laravel's Vite ignores both keys.
+
+Build the theme or the plugin with `@pollora/vite-config` and its standalone layout, which writes `build/` and a `hot` file inside the folder, with relative URLs so the build works wherever WordPress serves it from (a subdirectory install, Bedrock's `web/app`):
+
+```js
+// vite.config.js
+import { defineConfig } from 'vite';
+import pollora from '@pollora/vite-config';
+
+export default defineConfig({
+    plugins: [pollora({ type: 'theme', layout: 'standalone' })],
+});
+```
+
+The behaviour is the one described on this page: the entry is a script module at the hashed URL in production, and comes from the dev server, with the Vite client, while `npm run dev` runs. A container without a build resolves nothing and wp-admin names the missing manifest, instead of failing on every page.
+
