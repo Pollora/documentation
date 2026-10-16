@@ -77,7 +77,7 @@ This repository is the source of the documentation of **Pollora, the Laravel fra
 | Dependency | Version |
 |---|---|
 | PHP | 8.4+ for a new project (the framework alone accepts 8.3) |
-| Laravel | 13.35 |
+| Laravel | 13.36 |
 | WordPress | 7.1+ |
 
 ## Contributing

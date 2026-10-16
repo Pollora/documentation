@@ -13,7 +13,7 @@ Welcome to Pollora! This guide will help you get a working installation up and r
 ## Current release
 
 Pollora's version numbers follow the Laravel release it is built on, so the
-current line is **13.35**, built on Laravel 13.35.
+current line is **13.36**, built on Laravel 13.36.
 
 Two packages carry that number: `pollora/pollora`, the skeleton
 `create-project` installs, and `pollora/framework`, which the skeleton requires.
@@ -22,7 +22,7 @@ number in its `composer.lock` — which is what `create-project` installs from,
 whatever constraint the `composer.json` carries. So one version number describes
 an install completely.
 
-The current release is **v13.35.6**, a stable release: a plain
+The current release is **v13.36.1**, a stable release: a plain
 `composer create-project pollora/pollora` installs it.
 
 ## Installation Methods
@@ -67,7 +67,7 @@ With `--ddev`, the CLI configures DDEV (WordPress project type, PHP 8.4, MariaDB
 | `--ver=VERSION` | Install a specific version or constraint (e.g. `13.35.0`, `^13.35`) |
 | `--stable` | Install the latest stable release instead of the latest pre-release |
 
-`pollora new` installs the latest release **including pre-releases**: today that is the stable v13.35.6, and a beta published after it would be picked up. Pass `--stable` to never get a pre-release, or `--ver` to pin an exact version.
+`pollora new` installs the latest release **including pre-releases**: today that is the stable v13.36.1, and a beta published after it would be picked up. Pass `--stable` to never get a pre-release, or `--ver` to pin an exact version.
 
 ### 2. Composer create-project
 
