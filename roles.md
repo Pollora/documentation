@@ -324,3 +324,35 @@ Route::get('/events/scan', ScanController::class)
 A user who has none of the roles, or a guest, gets a 403 response. If your application already uses the `role` alias, for another package, Pollora keeps it: use `EnsureUserHasRole::using()`.
 
 As in Blade, prefer `can:` with a capability: `can:export_attendees` stays right when a second role is given that capability, `role:event_manager` does not.
+
+## Without Laravel: a plugin or Bedrock
+
+The role classes are the package [`pollora/roles`](https://github.com/Pollora/roles), which the framework requires: `composer require pollora/roles` installs them on their own. They run in a WordPress project that is not a Pollora application, such as a plugin, a Bedrock site or any PHP project. Class names do not change.
+Point the discovery engine at your code and add `RoleDiscovery`, then hand the roles to WordPress when it builds `WP_Roles`:
+
+```php
+use Pollora\Discovery\Domain\Models\DiscoveryLocation;
+use Pollora\Discovery\Infrastructure\Services\DiscoveryEngine;
+use Pollora\Role\Application\Services\CapabilityOwnerReader;
+use Pollora\Role\Application\Services\RoleDefinitionBuilder;
+use Pollora\Role\Application\Services\RoleRegistry;
+use Pollora\Role\Domain\Services\PostTypeCapabilityMap;
+use Pollora\Role\Domain\Services\RoleCompiler;
+use Pollora\Role\Infrastructure\Adapters\WordPressRoleInjector;
+use Pollora\Role\Infrastructure\Services\RoleDiscovery;
+
+$reader = new CapabilityOwnerReader;
+$registry = new RoleRegistry($reader, new PostTypeCapabilityMap);
+$injector = new WordPressRoleInjector($registry, new RoleCompiler, ['administrator']);
+
+// Before WordPress builds WP_Roles: the first thing a plugin loads, or an mu-plugin
+add_action('wp_roles_init', $injector->inject(...), 1);
+add_action('init', $injector->reportWarnings(...), PHP_INT_MAX);
+
+(new DiscoveryEngine)
+    ->addLocation(new DiscoveryLocation('MyPlugin\\', __DIR__.'/src'))
+    ->addDiscovery('roles', new RoleDiscovery(new RoleDefinitionBuilder($reader, ['administrator']), $registry, $injector))
+    ->run();
+```
+
+Declarations are read before WordPress loads its roles, so run the engine early. The stored roles themselves are read and written through `WordPressRoleStore` (`RoleStoreInterface`) and the users who carry a role counted through `WordPressRoleUsage` (`RoleUsageInterface`).

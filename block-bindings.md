@@ -235,3 +235,37 @@ return [
 ## Performance
 
 A field is called once per request for the same post, attribute and arguments, and a source class is only made the first time one of its fields is used. Typed meta are read through WordPress's meta cache, already primed for the posts of a query loop. In a loop of 20 posts, four bound blocks make 80 calls: a field should not run an uncached query.
+
+## Without Laravel: a plugin or Bedrock
+
+The Block Bindings classes are the package [`pollora/block-bindings`](https://github.com/Pollora/block-bindings), which the framework requires: `composer require pollora/block-bindings` installs them on their own. They run in a WordPress project that is not a Pollora application, such as a plugin, a Bedrock site or any PHP project. Class names do not change.
+The sources are made by a PSR-11 container: give the resolver one that knows them (the dependencies of your own sources, and the shipped ones you register). Then register the shipped sources and let discovery find yours:
+
+```php
+use Pollora\BlockBinding\Application\Services\BindingResolver;
+use Pollora\BlockBinding\Application\Services\BindingSourceBuilder;
+use Pollora\BlockBinding\Application\Services\BindingSourceRegistry;
+use Pollora\BlockBinding\Infrastructure\Adapters\WordPressBindingRegistry;
+use Pollora\BlockBinding\Infrastructure\Services\BlockBindingDiscovery;
+use Pollora\BlockBinding\Infrastructure\Sources\PostMetaSource;
+use Pollora\Discovery\Domain\Models\DiscoveryLocation;
+use Pollora\Discovery\Infrastructure\Services\DiscoveryEngine;
+use Pollora\Hook\Adapter\Out\WordPress\Action;
+
+$builder = new BindingSourceBuilder;
+$sources = new BindingSourceRegistry;
+$registry = new WordPressBindingRegistry(new Action, new BindingResolver($container, $visibility, $presenter, $metaAccessor));
+
+$shipped = $builder->build(PostMetaSource::class);   // likewise TermMetaSource, AuthorMetaSource, OptionSource
+$sources->add($shipped);
+$registry->register($shipped);
+
+(new DiscoveryEngine)
+    ->addLocation(new DiscoveryLocation('MyPlugin\\', __DIR__.'/src'))
+    ->addDiscovery('block_bindings', new BlockBindingDiscovery($builder, $sources, $registry))
+    ->run();
+```
+
+`$visibility` (`WordPressContentVisibility`) decides whether the visitor may see a post or a term, and `$presenter` (`WordPressValuePresenter`) escapes and words a value; both are WordPress adapters of the package. The `pollora/option` source reads only the options you pass to `OptionSource`, and the editor learns the fields through `BindingEditorData`, the `ResolveBindingsController` (the preview route) and `WordPressBindingEditorScript`. A method's services are given by `ReflectionMethodInvoker` (the container's, or a class that needs no argument); give the resolver a `MethodInvokerInterface` to inject differently.
+
+The Laravel side stays in the framework: the service provider, `config/block-bindings.php`, `pollora:binding:list` and `pollora:make:binding`, the `pollora:doctor` check, and the injection of method parameters through Laravel's container.

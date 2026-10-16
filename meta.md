@@ -405,3 +405,34 @@ A declaration WordPress cannot register is refused at discovery, and the error i
 - a protected key exposed in REST without a `capability`;
 - `revisions: true` on anything but posts;
 - the same key declared twice, in one class or by two classes for the same objects (a post type in common, users, comments).
+
+## Without Laravel: a plugin or Bedrock
+
+The typed meta classes are the package [`pollora/meta`](https://github.com/Pollora/meta), which the framework requires: `composer require pollora/meta` installs them on their own. They run in a WordPress project that is not a Pollora application, such as a plugin, a Bedrock site or any PHP project. Class names do not change.
+Discover the classes that declare meta, then build the accessor with the same pieces the framework's provider builds:
+
+```php
+use Pollora\Discovery\Domain\Models\DiscoveryLocation;
+use Pollora\Discovery\Infrastructure\Services\DiscoveryEngine;
+use Pollora\Hook\Adapter\Out\WordPress\Action;
+use Pollora\Meta\Application\Services\MetaAccessor;
+use Pollora\Meta\Application\Services\MetaSchemaBuilder;
+use Pollora\Meta\Application\Services\MetaSchemaRepository;
+use Pollora\Meta\Domain\Services\MetaValueCaster;
+use Pollora\Meta\Infrastructure\Adapters\WordPressMetaRegistry;
+use Pollora\Meta\Infrastructure\Adapters\WordPressMetaStore;
+use Pollora\Meta\Infrastructure\Services\MetaDiscovery;
+
+$caster = new MetaValueCaster;
+$builder = new MetaSchemaBuilder;
+$schemas = new MetaSchemaRepository;
+
+(new DiscoveryEngine)
+    ->addLocation(new DiscoveryLocation('MyPlugin\\', __DIR__.'/src'))
+    ->addDiscovery('meta', new MetaDiscovery($builder, $schemas, new WordPressMetaRegistry(new Action, $caster)))
+    ->run();
+
+$meta = new MetaAccessor($schemas, $builder, new WordPressMetaStore, $caster);
+```
+
+The meta are registered with WordPress on `init`. The Eloquent accessors (`HasTypedMeta`), the Laravel validator, the `pollora:meta:*` commands and the `pollora:doctor` check stay in the framework.
