@@ -87,6 +87,44 @@ Set `async_thumbnails` to `true` to make only `thumbnail` and `medium` during th
 
 The personal data export keeps working on any disk: WordPress builds its archive with `ZipArchive`, which cannot write to a stream wrapper, so the archive is built locally, copied to the disk, and removed from it when it expires.
 
+## Image sizes
+
+Declare the sizes your design uses with the `ImageSize` facade, instead of leaving WordPress to make every registered size for every image:
+
+```php
+use Pollora\Support\Facades\ImageSize;
+
+ImageSize::add('card')->cover(600, 400)->webp(75);
+ImageSize::add('hero')->scale(width: 1920)->webp(70)->widths([640, 1024, 1440]);
+ImageSize::add('thumb')->cover(150, 150)->eager();
+```
+
+Declare them where the application boots, for instance in a service provider. A size is then used by its name, like any WordPress size: `wp_get_attachment_image($id, 'card')`, `the_post_thumbnail('hero')`, or `wp_get_attachment_image_src()`.
+
+| Option | Role | Default |
+|---|---|---|
+| `cover(w, h)`, `scale(width:, height:)`, `contain(w, h)` | How the image fits: crop to the box, resize keeping the ratio, fit inside the box | none: one is required |
+| `webp(q)`, `avif(q)`, `original()` | The format of the file and its quality | WebP, quality 80 |
+| `widths([...])` | Extra widths for a `srcset`, each a bounded size of its own | none |
+| `eager()` | Made when the image is uploaded | every declared size is, for now |
+| `upscale()` | Allow enlarging an original smaller than the size | off |
+
+`scale()` and `contain()` never enlarge an original that is smaller than the size, and `cover()` then keeps the ratio of the box at the size the original allows. A GIF is never resized, which would stop its animation: its sizes are the original.
+
+**The URL of a size is worked out, never read.** It comes from the metadata of the original (its file, width and height), whether the file of the size exists or not: `photo-card-600x400-{signature}.webp`. The signature is an HMAC of the original and of the parameters of the size, made with the application key and cut to 12 characters: changing a size changes its name, so no cache ever holds a stale file. The `width`, `height` and `srcset` WordPress writes come from the same computation, with no call to the disk.
+
+The sizes WordPress registers itself (`add_image_size()`, a theme's `config/images.php`, WooCommerce, the core sizes) are left as they are, with the names WordPress gives them: a theme keeps its output until it declares sizes of its own. A declared size of the same name replaces the WordPress one.
+
+An image uploaded before a size was declared has no file for it yet. Make them before a heavy page goes live, and remove the files of a size you changed or dropped:
+
+```bash
+php artisan pollora:media:thumbs:warm --size=card --since=2026-01-01
+php artisan pollora:media:thumbs:prune             # a dry run
+php artisan pollora:media:thumbs:prune --execute
+```
+
+`prune` only considers files named the way the module names its sizes, next to an original that is still there: what WordPress or a plugin made is left alone. `pollora:doctor` reports a declaration that cannot make a size, and a format the image editor of the server cannot write (GD and Imagick write WebP; AVIF depends on the server).
+
 ## Private media
 
 A media is private when its post meta `_pollora_media_private` is `1`, or when the `pollora/media/is_private` filter says so. A private media is served through a signed URL that expires after `media.private.expiry` (`+6 hours` by default): its URL, the URL of each size and every source of its `srcset`. A public media keeps its plain URL, and the disk is never asked to tell the two apart: the flag is read with the attachment.
@@ -114,6 +152,8 @@ The module's actions reach Laravel as events, for an audit or to purge a CDN: `P
 |---|---|
 | `pollora:media:status` | The disk, the public URL, and a test write |
 | `pollora:media:migrate` | Copy the library from a disk to another; dry run unless `--execute` |
+| `pollora:media:thumbs:warm` | Make the missing files of the declared sizes for the images already uploaded (`--size=`, `--since=`) |
+| `pollora:media:thumbs:prune` | Delete the files of a size that was changed or removed; dry run unless `--execute` |
 | `pollora:media:files {id}` | The files of a media: original, sizes, declared files |
 | `pollora:media:visibility {id}` | Make a media private (`--private`) or public (`--public`) |
 
