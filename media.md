@@ -106,7 +106,7 @@ Declare them where the application boots, for instance in a service provider. A 
 | `cover(w, h)`, `scale(width:, height:)`, `contain(w, h)` | How the image fits: crop to the box, resize keeping the ratio, fit inside the box | none: one is required |
 | `webp(q)`, `avif(q)`, `original()` | The format of the file and its quality | WebP, quality 80 |
 | `widths([...])` | Extra widths for a `srcset`, each a bounded size of its own | none |
-| `eager()` | Made when the image is uploaded | every declared size is, for now |
+| `eager()` | Made when the image is uploaded | no: made when first asked for |
 | `upscale()` | Allow enlarging an original smaller than the size | off |
 
 `scale()` and `contain()` never enlarge an original that is smaller than the size, and `cover()` then keeps the ratio of the box at the size the original allows. A GIF is never resized, which would stop its animation: its sizes are the original.
@@ -114,6 +114,29 @@ Declare them where the application boots, for instance in a service provider. A 
 **The URL of a size is worked out, never read.** It comes from the metadata of the original (its file, width and height), whether the file of the size exists or not: `photo-card-600x400-{signature}.webp`. The signature is an HMAC of the original and of the parameters of the size, made with the application key and cut to 12 characters: changing a size changes its name, so no cache ever holds a stale file. The `width`, `height` and `srcset` WordPress writes come from the same computation, with no call to the disk.
 
 The sizes WordPress registers itself (`add_image_size()`, a theme's `config/images.php`, WooCommerce, the core sizes) are left as they are, with the names WordPress gives them: a theme keeps its output until it declares sizes of its own. A declared size of the same name replaces the WordPress one.
+
+### Sizes made on demand
+
+A size is made at upload only if it is declared `eager()`. The others are made the first time their URL is asked for: the web server finds no file, sends the request to PHP, and the module makes the size at the exact path of its URL and answers with it (`200`, `Cache-Control: public, max-age=31536000, immutable`, never a redirect). The next request finds the file, and the web server or the CDN serves it without PHP. The URL never changes, so nothing has to be regenerated when a size is added or changed.
+
+- **Local disk.** Nginx (`try_files $uri /index.php`) and Apache (the `!-f` rule to `index.php`) already send a missing file to PHP: nothing to set up.
+- **S3 or compatible service behind a CDN.** The origin of the CDN for the library is the site: one rule at the CDN, and PHP sees each file only the first time.
+- **S3 without a CDN.** There is no fallback: declare the sizes you use `eager()` and run `pollora:media:thumbs:warm`. The URL stays the same.
+
+What the URL says is not trusted. Before anything is made, without asking the disk: the name is one of a declared size, the signature is the one the site would have made, the extension is an image's. Then, against the original: its dimensions are those the name gives (nobody can name a size of their own), it is not private, it is not a GIF. A request that fails a check gets a `404` and costs nothing.
+
+Making a size costs CPU, so it is limited per server in `config/media.php`:
+
+```php
+'thumbnails' => [
+    'max_pixels' => 50_000_000,   // an original above it gets no size, and stays downloadable
+    'max_bytes' => 30 * 1024 * 1024,
+    'concurrency' => 4,           // sizes made at the same time on a server
+    'wait' => 10,                 // seconds a request waits for a place
+],
+```
+
+Ten simultaneous requests for the same missing size make one. A request that cannot get a place within `wait` seconds is handed a size that already exists (the smallest that is at least as wide, the original at worst) with `Cache-Control: no-store`: the visitor sees an image, the CDN does not keep the stand-in, and the real size is made on a later request. `pollora:doctor` reports a `.htaccess` in the uploads folder that contains `RewriteEngine On`, which makes Apache ignore the rules above it and cuts the fallback; a security plugin usually adds it.
 
 An image uploaded before a size was declared has no file for it yet. Make them before a heavy page goes live, and remove the files of a size you changed or dropped:
 
