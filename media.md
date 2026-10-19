@@ -148,6 +148,46 @@ php artisan pollora:media:thumbs:prune --execute
 
 `prune` only considers files named the way the module names its sizes, next to an original that is still there: what WordPress or a plugin made is left alone. `pollora:doctor` reports a declaration that cannot make a size, and a format the image editor of the server cannot write (GD and Imagick write WebP; AVIF depends on the server).
 
+### Sizes made by a service
+
+For a very large library, an image service can make the sizes instead of the site. The declaration of the sizes does not change; only the shape of the URL does. Choose the driver in `config/media.php`:
+
+```php
+'thumbnails' => [
+    'driver' => env('MEDIA_THUMBNAILS_DRIVER', 'pollora'),   // pollora | bunny | imgproxy
+    'bunny' => ['pull_zone' => env('BUNNY_PULL_ZONE'), 'api_key' => env('BUNNY_API_KEY')],
+    'imgproxy' => [
+        'url' => env('IMGPROXY_URL'),
+        'key' => env('IMGPROXY_KEY'),             // hexadecimal, as on the server
+        'salt' => env('IMGPROXY_SALT'),
+        'signature_size' => (int) env('IMGPROXY_SIGNATURE_SIZE', 32),
+        'source' => env('IMGPROXY_SOURCE', 'url'), // url | s3
+    ],
+],
+```
+
+| Driver | URL of a size | Defined at the service by |
+|---|---|---|
+| `pollora` (default) | `photo-card-600x400-{signature}.webp`, a file of the library | the module |
+| `bunny` | `photo.jpg?class=card`, an [image class](https://bunny.net/docs/optimizer/image-classes) of Bunny Optimizer | `pollora:media:thumbs:export --driver=bunny` |
+| `imgproxy` | `{imgproxy}/{signature}/card/plain/{source}@webp`, signed, presets-only | `pollora:media:thumbs:export --driver=imgproxy` |
+
+With a service, no file is made (neither at upload nor on demand), the fallback route is not registered and `pollora:media:thumbs:warm` has nothing to do. A size keeps a single URL, built from the metadata of the original, and each width of `widths()` becomes a class or a preset of its own (`hero-640w`). **A private media never goes to the service**: its sizes are not asked of it, WordPress serves the original, signed, as for any private media.
+
+**Bunny.** `media.url` must be the pull zone that serves the library, with the Dynamic Image API enabled in Optimizer → Settings. Forcing classes ("Force Transformation Classes") is up to you: when it is on, a request without a valid class gets a `403`. Bunny has no cover mode, so a `cover()` size is made with `aspect_ratio` and a width. That follows the order of operations in the Bunny documentation (crops, then resizing), but the documentation does not describe the combination: check the result on your pull zone. Bunny encodes AVIF up to 4 megapixels and falls back to another format above that.
+
+**imgproxy** (4.0.x). The URL is signed with HMAC-SHA256 and names a preset, so a visitor cannot ask for any other transformation. Set `IMGPROXY_KEY`, `IMGPROXY_SALT` and `IMGPROXY_SIGNATURE_SIZE` to the same values on the server. With `source` set to `url`, imgproxy fetches the original at `media.url`; with `s3`, it reads the object of the bucket of the media disk (`IMGPROXY_USE_S3` on the server). A size cannot be named `default`, which imgproxy applies to every image.
+
+Declare the classes or presets from your sizes, and run it again when a size changes:
+
+```bash
+php artisan pollora:media:thumbs:export --driver=bunny            # a dry run: what would be created or updated
+php artisan pollora:media:thumbs:export --driver=bunny --execute  # write the classes to the pull zone
+php artisan pollora:media:thumbs:export --driver=imgproxy         # the configuration to give imgproxy
+```
+
+For Bunny, the classes are read, merged by name and written back: the ones you made are kept, nothing is deleted, and the setting that forces classes is never changed. The access key is sent in the `AccessKey` header and nowhere else. imgproxy has no API for presets: the command prints `IMGPROXY_PRESETS`, `IMGPROXY_ONLY_PRESETS=true`, `IMGPROXY_MAX_SRC_RESOLUTION` (in megapixels) and `IMGPROXY_ALLOWED_SOURCES`, never the key or the salt. A driver that is badly set up does not take the site down: the default driver is kept, and `pollora:doctor` says why.
+
 ## Private media
 
 A media is private when its post meta `_pollora_media_private` is `1`, or when the `pollora/media/is_private` filter says so. A private media is served through a signed URL that expires after `media.private.expiry` (`+6 hours` by default): its URL, the URL of each size and every source of its `srcset`. A public media keeps its plain URL, and the disk is never asked to tell the two apart: the flag is read with the attachment.
@@ -177,6 +217,7 @@ The module's actions reach Laravel as events, for an audit or to purge a CDN: `P
 | `pollora:media:migrate` | Copy the library from a disk to another; dry run unless `--execute` |
 | `pollora:media:thumbs:warm` | Make the missing files of the declared sizes for the images already uploaded (`--size=`, `--since=`) |
 | `pollora:media:thumbs:prune` | Delete the files of a size that was changed or removed; dry run unless `--execute` |
+| `pollora:media:thumbs:export` | Export the declared sizes as Bunny image classes or imgproxy presets (`--driver=`, `--execute` for Bunny) |
 | `pollora:media:files {id}` | The files of a media: original, sizes, declared files |
 | `pollora:media:visibility {id}` | Make a media private (`--private`) or public (`--public`) |
 
@@ -211,4 +252,4 @@ define('POLLORA_MEDIA_URL', 'https://media.client.fr');
 \Pollora\Media\Media::register();
 ```
 
-The constants are `POLLORA_MEDIA_URL`, `_LEGACY_URLS`, `_CACHE_CONTROL`, `_PRIVATE_EXPIRY`, `_ASYNC_THUMBNAILS`, `_DRIVER` (`local` or `s3`), `_ROOT` (the local folder) and, for S3 and compatible services, `_BUCKET`, `_REGION`, `_KEY`, `_SECRET`, `_ENDPOINT` and `_PATH_STYLE`. The package's [README](https://github.com/Pollora/media#readme) lists them all, with `wp pollora media status` and `wp pollora media migrate`, the WP-CLI twins of the Artisan commands.
+The constants are `POLLORA_MEDIA_URL`, `_LEGACY_URLS`, `_CACHE_CONTROL`, `_PRIVATE_EXPIRY`, `_ASYNC_THUMBNAILS`, `_THUMBNAILS_DRIVER` (`pollora`, `bunny` or `imgproxy`), `_BUNNY_PULL_ZONE`, `_BUNNY_API_KEY`, `_IMGPROXY_URL`, `_IMGPROXY_KEY`, `_IMGPROXY_SALT`, `_IMGPROXY_SIGNATURE_SIZE`, `_IMGPROXY_SOURCE`, `_DRIVER` (`local` or `s3`), `_ROOT` (the local folder) and, for S3 and compatible services, `_BUCKET`, `_REGION`, `_KEY`, `_SECRET`, `_ENDPOINT` and `_PATH_STYLE`. The package's [README](https://github.com/Pollora/media#readme) lists them all, with `wp pollora media status` and `wp pollora media migrate`, the WP-CLI twins of the Artisan commands.
