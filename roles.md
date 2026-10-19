@@ -169,6 +169,38 @@ final class EditorAdjustments {}
 
 Several classes may modify the same role, for instance one per module. If one grants a capability another removes, discovery refuses the second and names both.
 
+### With the fluent API
+
+The `Role` facade declares the same roles without a class. Its methods carry the names of the attributes and of their arguments, and the same code checks both: a mistake is refused with the same reason.
+
+```php
+use App\Cms\PostTypes\Event;
+use App\Cms\Roles\EventCap;
+use Pollora\Role\Domain\Enums\Access;
+use Pollora\Support\Facades\Role;
+
+Role::make('event_manager', 'Event manager')       // #[Role('event_manager', label: 'Event manager')]
+    ->inherits('author')                            // a slug, or the class of a #[Role]
+    ->grantsPostType(Event::class, Access::Editor)  // #[GrantsPostType]: a class or a slug
+    ->grantsTaxonomy(Genre::class)                  // #[GrantsTaxonomy]
+    ->grants(EventCap::ExportAttendees, 'moderate_comments') // #[Grants]: names or backed enums
+    ->without('publish_posts')                      // #[Without]
+    ->allowSensitive()                              // allowSensitive: true
+    ->textDomain('my-theme');                       // textDomain: 'my-theme'
+
+Role::modify('editor')                              // #[ModifyRole('editor')]
+    ->grants('moderate_comments')
+    ->without('edit_theme_options');
+
+Role::capabilitySet(EventCap::class);               // #[CapabilitySet]: a backed enum, or a list of names
+```
+
+There is nothing to register and nothing to end the chain with: a declaration is checked when WordPress builds its roles, so a chain can be written in any order. Call it where WordPress is loaded, for instance in a service provider's `boot()` or a theme's `functions.php`. A role declared after WordPress built its roles reaches it on `init`; one declared after `wp_loaded` waits for the next load.
+
+A declaration that is refused is left out, and the reason names the call: `Role::make('meddler') at /path/to/file.php:12: granting "edit_users" lets a user take over the site; …`. It is logged as a warning and listed by `pollora:doctor`.
+
+`inherits()` and `textDomain()` only apply to a role that is declared, not to one that is modified.
+
 ## Project capabilities
 
 Capabilities your own code checks are best declared in a backed enum marked `#[CapabilitySet]`:
