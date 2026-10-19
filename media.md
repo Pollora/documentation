@@ -79,12 +79,43 @@ php artisan pollora:media:migrate --from=uploads --to=media --execute   # copy t
 
 Without `--from`, the source is the folder WordPress uses without the module. A file already on the target with the same size is skipped, so the command can run again after an interruption, and the source is never changed. Add `--replace-urls` (and `--old-url=` when it is not `APP_URL/content/uploads`) to replace the old base URL in the database: post content and excerpts, post, term and user meta, and options, serialized values and the JSON of blocks included. The `guid` is left alone. It only writes with `--execute`.
 
+## Images
+
+Both WordPress image editors, GD and Imagick, work on the library as they are. During a request, a file that was written or read (up to 16 MiB) is kept in a local copy, so the original of an uploaded image is not read back from the disk for its size, its EXIF data and each of its sizes: an upload of an image with nine sizes makes ten writes and a handful of existence checks.
+
+Set `async_thumbnails` to `true` to make only `thumbnail` and `medium` during the upload and generate the other sizes afterwards, in an asynchronous action that runs on the queue, Action Scheduler or WP-Cron (see [asynchronous actions](async-actions.md)). It is off by default, because the block editor sometimes waits for a size right after the upload; until the job ran, WordPress serves the nearest size it has.
+
+The personal data export keeps working on any disk: WordPress builds its archive with `ZipArchive`, which cannot write to a stream wrapper, so the archive is built locally, copied to the disk, and removed from it when it expires.
+
+## Private media
+
+A media is private when its post meta `_pollora_media_private` is `1`, or when the `pollora/media/is_private` filter says so. A private media is served through a signed URL that expires after `media.private.expiry` (`+6 hours` by default): its URL, the URL of each size and every source of its `srcset`. A public media keeps its plain URL, and the disk is never asked to tell the two apart: the flag is read with the attachment.
+
+Nothing in the admin marks a media private. Do it from the command line, from code, or by rule:
+
+```bash
+php artisan pollora:media:visibility 42 --private   # every file of the media changes on the disk
+php artisan pollora:media:visibility 42 --public
+php artisan pollora:media:files 42                  # the original, the sizes and the declared files
+```
+
+```php
+// By rule: a media created private is private on the disk from the start
+add_filter('pollora/media/is_private', fn (bool $private, int $id) => get_post_meta($id, 'invoice', true) !== '', 10, 2);
+```
+
+The signature is made by the Laravel disk (`temporaryUrl()`): an S3 pre-signed URL for S3 and compatible services. A disk that cannot sign, such as a plain local disk, serves the plain URL of a private media instead of a broken one, and `pollora:doctor` says so: a private media needs an object store, or a signature of your own through the `pollora/media/signed_url` filter.
+
+The module's actions reach Laravel as events, for an audit or to purge a CDN: `Pollora\Media\Domain\Events\MediaStored`, `MediaDeleted` and `MediaVisibilityChanged`.
+
 ## Commands
 
 | Command | Role |
 |---|---|
 | `pollora:media:status` | The disk, the public URL, and a test write |
 | `pollora:media:migrate` | Copy the library from a disk to another; dry run unless `--execute` |
+| `pollora:media:files {id}` | The files of a media: original, sizes, declared files |
+| `pollora:media:visibility {id}` | Make a media private (`--private`) or public (`--public`) |
 
 `pollora:doctor` also checks that the disk takes a file, and warns of files that are still only in the local uploads folder.
 
@@ -95,6 +126,9 @@ Extending the module goes through WordPress hooks, which work without Laravel to
 | Hook | Role |
 |---|---|
 | `pollora/media/attachment_files` (filter) | Files a plugin keeps next to a media (a WebP twin, a preview): a list of paths, deleted with the media |
+| `pollora/media/is_private` (filter) | `(bool $private, int $attachmentId)`: the visibility of a media |
+| `pollora/media/signed_url` (filter) | `(string $url, int $attachmentId)`: the final signed URL, for a CDN with its own signature |
+| `pollora/media/stored`, `pollora/media/deleted`, `pollora/media/visibility_changed` (actions) | A file is on the disk; a media and its files were deleted; a media changed visibility |
 | `pollora/media/filesystem` (filter) | Without Laravel: provides a `League\Flysystem\FilesystemOperator` for a service the constants cannot describe |
 
 ## Without Laravel: a classic theme, a plugin or Bedrock
