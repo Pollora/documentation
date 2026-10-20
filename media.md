@@ -92,28 +92,34 @@ The personal data export keeps working on any disk: WordPress builds its archive
 Declare the sizes your design uses with the `ImageSize` facade, instead of leaving WordPress to make every registered size for every image:
 
 ```php
+use Pollora\Media\Domain\Enums\Anchor;
 use Pollora\Support\Facades\ImageSize;
 
 ImageSize::add('card')->cover(600, 400)->webp(75);
 ImageSize::add('hero')->scale(width: 1920)->webp(70)->widths([640, 1024, 1440]);
 ImageSize::add('thumb')->cover(150, 150)->eager();
+ImageSize::add('portrait')->cover(400, 500, Anchor::Top);
 ```
 
 Declare them where the application boots, for instance in a service provider. A size is then used by its name, like any WordPress size: `wp_get_attachment_image($id, 'card')`, `the_post_thumbnail('hero')`, or `wp_get_attachment_image_src()`.
 
 | Option | Role | Default |
 |---|---|---|
-| `cover(w, h)`, `scale(width:, height:)`, `contain(w, h)` | How the image fits: crop to the box, resize keeping the ratio, fit inside the box | none: one is required |
+| `cover(w, h, anchor)`, `scale(width:, height:)`, `contain(w, h)` | How the image fits: crop to the box, resize keeping the ratio, fit inside the box | none: one is required |
 | `webp(q)`, `avif(q)`, `original()` | The format of the file and its quality | WebP, quality 80 |
 | `widths([...])` | Extra widths for a `srcset`, each a bounded size of its own | none |
 | `eager()` | Made when the image is uploaded | no: made when first asked for |
 | `upscale()` | Allow enlarging an original smaller than the size | off |
+
+**Where a cover crops.** A `cover()` keeps the center of the image. Give it an `Anchor` to keep another part, for the top of a portrait or the left of a banner: `Center` (the default), `Top`, `Bottom`, `Left`, `Right`, `TopLeft`, `TopRight`, `BottomLeft` or `BottomRight`, the nine positions of `add_image_size()`. An anchor only means something for a cover (another fit refuses it) and never changes the dimensions of the size. It is part of the signature, so changing it gives the files a new name and a service URL a new `v`: no cache keeps the old crop. imgproxy follows it with a `gravity`; Bunny does not (see below).
 
 `scale()` and `contain()` never enlarge an original that is smaller than the size, and `cover()` then keeps the ratio of the box at the size the original allows. A GIF is never resized, which would stop its animation: its sizes are the original.
 
 **The URL of a size is worked out, never read.** It comes from the metadata of the original (its file, width and height), whether the file of the size exists or not: `photo-card-600x400-{signature}.webp`. The signature is an HMAC of the original and of the parameters of the size, made with the application key and cut to 12 characters: changing a size changes its name, so no cache ever holds a stale file. The `width`, `height` and `srcset` WordPress writes come from the same computation, with no call to the disk.
 
 The sizes WordPress registers itself (`add_image_size()`, a theme's `config/images.php`, WooCommerce, the core sizes) are left as they are, with the names WordPress gives them: a theme keeps its output until it declares sizes of its own. A declared size of the same name replaces the WordPress one.
+
+An image cropped, rotated or flipped in the media library gets the `eager()` sizes of its new original, as at upload; the files of the previous original stay for *Restore image*. The *Apply changes to: thumbnail only* option of the editor does not reach a declared size, which is always made from the original.
 
 ### Sizes made on demand
 
@@ -174,7 +180,7 @@ For a very large library, an image service can make the sizes instead of the sit
 
 `v` is a short tag that changes when the size does. The service ignores it, but a CDN keys its cache on it: without it, a class or a preset you changed would keep being served as it was under the same URL (checked on a real Bunny pull zone). With a service, no file is made (neither at upload nor on demand), the fallback route is not registered and `pollora:media:thumbs:warm` has nothing to do. A size keeps a single URL, built from the metadata of the original, and each width of `widths()` becomes a class or a preset of its own (`hero-640w`). **A private media never goes to the service**: its sizes are not asked of it, WordPress serves the original, signed, as for any private media.
 
-**Bunny.** `media.url` must be the pull zone that serves the library, with the Dynamic Image API enabled in Optimizer → Settings. Bunny accepts only letters and digits in the name of a class, so the class of `hero-640w` is `hero640w` and that of `my_size` is `mysize`; two sizes whose classes would be the same cannot both be served, and the second is refused (the export and `pollora:doctor` say so). Forcing classes ("Force Transformation Classes") is up to you: when it is on, a valid class is served, an unknown class or a raw transformation gets a `403`, and the original, asked with no parameter, is still served. Bunny has no cover mode, so a `cover()` size is made with `aspect_ratio` and a width; the dimensions served are the ones the module advertises, for an original that is big enough as for one that is too small, give or take one pixel: when the ratio of the original does not divide exactly, Bunny rounds the height and then takes the width back to the integer below (1199 pixels for a size of 1200). imgproxy serves exactly the advertised dimensions. Bunny encodes AVIF up to 4 megapixels and falls back to another format above that.
+**Bunny.** `media.url` must be the pull zone that serves the library, with the Dynamic Image API enabled in Optimizer → Settings. Bunny accepts only letters and digits in the name of a class, so the class of `hero-640w` is `hero640w` and that of `my_size` is `mysize`; two sizes whose classes would be the same cannot both be served, and the second is refused (the export and `pollora:doctor` say so). Forcing classes ("Force Transformation Classes") is up to you: when it is on, a valid class is served, an unknown class or a raw transformation gets a `403`, and the original, asked with no parameter, is still served. A cover anchored away from the center is refused for Bunny, which crops around the center only: the export and `pollora:doctor` report it. Bunny has no cover mode, so a `cover()` size is made with `aspect_ratio` and a width; the dimensions served are the ones the module advertises, for an original that is big enough as for one that is too small, give or take one pixel: when the ratio of the original does not divide exactly, Bunny rounds the height and then takes the width back to the integer below (1199 pixels for a size of 1200). imgproxy serves exactly the advertised dimensions. Bunny encodes AVIF up to 4 megapixels and falls back to another format above that.
 
 **imgproxy** (4.0.x). The URL is signed with HMAC-SHA256 and names a preset, so a visitor cannot ask for any other transformation. Set `IMGPROXY_KEY`, `IMGPROXY_SALT` and `IMGPROXY_SIGNATURE_SIZE` to the same values on the server. With `source` set to `url`, imgproxy fetches the original at `media.url`; with `s3`, it reads the object of the bucket of the media disk (`IMGPROXY_USE_S3` on the server). imgproxy refuses a source on the loopback address by default (a `media.url` of `localhost`): for local development only, start it with `IMGPROXY_ALLOW_LOOPBACK_SOURCE_ADDRESSES=true`; the export warns about it. A size cannot be named `default`, which imgproxy applies to every image.
 
