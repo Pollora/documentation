@@ -87,7 +87,7 @@ Some folders of the uploads directory hold files that must not be public: protec
 php artisan pollora:media:migrate --from=uploads --to=media --exclude='woocommerce_uploads/*' --exclude='wc-logs/*' --execute
 ```
 
-The report counts the files left out. A dry run lists them too.
+The report counts the files left out.
 
 ## Images
 
