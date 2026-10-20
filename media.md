@@ -79,6 +79,16 @@ php artisan pollora:media:migrate --from=uploads --to=media --execute   # copy t
 
 Without `--from`, the source is the folder WordPress uses without the module. A file already on the target with the same size is skipped, so the command can run again after an interruption, and the source is never changed. Add `--replace-urls` (and `--old-url=` when it is not `APP_URL/content/uploads`) to replace the old base URL in the database: post content and excerpts, post, term and user meta, and options, serialized values and the JSON of blocks included. The `guid` is left alone. It only writes with `--execute`.
 
+Each file keeps the visibility it has on the source and is written with the `cache_control` of the configuration.
+
+Some folders of the uploads directory hold files that must not be public: protected WooCommerce downloads, logs, form attachments, backups. The web server protects them where they are; a public disk would serve them to anyone who knows a URL. Leave them out with `--exclude`, once per pattern (`*` matches across folders, so `woocommerce_uploads/*` leaves out the whole folder):
+
+```bash
+php artisan pollora:media:migrate --from=uploads --to=media --exclude='woocommerce_uploads/*' --exclude='wc-logs/*' --execute
+```
+
+The report counts the files left out. A dry run lists them too.
+
 ## Images
 
 Both WordPress image editors, GD and Imagick, work on the library as they are. During a request, a file that was written or read (up to 16 MiB) is kept in a local copy, so the original of an uploaded image is not read back from the disk for its size, its EXIF data and each of its sizes: an upload of an image with nine sizes makes ten writes and a handful of existence checks.
@@ -220,14 +230,14 @@ The module's actions reach Laravel as events, for an audit or to purge a CDN: `P
 | Command | Role |
 |---|---|
 | `pollora:media:status` | The disk, the public URL, and a test write |
-| `pollora:media:migrate` | Copy the library from a disk to another; dry run unless `--execute` |
+| `pollora:media:migrate` | Copy the library from a disk to another; dry run unless `--execute` (`--exclude=` leaves out private folders) |
 | `pollora:media:thumbs:warm` | Make the missing files of the declared sizes for the images already uploaded (`--size=`, `--since=`) |
 | `pollora:media:thumbs:prune` | Delete the files of a size that was changed or removed; dry run unless `--execute` |
 | `pollora:media:thumbs:export` | Export the declared sizes as Bunny image classes or imgproxy presets (`--driver=`, `--execute` for Bunny) |
 | `pollora:media:files {id}` | The files of a media: original, sizes, declared files |
 | `pollora:media:visibility {id}` | Make a media private (`--private`) or public (`--public`) |
 
-`pollora:doctor` also checks that the disk takes a file, and warns of files that are still only in the local uploads folder.
+`pollora:doctor` also checks that the disk takes a file, warns of files that are still only in the local uploads folder, and warns when a folder of private files (`woocommerce_uploads`, `wc-logs`, `gravity_forms`, `wpforms`, `updraft`, `ai1wm-backups`) is on the media disk, where it would be served publicly: delete it from the disk and migrate again with `--exclude`.
 
 ## Hooks
 
