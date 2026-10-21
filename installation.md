@@ -252,14 +252,14 @@ With Laradock, the system will:
 
 ### macOS
 
-Pollora runs on macOS with the servers below; `artisan serve`, Valet (HTTP and HTTPS) and Apache with PHP-FPM are tested with each release, Herd and MAMP use the same mechanisms. Whatever the server, three things must agree: the **document root is the project's `public/` folder**, the site is opened at the **same address as `APP_URL`**, and `APP_URL` **names a scheme** (`http://` or `https://`).
+Pollora runs on macOS with the servers below; `artisan serve`, Valet (HTTP and HTTPS), Laravel Herd, MAMP and Apache with PHP-FPM were run on macOS 15 for 13.38. Whatever the server, three things must agree: the **document root is the project's `public/` folder**, the site is opened at the **same address as `APP_URL`**, and `APP_URL` **names a scheme** (`http://` or `https://`).
 
 | Server | Setup | Notes |
 | --- | --- | --- |
 | `php artisan serve` | `APP_URL=http://localhost:8000` | Nothing to configure. |
 | [Laravel Valet](https://laravel.com/docs/valet) | `valet link` in the project, `APP_URL=http://my-project.test` | The domain is the folder or link name. `valet secure` serves it over HTTPS: set `APP_URL=https://my-project.test`. |
-| [Laravel Herd](https://herd.laravel.com) | Add the project folder, `APP_URL=http://my-project.test` | Herd is built on the same mechanism as Valet. |
-| MAMP (Apache) | Set the **document root to `public/`** of the project, `APP_URL=http://localhost:8888` | Preferences › Server › Document root. |
+| [Laravel Herd](https://herd.laravel.com) | Add the project folder, `APP_URL=http://my-project.test` | Herd sends every `.php` URL to the front controller, so the admin and `wp-login.php` answer 404: copy [`LocalValetDriver.php`](https://github.com/Pollora/pollora/blob/main/LocalValetDriver.php) from the skeleton to the project root (new projects have it). |
+| MAMP (Apache) | Set the **document root to `public/`** of the project, `APP_URL=http://localhost:8888` | Preferences › Server › Document root. Use PHP 8.3 or 8.4 (Preferences › PHP): the lock of a project created before skeleton 13.38.1 needs PHP 8.4.1 and stops with "Your Composer dependencies require a PHP version >= 8.4.1" on MAMP's default 8.3; run `composer update "symfony/*" --with-all-dependencies` with `config.platform.php` set to `8.3.0`. |
 | Apache, nginx (Homebrew) | Document root `public/`, PHP-FPM | See [Server Configuration](server-configuration.md). |
 
 The MySQL root user of Homebrew and MAMP has an empty password (MAMP: `root`). Leave the password empty when `pollora:install` asks for it.
@@ -271,7 +271,8 @@ If the site shows a blank page, a 404 on the home page, or a redirect to another
 
 1. Open the site at the address written in `APP_URL`. WordPress sends `/cms/wp-admin/` to that host, so another address (`127.0.0.1` instead of `my-project.test`) logs you out of the admin.
 2. Run `php artisan pollora:doctor`. It checks `APP_URL`, the `.env` file and the install.
-3. With Valet or Herd, run `valet which` (or open the site's Herd settings) to check that the site is served from the project you expect. A default site (`~/.config/valet/config.json`, `valet default`) answers for every unknown `.test` domain.
+3. A blank page or "Your Composer dependencies require a PHP version": the PHP that serves the site (MAMP, Herd) is older than the one that ran `composer`. Compare `php -v` with the version chosen in the server's settings.
+4. With Valet or Herd, run `valet which` (or open the site's Herd settings) to check that the site is served from the project you expect. A default site (`~/.config/valet/config.json`, `valet default`) answers for every unknown `.test` domain.
 
 <a name="troubleshooting"></a>
 ## Troubleshooting
