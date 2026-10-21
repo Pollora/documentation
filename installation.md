@@ -250,6 +250,29 @@ With Laradock, the system will:
 - Use Laradock's database configuration
 - Configure appropriate host settings
 
+### macOS
+
+Pollora runs on macOS with the servers below; `artisan serve`, Valet (HTTP and HTTPS) and Apache with PHP-FPM are tested with each release, Herd and MAMP use the same mechanisms. Whatever the server, three things must agree: the **document root is the project's `public/` folder**, the site is opened at the **same address as `APP_URL`**, and `APP_URL` **names a scheme** (`http://` or `https://`).
+
+| Server | Setup | Notes |
+| --- | --- | --- |
+| `php artisan serve` | `APP_URL=http://localhost:8000` | Nothing to configure. |
+| [Laravel Valet](https://laravel.com/docs/valet) | `valet link` in the project, `APP_URL=http://my-project.test` | The domain is the folder or link name. `valet secure` serves it over HTTPS: set `APP_URL=https://my-project.test`. |
+| [Laravel Herd](https://herd.laravel.com) | Add the project folder, `APP_URL=http://my-project.test` | Herd is built on the same mechanism as Valet. |
+| MAMP (Apache) | Set the **document root to `public/`** of the project, `APP_URL=http://localhost:8888` | Preferences › Server › Document root. |
+| Apache, nginx (Homebrew) | Document root `public/`, PHP-FPM | See [Server Configuration](server-configuration.md). |
+
+The MySQL root user of Homebrew and MAMP has an empty password (MAMP: `root`). Leave the password empty when `pollora:install` asks for it.
+
+> [!WARNING]
+> Do not point MAMP or Apache at the project folder. The site then answers a 404 and `.env` is served as a text file, with the application key and the database password. `pollora:doctor` in Site Health (Tools › Site Health) reports it as an error: fix the document root, then change `APP_KEY` and the passwords.
+
+If the site shows a blank page, a 404 on the home page, or a redirect to another address:
+
+1. Open the site at the address written in `APP_URL`. WordPress sends `/cms/wp-admin/` to that host, so another address (`127.0.0.1` instead of `my-project.test`) logs you out of the admin.
+2. Run `php artisan pollora:doctor`. It checks `APP_URL`, the `.env` file and the install.
+3. With Valet or Herd, run `valet which` (or open the site's Herd settings) to check that the site is served from the project you expect. A default site (`~/.config/valet/config.json`, `valet default`) answers for every unknown `.test` domain.
+
 <a name="troubleshooting"></a>
 ## Troubleshooting
 
