@@ -177,7 +177,7 @@ After successful installation:
 3. Access your WordPress admin panel at: `your-site-url/wp-admin`
 4. Verify you can log in with the admin credentials you configured
 
-For post-installation configuration (WordPress settings, environment variables, development environments), see the [Configuration](installation.md) guide.
+Choose your local server (Valet, Herd, MAMP, DDEV, Apache, nginx) in [Local Development Environments](local-environments.md). For post-installation configuration (WordPress settings and environment variables), see the [Configuration](installation.md) guide.
 
 <div class="alert alert-info" role="alert"><strong>Heads up!</strong> Pollora rids WordPress of frontend responsibilites altogether, this means theme support in WordPress is dropped completely. Don't worry though, any functions you can run in vanilla WordPress you can run in Pollora!</div>
 
