@@ -16,6 +16,7 @@ This repository is the source of the documentation of **Pollora, the Laravel fra
 
 - [Installation](installation.md) — Setup with Composer, DDEV, and environment configuration
 - [Getting Started](getting-started.md) — Build your first Pollora application
+- [Local Development Environments](local-environments.md) — Valet, Herd, MAMP, DDEV, Apache and nginx: setup, `APP_URL`, document root and diagnosis
 - [Server Configuration](server-configuration.md) — Apache/Nginx setup, directory protection, reverse proxy & HTTPS
 - [IDE Integration](ide.md) — Configure your editor for optimal DX
 - [Environment Management](environment-management.md) — Managing WordPress constants and `.env`

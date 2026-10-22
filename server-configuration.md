@@ -13,6 +13,9 @@
 <a name="overview"></a>
 ## Overview
 
+> **Note**  
+> To set up a local server such as Valet, Herd, MAMP or DDEV, see [Local Development Environments](local-environments.md).
+
 Pollora uses a Bedrock-style directory layout where WordPress core, plugins, themes, and uploads all live under the `public/` document root. This differs from a standard WordPress installation and requires specific web server configuration to prevent exposing internal directories.
 
 <a name="document-root"></a>
