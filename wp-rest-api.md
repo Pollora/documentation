@@ -25,10 +25,12 @@ To create a new API route, use the `#[WpRestRoute]` attribute on a class.
 
 ```php
 use Pollora\Attributes\WpRestRoute;
+use Pollora\WpRest\Permissions\Everyone;
 
 #[WpRestRoute(
     namespace: 'app/v2',
-    route: 'document/(?P<documentId>\\d+)'
+    route: 'document/(?P<documentId>\\d+)',
+    permissionCallback: Everyone::class
 )]
 class DocumentAPI {}
 ```
@@ -103,6 +105,25 @@ use Pollora\WpRest\Permissions\IsAdmin;
 )]
 class AdminDocumentAPI {}
 ```
+
+### Public Routes
+
+A route that anyone may call, logged in or not, says so with `Everyone`:
+
+```php
+use Pollora\WpRest\Permissions\Everyone;
+
+#[WpRestRoute(namespace: 'app/v2', route: 'status', permissionCallback: Everyone::class)]
+class StatusAPI {}
+```
+
+A route that declares **no** permission is still public today, but it is deprecated: Pollora calls `_doing_it_wrong()` with the route and the fix, shown with `WP_DEBUG` on the pages that load the routes (never inside a REST response, so the JSON stays valid). The next major version of `pollora/wp-rest` refuses such routes. To get that behaviour now, opt in with a filter:
+
+```php
+add_filter('pollora/wp_rest/private_by_default', '__return_true');
+```
+
+`Everyone` and the filter are available from `pollora/wp-rest` 0.2.0.
 
 ### Method-Level Permission
 Permissions can also be set for specific HTTP methods:
