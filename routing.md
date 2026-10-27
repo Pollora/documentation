@@ -163,6 +163,8 @@ return [
 
 The framework provides a default set of aliases in its `config/wordpress.php` file. You can override or extend these aliases in your application's `config/wordpress.php` file.
 
+The WooCommerce conditions (`shop`, `product`, `cart`, `checkout`, `account`…) are added by [`pollora/woocommerce`](https://github.com/Pollora/woocommerce): `composer require pollora/woocommerce` in a project that runs WooCommerce.
+
 #### Publishing the WordPress Configuration File
 
 To customize WordPress route conditions, you can publish the framework's configuration file to your application:
