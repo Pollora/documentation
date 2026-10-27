@@ -19,7 +19,7 @@ You'll be prompted to answer several questions to configure your theme, starting
 | Template | Repository | What it is |
 |---|---|---|
 | Default | `pollora/theme-default` | A Blade starter: Vite, Tailwind CSS |
-| E-commerce | `pollora/theme-apiary` | A WooCommerce storefront, Blade and Alpine.js |
+| E-commerce | `pollora/theme-apiary` | A WooCommerce storefront, Blade and Alpine.js; the command offers to install WooCommerce and [`pollora/woocommerce`](https://github.com/Pollora/woocommerce) with it |
 | Magazine | `pollora/theme-buzz` | A Full Site Editing block theme — see [Block Themes](#block-themes-full-site-editing) |
 | Custom | any `owner/repo` | Your own template, from GitHub |
 

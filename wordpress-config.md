@@ -83,7 +83,7 @@ See [Routing](routing.md) for more information about routing in Pollora.
 
 #### Plugin Conditions
 
-The `plugin_conditions` array contains plugin-specific conditions for routing. Currently, it includes conditions for WooCommerce.
+The `plugin_conditions` array contains plugin-specific conditions for routing. Currently, it includes conditions for WooCommerce. [`pollora/woocommerce`](https://github.com/Pollora/woocommerce) adds them itself, so a shop needs the package rather than this key; the framework's `config/wordpress.php` keeps them until the next major release, and the entries of your own `config/wordpress.php` win over both.
 
 ```php
 'plugin_conditions' => [
