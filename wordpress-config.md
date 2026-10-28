@@ -108,6 +108,10 @@ The `plugin_conditions` array contains plugin-specific conditions for routing. C
 - `is_wc_endpoint_url`: Matches WooCommerce endpoint URLs
 
 
+### WP Rocket
+
+The `wprocket` array holds the two settings of the [`pollora/wp-rocket`](wp-rocket.md) package: whether WP Rocket may write its rules into `.htaccess` (`generate_htaccess`) and set `WP_CACHE` (`set_cache_constant`). Both are `false` unless you say otherwise.
+
 ### Mail Handling
 
 The `enable_mail_handling` option controls whether the Pollora framework should handle WordPress mail functionality.
