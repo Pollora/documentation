@@ -123,6 +123,19 @@ The `enable_mail_handling` option controls whether the Pollora framework should 
 - When set to `true` (default), Pollora overrides the `wp_mail` function to use Laravel's mail system.
 - When set to `false`, WordPress will use its native mail handling.
 
+### Sessions
+
+The `sessions` option controls whether `Route::wp()` routes declared in `routes/web.php` start a Laravel session.
+
+```php
+'sessions' => true,
+```
+
+- When set to `true` (default), they inherit the `web` group as any Laravel route: a session row and two cookies on every request.
+- When set to `false`, they skip the session, error-sharing and CSRF middleware. Laravel-native routes and the template hierarchy are not affected.
+
+See [Sessions and the `web` group](middleware.md#sessions-and-the-web-group) for what stops working without a session.
+
 ### WordPress Constants
 
 The `constants` array defines WordPress constants that will be automatically defined by the framework. These constants are processed in the `Bootstrap::defineWordPressConstants()` method, where each key-value pair is transformed into a PHP constant.
