@@ -100,3 +100,32 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::wp('single', fn () => view('post'));
 });
 ```
+
+## Sessions and the `web` group
+
+Pollora adds no session of its own. Whether a request starts a Laravel session depends on which route answers it:
+
+- **The template hierarchy** (the catch-all `{any}` route that resolves `page.blade.php`, `single.blade.php`, and so on) only gets the four Pollora middleware above. It has no session, no cookie and no CSRF check.
+- **`Route::wp()` routes declared in `routes/web.php`** inherit Laravel's `web` group. Every request, anonymous visitors and crawlers included, starts a session: with the `database` driver that is an `INSERT` into the `sessions` table, plus two `Set-Cookie` headers (`<app>_session` and `XSRF-TOKEN`).
+
+On a site where visitors authenticate through WordPress and the pages are served through a cache such as Varnish, that session is rarely useful. The cookies make responses look personalised to a proxy, and a cached page can carry one visitor's CSRF token to the others.
+
+### Turning the session off for `Route::wp()` routes
+
+Set `sessions` to `false` in `config/wordpress.php` (see [WordPress Configuration](wordpress-config.md#sessions)):
+
+```php
+'sessions' => false,
+```
+
+`Route::wp()` routes then skip `StartSession`, `ShareErrorsFromSession` and the CSRF middleware (`PreventRequestForgery`, also known as `ValidateCsrfToken`). Routes you declare with `Route::get()`, `Route::post()` and the like keep the full `web` group.
+
+Without a session:
+
+- `csrf_token()` returns an empty string, so a `<meta name="csrf-token">` tag has nothing to show.
+- `old()`, `session()`, flash data and `$errors` have nothing to read from.
+- A `POST` handled by a `Route::wp()` route is no longer checked for a CSRF token. If a form needs Laravel validation or CSRF protection, declare it with `Route::post()` instead, or leave `sessions` at `true`.
+
+`Auth::once()` (see [Authentication](auth.md)) never relied on the session, and WordPress keeps its own login cookies, so WordPress authentication is not affected.
+
+To remove the session for the whole application instead, remove the three middleware from the `web` group in `bootstrap/app.php`. Do this only if you have no Laravel-native form or authenticated route: it also removes CSRF protection from them.
