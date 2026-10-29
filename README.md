@@ -48,6 +48,7 @@ This repository is the source of the documentation of **Pollora, the Laravel fra
 - [WordPress Config](wordpress-config.md) — Managing WordPress constants via Laravel config
 - [WordPress Logging](wordpress-logging.md) — WordPress error logging through Laravel
 - [Translations](translations.md) — `__()` routing between Laravel's translator and WordPress's `.po`/`.mo` catalogues
+- [WooCommerce](woocommerce.md) — `pollora/woocommerce`: Blade templates for the shop, `Route::wp()` conditions, the Coming Soon page and WooCommerce events
 - [WP Rocket](wp-rocket.md) — `pollora/wp-rocket`: keep WP Rocket from writing `.htaccess` and setting `WP_CACHE`, unless the project asks
 
 ## Frontend & Theming
