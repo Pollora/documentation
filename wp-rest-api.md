@@ -117,13 +117,19 @@ use Pollora\WpRest\Permissions\Everyone;
 class StatusAPI {}
 ```
 
-A route that declares **no** permission is still public today, but it is deprecated: Pollora calls `_doing_it_wrong()` with the route and the fix, shown with `WP_DEBUG` on the pages that load the routes (never inside a REST response, so the JSON stays valid). The next major version of `pollora/wp-rest` refuses such routes. To get that behaviour now, opt in with a filter:
+### Routes Without a Permission
+
+Since `pollora/wp-rest` 2.0 (framework 13.39.3), a route declared with `#[WpRestRoute]` that names **no** permission is refused: `rest_forbidden`, with a 401 status for a visitor and 403 for a logged-in user. Give each route `Everyone::class` if it is public on purpose, or a real permission such as `IsLoggedIn` or `IsAdmin`. Routes you register yourself with `register_rest_route()` are not affected.
+
+To keep such routes public while a site migrates, return `false` from the `pollora/wp-rest/private_by_default` filter. With `WP_DEBUG` on, WordPress then reports each route that declares nothing, with the fix (never inside a REST response, so the JSON stays valid):
 
 ```php
-add_filter('pollora/wp_rest/private_by_default', '__return_true');
+add_filter('pollora/wp-rest/private_by_default', '__return_false');
 ```
 
-`Everyone` and the filter are available from `pollora/wp-rest` 0.2.0.
+To stay on the previous behaviour, require `"pollora/wp-rest": "^0.2"`. There is no 1.x: the line went from 0.2 to 2.0.
+
+Before 2.0, a route without a permission stayed public and called `_doing_it_wrong()`; `Everyone` has existed since 0.2.0. The filter was named `pollora/wp_rest/private_by_default` in 0.2.0 and 0.2.1 deprecated that name; 2.0 removes it.
 
 ### Method-Level Permission
 Permissions can also be set for specific HTTP methods:
