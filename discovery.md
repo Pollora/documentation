@@ -140,12 +140,17 @@ class UserHooks
 
 ### WP REST Discovery
 **Location**: `Pollora\WpRest\Infrastructure\Services\WpRestDiscovery`
-**Discovers**: Methods with `#[WpRestRoute]` attributes
+**Discovers**: Classes with `#[WpRestRoute]` attributes, and their `#[Method]` methods
 
 ```php
-class ApiController
+use Pollora\Attributes\WpRestRoute;
+use Pollora\Attributes\WpRestRoute\Method;
+use Pollora\WpRest\Permissions\Everyone;
+
+#[WpRestRoute('app/v1', '/products', permissionCallback: Everyone::class)]
+class ProductsApi
 {
-    #[WpRestRoute('v1', '/products', ['GET'])]
+    #[Method('GET')]
     public function getProducts(): array
     {
         // REST endpoint implementation
@@ -153,6 +158,8 @@ class ApiController
     }
 }
 ```
+
+A route that declares no `permissionCallback` is refused since `pollora/wp-rest` 2.0: see [WP REST API](wp-rest-api.md#routes-without-a-permission).
 
 ## Skipping Discovery
 
