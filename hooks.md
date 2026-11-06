@@ -30,6 +30,21 @@ php artisan pollora:make:action MyActionClass
 php artisan pollora:make:filter MyFilterClass
 ```
 
+Both write the class to `app/Cms/Hooks/` (namespace `App\Cms\Hooks`) with one method carrying the attribute, named after the hook: `init` gives `handleInit()`. An action method returns `void`; a filter method takes `$arg` and returns it.
+
+| Option | Default | Effect |
+| --- | --- | --- |
+| `--hook=` | `init` | The WordPress hook to attach to |
+| `--priority=` | `10` | The hook priority; must be a non-negative number |
+| `--async` | off | `pollora:make:action` only. Adds `#[Async]` to the method, see [Asynchronous Actions](async-actions.md) |
+| `--theme=`, `--plugin=`, `--module=` | none | Generate in that theme, plugin or module instead of `app/` |
+
+```bash
+php artisan pollora:make:action SyncEventToCrm --hook=save_post_event --priority=20 --async
+```
+
+If the class file already exists, the command adds a new method to it instead of failing, unless a method for that hook is already there.
+
 ### Action hooks
 
 To define an action hook, use the `Action` attribute from the `Pollora\Attributes\Action` namespace:
