@@ -7,6 +7,7 @@
 - [The tabs](#the-tabs)
 - [REST and admin-ajax requests](#rest-and-admin-ajax-requests)
 - [In wp-admin](#in-wp-admin)
+- [The template marker](#the-template-marker)
 - [Configuration](#configuration)
 - [Adding your own data](#adding-your-own-data)
   - [From a WordPress plugin or theme](#from-a-wordpress-plugin-or-theme)
@@ -63,6 +64,21 @@ Stored requests are opened through `_debugbar/open`, and the doctor through `_de
 ## In wp-admin
 
 WordPress prints admin pages itself, without Laravel's kernel, so Laravel Debugbar alone never shows there. With this package, the bar is printed at the bottom of admin pages and the request is stored like any other. Laravel's tabs about a request it answered (route, views, session) are left out. The REST calls the block editor makes are listed in the bar's request list. Set `DEBUGBAR_POLLORA_ADMIN=false` to keep wp-admin without the bar. The front end the Site Editor shows in its canvas gets no second bar; open that request from the bar's request list.
+
+## The template marker
+
+Independently of the debug bar, Pollora writes an HTML comment into the page naming the template that answered:
+
+```html
+<!-- pollora:template="single" path="themes/x/resources/views/single.blade.php" -->
+```
+
+`template` is the file name without `.blade.php` or `.php`, so `single` for a Blade or a classic PHP template alike. `path` is relative to the project root, never an absolute path.
+
+- **Condition**: the `WP_DEBUG` constant is `true`. Otherwise nothing is added, and production output is unchanged. It is a comment, so markup and styling do not change.
+- **Where**: inside `<head>`, printed on `wp_head` (once per request), so the theme has to call `wp_head()`.
+- **Which responses**: only pages rendered by the template hierarchy (`single`, `archive`, `index`…). A `Route::wp()` route or a Laravel route never goes through the `template_include` filter, so its response has no marker. That also tells the two apart when you view the source.
+- **Block themes**: WordPress renders every block template through `template-canvas.php`, so the marker always reads `template="template-canvas"`. Tell templates apart by the `<body>` classes (`single-post`, `search-results`, `error404`…).
 
 ## Configuration
 

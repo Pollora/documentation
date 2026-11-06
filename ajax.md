@@ -95,6 +95,31 @@ The class is automatically discovered and instantiated via the service container
 
 > **Why secure-by-default?** Exposing `wp_ajax_nopriv_*` allows any unauthenticated visitor to call the endpoint. This should be a conscious decision, not an implicit default. Both the facade and attribute API require explicit opt-in to expose an endpoint publicly.
 
+## Nonces and CSRF
+
+Pollora registers the handler and nothing more: `Ajax::listen()` and `#[Ajax]` call `add_action('wp_ajax_{action}', ...)` (and `wp_ajax_nopriv_{action}`) with your callback. They do **not** verify a nonce before calling it. The handler has to do it, with `check_ajax_referer()`, and check the user's capability as well when the action changes data:
+
+```php
+Ajax::listen('my_action', function () {
+    check_ajax_referer('my_action'); // ends the request with a 403 if the nonce is missing or invalid
+
+    wp_send_json_success(['message' => 'It works!']);
+});
+```
+
+`check_ajax_referer()` reads the nonce from `_ajax_nonce`, then `_wpnonce`, in the request. Use an action name of your own for the nonce (`wp_create_nonce('my_action')`), not `wp_rest`, which is the REST API's.
+
+Laravel's CSRF middleware plays no part in AJAX. `admin-ajax.php` is a file under `wp-admin/` run by PHP directly: the Laravel HTTP kernel never handles the request, so no Laravel middleware runs. What protects each kind of endpoint:
+
+| Endpoint | Laravel CSRF (`PreventRequestForgery`) | Who verifies | How |
+|---|---|---|---|
+| admin-ajax (`Ajax::listen()`, `#[Ajax]`) | Not involved | Your handler | `check_ajax_referer('my_action')` |
+| REST (`/wp-json/...`, `#[WpRestRoute]`) | Not involved | WordPress REST server | The `X-WP-Nonce` header (or `_wpnonce`), action `wp_rest`, for cookie authentication. With no nonce the request is treated as unauthenticated; the route's `permission_callback` then decides |
+| `Route::wp()` | Runs, because the routes sit in the `web` group, unless `wordpress.sessions` is `false` | Laravel | `@csrf` / `X-CSRF-TOKEN` on `POST`, `PUT`, `PATCH`, `DELETE` ([Middleware](middleware.md)) |
+| `/api/...` (`routes/api.php` of a theme, plugin or module) | Not applied: no session, no `web` group | Nobody by default | Add your own authentication middleware to the routes ([Routing](routing.md)) |
+
+The skeleton's `bootstrap/app.php` also lists `wp-admin/*`, `wp-login.php`, `wp-cron.php` and `wp-json/*` in the CSRF exceptions of the `web` group.
+
 ## Frontend JavaScript
 
 Send AJAX requests from JavaScript using the `ajaxurl` global provided by WordPress:
@@ -102,7 +127,7 @@ Send AJAX requests from JavaScript using the `ajaxurl` global provided by WordPr
 ```javascript
 jQuery.post(ajaxurl, {
     action: 'my_action',
-    _wpnonce: myApp.nonce,
+    _ajax_nonce: myApp.nonce,
     data: 'some data'
 }, function (response) {
     if (response.success) {
@@ -111,7 +136,7 @@ jQuery.post(ajaxurl, {
 });
 ```
 
-Make sure to localize your script with the nonce:
+Localize your script with a nonce created for the same action the handler checks:
 
 ```php
 use Pollora\Support\Facades\Asset;
@@ -119,6 +144,6 @@ use Pollora\Support\Facades\Asset;
 Asset::add('my-script', 'assets/js/app.js')
     ->toFrontend()
     ->localize('myApp', [
-        'nonce' => wp_create_nonce('wp_rest'),
+        'nonce' => wp_create_nonce('my_action'),
     ]);
 ```
