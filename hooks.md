@@ -43,7 +43,7 @@ Both write the class to `app/Cms/Hooks/` (namespace `App\Cms\Hooks`) with one me
 php artisan pollora:make:action SyncEventToCrm --hook=save_post_event --priority=20 --async
 ```
 
-If the class file already exists, the command adds a new method to it instead of failing, unless a method for that hook is already there.
+If the class file already exists, the command adds a new method to it instead of failing, unless the file already has a method with the same name.
 
 ### Action hooks
 
