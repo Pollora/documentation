@@ -47,7 +47,7 @@ php artisan pollora:make:theme {theme-name} \
 - `--activate` : Activate the generated theme without asking
 - `--no-activate` : Leave the active theme as it is, without asking
 
-This command creates a new theme with the necessary folder structure and base files.
+This command creates a new theme with the necessary folder structure and base files. Once the files are in place it runs `npm install` and `npm run build` in the theme folder; if either fails it reports the error and leaves the theme in place, so you can fix the problem and rerun the commands by hand. The command is also available as `pollora:make-theme`.
 
 It activates the new theme only where the site needs one: a site with no usable theme — a first install — gets it without a question; a site that already has one is asked, **No** by default, so `--no-interaction` never replaces a working theme. `--activate` and `--no-activate` decide without asking. Activation goes through WordPress's `switch_theme()`, so `after_switch_theme` runs.
 
@@ -57,7 +57,14 @@ A typical Pollora theme has the following structure:
 
 ```plaintext
 theme-name/
+├─ app/
+│  ├─ Cms/
+│  │  └─ StyleLayers.php
+│  └─ Providers/
+│     ├─ AssetServiceProvider.php
+│     └─ MenuServiceProvider.php
 ├─ config/
+│  ├─ config.php
 │  ├─ gutenberg.php
 │  ├─ images.php
 │  ├─ login.php
@@ -65,24 +72,32 @@ theme-name/
 │  ├─ providers.php
 │  ├─ sidebars.php
 │  ├─ supports.php
-│  ├─ templates.php
-├─ assets/
-│  └─ css/
-│      └─ app.css
-│  └─ fonts/
-│  └─ images/
-│  └─ js/
-│      `└─ `bootstrap.js
-│  └─ app.js
-├─ views/
-│  ├─ example.blade.php
-│  ├─ layouts/
-│  ├─ parts/
-│  ├─ patterns/
-│  ├─ home.blade.php
-│  ├─ page.blade.php
-│  └─ post.blade.php
+│  └─ templates.php
+├─ resources/
+│  ├─ assets/
+│  │  ├─ css/
+│  │  │  └─ app.css
+│  │  ├─ fonts/
+│  │  ├─ images/
+│  │  ├─ js/
+│  │  │  └─ bootstrap.js
+│  │  └─ app.js
+│  └─ views/
+│     ├─ blocks/
+│     ├─ errors/
+│     │  └─ 404.blade.php
+│     ├─ layouts/
+│     ├─ parts/
+│     ├─ patterns/
+│     │  └─ example.blade.php
+│     ├─ 404.blade.php
+│     ├─ home.blade.php
+│     ├─ index.blade.php
+│     ├─ page.blade.php
+│     ├─ post.blade.php
+│     └─ single.blade.php
 ├─ favicon.png
+├─ functions.php
 ├─ index.php
 ├─ package.json
 ├─ style.css
@@ -104,7 +119,7 @@ use Pollora\Modules\Domain\Enums\ModuleType;
 pollora_register(ModuleType::Theme);
 ```
 
-That's it — three lines. The `pollora_register()` helper:
+The file in the generated theme is longer than this: it first checks that `pollora_register()` exists, and falls back to the registrar contract (`ThemeRegistrarInterface`) on a framework older than 13.32, where the helper is not defined. On a current framework it comes down to the call above. The `pollora_register()` helper:
 - Auto-detects the active theme name and path from WordPress
 - Resolves the correct registrar (`ThemeRegistrarInterface`)
 - Triggers automatic discovery of all PHP attributes, service providers, post types, hooks, etc.
@@ -252,25 +267,27 @@ to you.
 
 ### Vite Configuration
 
+The generated `vite.config.js` passes its `theme.json` options to `pollora()`, the plugin of [`@pollora/vite-config`](https://github.com/Pollora/vite-config), which builds the `wordpressThemeJson` plugin from them:
+
 ```javascript
-import { wordpressThemeJson } from '@roots/vite-plugin';
+import { defineConfig } from 'vite';
+import pollora from '@pollora/vite-config';
 
 export default defineConfig({
     plugins: [
-        tailwindcss(),
-        laravel(getThemeConfig()),
-        wordpressThemeJson({
-            baseThemeJsonPath: './theme.json',
-            // Names shown in the editor; the slug is used when none is given
-            fontSizeLabels: { sm: 'Small', base: 'Medium', lg: 'Large' },
-            borderRadiusLabels: { md: 'Medium', lg: 'Large' },
-            fontLabels: { sans: 'Sans Serif' },
+        pollora({
+            type: 'theme',
+            themeJson: {
+                // Names shown in the editor; the slug is used when none is given
+                fontSizeLabels: { sm: 'Small', base: 'Medium', lg: 'Large' },
+                borderRadiusLabels: { md: 'Medium', lg: 'Large' },
+            },
         }),
     ],
 });
 ```
 
-When you run `npm run build`, the plugin merges your base `theme.json` with the
+When you run `npm run build`, the plugin merges your base `theme.json` (`./theme.json` unless `themeJson.baseThemeJsonPath` says otherwise) with the
 `@theme` values of the compiled stylesheet and writes the result to the build
 directory. Other options (`outputPath`, `cssFile`, `*.theme.js` partials) are
 described in the [plugin's README](https://github.com/roots/vite-plugin).
@@ -301,116 +318,55 @@ Pollora's template system offers several advantages over WordPress's standard te
 
 1. **Blade Integration**: Templates can be written using Laravel's Blade templating engine, offering features like layouts, components, and directives.
 
-2. **Dynamic Registration**: Plugins can dynamically register custom template types through the `TemplateHierarchy` class.
+2. **WordPress Filters**: Pollora hooks into each of WordPress's `{type}_template_hierarchy` filters (`single_template_hierarchy`, `page_template_hierarchy`, `archive_template_hierarchy`...), so a plugin or theme can add candidates with a plain `add_filter()`.
 
 3. **Block Theme Support**: The system automatically checks for block theme templates (.html files) when appropriate.
 
-4. **Performance Optimization**: Templates can be cached for improved performance.
+4. **Request Cache**: The Blade lookup for a template name is kept for the rest of the request.
 
-### Accessing the Template Hierarchy
+### How Blade Views Join the Hierarchy
 
-You can access the template hierarchy in your views or controllers through dependency injection:
-
-```php
-// In a controller
-use Pollora\Theme\TemplateHierarchy;
-
-class PageController extends Controller
-{
-    private TemplateHierarchy $templateHierarchy;
-
-    public function __construct(TemplateHierarchy $templateHierarchy)
-    {
-        $this->templateHierarchy = $templateHierarchy;
-    }
-
-    public function show()
-    {
-        $hierarchy = $this->templateHierarchy->hierarchy();
-        
-        return view('page', ['templateHierarchy' => $hierarchy]);
-    }
-}
-```
-
-```blade
-{{-- In a Blade view --}}
-<div class="debug-info">
-    <h3>Template Hierarchy</h3>
-    <ul>
-        @foreach($templateHierarchy as $template)
-            <li>{{ $template }}</li>
-        @endforeach
-    </ul>
-</div>
-```
+For each candidate WordPress lists (`single-post.php`, `single.php`, `index.php`...), Pollora looks for the matching Blade file (`single-post.blade.php`...) in the view paths, and puts every Blade file it finds ahead of the original list. A Blade view therefore wins over a PHP file of the same rank, and a theme can mix both. A candidate without an extension, such as a page template slug declared in `config/templates.php`, stands for `{slug}.blade.php`.
 
 ### Extending the Template Hierarchy
 
-Plugins can extend the template hierarchy for specific content types. You can inject the `TemplateHierarchy` class into your service providers or use the container to resolve it:
+Use WordPress's own `{type}_template_hierarchy` filters. Add a candidate in `.php` form: Pollora turns it into the Blade name when its own filter runs, at priority 10, so register yours before that.
 
 ```php
 // In a plugin or theme service provider
-use Pollora\Theme\TemplateHierarchy;
-
-class ThemeServiceProvider extends ServiceProvider
+public function boot(): void
 {
-    public function boot(TemplateHierarchy $templateHierarchy)
-    {
-        // Register a custom template handler for product pages on sale
-        $templateHierarchy->registerTemplateHandler('product_on_sale', function($queriedObject) {
-            if (!$queriedObject || !function_exists('wc_get_product')) {
-                return [];
-            }
-            
-            $product = wc_get_product($queriedObject->ID);
-            if (!$product || !$product->is_on_sale()) {
-                return [];
-            }
-            
-            return [
-                "product-on-sale-{$product->get_slug()}.blade.php",
-                'product-on-sale.blade.php',
-            ];
-        });
+    // Posts tagged "featured" look for single-featured.blade.php first
+    add_filter('single_template_hierarchy', function (array $templates): array {
+        if (has_term('featured', 'post_tag', get_queried_object_id())) {
+            array_unshift($templates, 'single-featured.php');
+        }
 
-        // Add the corresponding condition
-        add_filter('pollora/template_hierarchy/conditions', function($conditions) {
-            $conditions['is_product_on_sale'] = 'product_on_sale';
-            return $conditions;
-        });
-    }
+        return $templates;
+    }, 5);
 }
 ```
 
 ## Vite Configuration
 
-The `vite.config.js` file is automatically generated and configured for your theme. It includes:
+The `vite.config.js` file is generated with the theme. It is a few lines long because the work is done by [`@pollora/vite-config`](https://github.com/Pollora/vite-config), a dev dependency of the theme. With `type: 'theme'` it sets:
 
-- Automatic theme name detection
-- Configuration for development and production
-- Integration with the Laravel Vite plugin
+- The build directory, `public/build/theme/{theme-name}`, and the hot file, `public/{theme-name}.hot`; the theme name is the theme's directory name
+- The dev server port (5173, or `VITE_PORT`), reachable from inside DDEV or Docker
+- The entry point `resources/assets/app.js`, the Gutenberg blocks of `resources/views/blocks/`, and the static assets of `resources/assets/images` and `resources/assets/fonts`
+- Tailwind CSS v4 (`@tailwindcss/vite`), `laravel-vite-plugin`, `@roots/vite-plugin`, and the `theme.json` generation described above
+- A page reload when a Blade file changes
 
 ```javascript
-import { defineConfig } from "vite";
-import laravel from "laravel-vite-plugin";
-import path from 'path';
-
-const isDevelopment = !!process.env.DDEV_PRIMARY_URL;
-const port = 5173;
-const publicDirectory = path.resolve(__dirname, "../../public");
-const themeName = path.basename(__dirname);
-
-// ... (detailed configuration)
+import { defineConfig } from 'vite';
+import pollora from '@pollora/vite-config';
 
 export default defineConfig({
-    plugins: [
-        laravel(getThemeConfig()),
-        // ... (other plugins)
-    ],
-    ...getDevServerConfig()
+    plugins: [pollora({ type: 'theme' })],
 });
 ```
+
+The package's README lists every option (`input`, `port`, `refresh`, `tailwind`, `layout: 'standalone'`...).
 
 ## Tailwind CSS Integration
 
@@ -430,18 +386,7 @@ The `package.json` includes the necessary dependencies:
 }
 ```
 
-The Vite plugin handles everything — add it in `vite.config.js`:
-
-```js
-import tailwindcss from '@tailwindcss/vite';
-
-export default defineConfig({
-    plugins: [
-        tailwindcss(),
-        // ...
-    ],
-});
-```
+`pollora()` adds the `@tailwindcss/vite` plugin for you (`tailwind: false` turns it off), so `vite.config.js` needs no Tailwind line.
 
 ### CSS Entry Point
 
@@ -750,7 +695,7 @@ return [
 ];
 ```
 
-Then, in your service provider, you can extend the template hierarchy using dependency injection:
+Then, in your service provider, you can extend the template hierarchy with the filters described in [Extending the Template Hierarchy](#extending-the-template-hierarchy):
 
 ```php
 <?php
@@ -758,112 +703,38 @@ Then, in your service provider, you can extend the template hierarchy using depe
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Pollora\Theme\TemplateHierarchy;
 
 class ThemeServiceProvider extends ServiceProvider
 {
-    public function register()
+    public function boot(): void
     {
-        // Register any theme-specific services
-    }
+        add_filter('single_template_hierarchy', function (array $templates): array {
+            if (has_term('featured', 'post_tag', get_queried_object_id())) {
+                array_unshift($templates, 'single-featured.php');
+            }
 
-    public function boot(TemplateHierarchy $templateHierarchy)
-    {
-        // Register template handlers
-        $templateHierarchy->registerTemplateHandler('featured_post', function($post) {
-            if (!$post || !has_term('featured', 'post_tag', $post)) {
-                return [];
-            }
-            
-            return [
-                'featured-post.blade.php',
-                'post-featured.blade.php',
-                'single-featured.blade.php',
-            ];
-        });
-        
-        // Add the corresponding condition
-        add_filter('pollora/template_hierarchy/conditions', function($conditions) {
-            $conditions['is_featured_post'] = 'featured_post';
-            return $conditions;
-        });
-        
-        // Define the conditional function
-        if (!function_exists('is_featured_post')) {
-            function is_featured_post() {
-                return is_single() && has_term('featured', 'post_tag');
-            }
-        }
-        
-        // Use the template hierarchy to share data with views
-        add_action('template_redirect', function() use ($templateHierarchy) {
-            // Share the template hierarchy with all views
-            view()->share('templateHierarchy', $templateHierarchy->hierarchy());
-        });
+            return $templates;
+        }, 5);
     }
 }
-```
-
-## Advanced Template Hierarchy Usage
-
-### Caching Template Hierarchy
-
-For performance optimization, you can cache the template hierarchy:
-
-```php
-// In a service provider
-public function boot(TemplateHierarchy $templateHierarchy)
-{
-    // Cache the hierarchy for performance (set to true)
-    add_action('template_redirect', function() use ($templateHierarchy) {
-        $shouldCache = config('wordpress.template_caching', false);
-        $templateHierarchy->finalizeHierarchy($shouldCache);
-    }, 999);
-}
-```
-
-### Modifying Template Priority
-
-You can change the order in which templates are checked:
-
-```php
-add_filter('pollora/template_hierarchy/order', function($hierarchyOrder) {
-    // Example: Give higher priority to is_author condition
-    if (($key = array_search('is_author', $hierarchyOrder)) !== false) {
-        unset($hierarchyOrder[$key]);
-        array_unshift($hierarchyOrder, 'is_author');
-    }
-    return $hierarchyOrder;
-});
 ```
 
 ### Debugging Template Hierarchy
 
-During development, you might want to see which templates are being checked:
+With `WP_DEBUG` on, Pollora writes an HTML comment into `<head>` that names the template the request resolved to, for the pages the template hierarchy renders:
+
+```html
+<!-- pollora:template="single" path="themes/my-theme/resources/views/single.blade.php" -->
+```
+
+A page answered by a `Route::wp()` or Laravel route never goes through the hierarchy and carries no marker. To see the candidates themselves, log what a `{type}_template_hierarchy` filter receives:
 
 ```php
-// In a development-only service provider
-public function boot(TemplateHierarchy $templateHierarchy)
-{
-    if (config('app.debug')) {
-        add_action('template_redirect', function() use ($templateHierarchy) {
-            // Force refresh the hierarchy to ensure it's up to date
-            $hierarchy = $templateHierarchy->hierarchy(true);
-            
-            // Add debug information to footer
-            add_action('wp_footer', function() use ($hierarchy) {
-                echo '<div class="debug-hierarchy" style="background:#f1f1f1;padding:15px;margin-top:30px;border-top:1px solid #ddd;">';
-                echo '<h3>Template Hierarchy</h3>';
-                echo '<ol>';
-                foreach ($hierarchy as $template) {
-                    echo '<li>' . esc_html($template) . '</li>';
-                }
-                echo '</ol>';
-                echo '</div>';
-            }, 999);
-        });
-    }
-}
+add_filter('single_template_hierarchy', function (array $templates): array {
+    error_log(print_r($templates, true));
+
+    return $templates;
+}, PHP_INT_MAX);
 ```
 
 ## Block Themes (Full Site Editing)

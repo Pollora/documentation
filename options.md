@@ -156,7 +156,7 @@ Option::forget('cached_data');
 
 ### Type Safety and Validation
 
-The Option module automatically handles type conversion and validation:
+The Option module validates keys and values, and WordPress serializes what it stores:
 
 ```php
 // Automatic serialization for complex types
@@ -166,14 +166,28 @@ Option::set('user_preferences', [
     'language' => 'en'
 ]);
 
-// Type preservation
-Option::set('is_enabled', false);
-$isEnabled = Option::get('is_enabled'); // Returns boolean false, not string
+// Scalars are stored as text
+Option::set('items_per_page', 15);
+$perPage = Option::get('items_per_page'); // 15 right after the write, '15' once read from the database
 
-// Null handling
-Option::set('optional_setting', null);
-$value = Option::get('optional_setting'); // Returns null, not false
+// false and null are stored as an empty string
+Option::set('is_enabled', false);
+$isEnabled = Option::get('is_enabled'); // false right after the write, '' afterwards
 ```
+
+Arrays and objects come back as arrays and objects. A scalar does not keep its type: WordPress stores every scalar as text, so `true` reads back as `'1'`, and `false` and `null` as `''`. Cast the value you read (`(bool) Option::get('is_enabled')`) rather than compare it with `=== false`.
+
+#### Stored `false` versus a missing option
+
+The module reads with `get_option($key, null)`, so `null` means the option is not in the database. A stored `false` or `null` is an empty string in the database, never `null`:
+
+```php
+Option::exists('is_enabled');             // true once false has been stored
+Option::get('is_enabled', 'fallback');    // the stored value (false, then ''), not 'fallback'
+Option::get('never_stored', 'fallback');  // 'fallback'
+```
+
+The default of `get()` is therefore used only for an option that does not exist. To tell an unset option from one set to `false`, use `exists()`.
 
 ### Working with Objects
 
@@ -497,11 +511,24 @@ $themeOptions = Option::get('theme_options', []);
 $themeOptions['color'] = '#ff0000';
 Option::update('theme_options', $themeOptions);
 
-if (Option::get('feature_enabled', false)) {
+if (Option::get('feature_enabled') === 'yes') {
     // Enable feature
 }
 
 Option::delete('old_setting');
 ```
 
-The Pollora Option module provides a more expressive, type-safe, and testable interface while maintaining complete WordPress compatibility.
+Keep the `=== 'yes'` comparison: `Option::get('feature_enabled', false)` tests truthiness, and `'no'` is a non-empty string, so an option stored as `'no'` would enable the feature.
+
+To store a real flag instead, convert the existing `'yes'`/`'no'` values once, then test the cast value (a stored `true` reads back as `'1'`, a stored `false` as `''`):
+
+```php
+// One-off conversion of the stored 'yes'/'no'
+Option::set('feature_enabled', Option::get('feature_enabled') === 'yes');
+
+if ((bool) Option::get('feature_enabled')) {
+    // Enable feature
+}
+```
+
+The Pollora Option module provides a more expressive and testable interface while maintaining complete WordPress compatibility.

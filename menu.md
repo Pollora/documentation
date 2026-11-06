@@ -111,17 +111,38 @@ wp_nav_menu([
 
 ### Menu Registration
 
-By default, Pollora will automatically register menus defined in your theme configuration:
+Pollora registers the menu locations declared in your theme's `config/menus.php`. The file returns a map of location identifier to label, with no wrapping key:
 
 ```php
-// config/theme.php
+// themes/my-theme/config/menus.php
 return [
-    'menus' => [
-        'primary_navigation' => 'Primary Navigation',
-        'footer_navigation' => 'Footer Links'
-    ]
+    'main_menu' => __('Main Menu', 'my-theme'),
+    'footer_navigation' => __('Footer Links', 'my-theme'),
 ];
 ```
+
+Pollora hands the map to WordPress's `register_nav_menus()` on `after_setup_theme` (priority 20). The identifier is what you pass as `theme_location` to `wp_nav_menu()`. A `config/theme.php` file is not a menu configuration: nothing reads a `menus` key from it.
+
+#### Translating menu labels
+
+The labels shown in the admin are translated in two ways, and both can be used:
+
+- Call `__()` in the file, as above. This is what the default theme does. `menus.php` is one of the theme config files Pollora loads late enough for a text domain to be available, see [Translating theme config](translations.md#translating-theme-config).
+- Write plain strings and translate them from a Laravel `menus` group file, `lang/{locale}/menus.php` in your project. Before registering the locations, Pollora looks each label up as `menus.{label}` and keeps the label unchanged when no entry matches:
+
+```php
+// config/menus.php
+return [
+    'main_menu' => 'Main Menu',
+];
+
+// lang/{locale}/menus.php
+return [
+    'Main Menu' => 'Menu principal',
+];
+```
+
+Both happen when the locations are registered, on `after_setup_theme`. Locations are not registered earlier, so `has_nav_menu()` and `get_registered_nav_menus()` return nothing at the top of `functions.php`.
 
 ### Widget Support
 
