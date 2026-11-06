@@ -159,7 +159,7 @@ use WP_CLI;
  */
 class UserManagementCommand
 {
-    #[Command('new')]  // Custom slug instead of "create-user"
+    #[Command('new')]  // Custom slug instead of "createUser"
     /**
      * Create a new user
      */
@@ -168,7 +168,7 @@ class UserManagementCommand
         WP_CLI::success('User created');
     }
     
-    #[Command('rm')]  // Custom slug instead of "delete-user"
+    #[Command('rm')]  // Custom slug instead of "deleteUser"
     /**
      * Delete a user
      */
@@ -177,7 +177,7 @@ class UserManagementCommand
         WP_CLI::success('User deleted');
     }
     
-    // No #[Command] needed - auto-generates "list" from method name
+    // No #[Command] needed - the slug is the method name, "list"
     public function list(array $arguments, array $options): void
     {
         WP_CLI::success('Listing users...');
@@ -188,7 +188,7 @@ class UserManagementCommand
 ```bash
 wp user-management new      # Uses custom slug
 wp user-management rm       # Uses custom slug
-wp user-management list     # Uses auto-generated slug
+wp user-management list     # Uses the method name
 ```
 
 ## Automatic Slug Generation
@@ -205,13 +205,13 @@ The "Command" suffix is automatically removed:
 
 ### Method Name → Subcommand Slug
 
-With `#[Command]` and no argument, the slug is derived from the method name; without `#[Command]`, WP-CLI uses the method name as written.
+Without `#[Command]`, WP-CLI uses the method name as written. Only a bare `#[Command]` (no argument) derives a kebab-case slug from it.
 
-| Method Name | Generated Slug |
-|-------------|----------------|
-| `createUser()` | `create-user` |
-| `deleteById()` | `delete-by-id` |
-| `list()` | `list` |
+| Method Name | Without `#[Command]` | With bare `#[Command]` |
+|-------------|----------------------|------------------------|
+| `createUser()` | `createUser` | `create-user` |
+| `deleteById()` | `deleteById` | `delete-by-id` |
+| `list()` | `list` | `list` |
 
 ### Custom Slugs
 
@@ -224,13 +224,13 @@ class CacheManagementCommand
     #[Command('flush')]  // Custom subcommand slug
     public function clearAllCaches(): void { }
     
-    public function warmup(): void { }  // Auto: "warmup"
+    public function warmup(): void { }  // Method name: "warmup"
 }
 ```
 
 ```bash
 wp cache flush    # Custom slug
-wp cache warmup   # Auto-generated slug
+wp cache warmup   # Method name
 ```
 
 ## WP-CLI Attributes
@@ -368,13 +368,62 @@ php artisan pollora:make:wp-cli ThemeCommand --theme=mytheme --description="Them
 
 # In a plugin
 php artisan pollora:make:wp-cli PluginCommand --plugin=myplugin --description="Plugin tools"
+
+# In a module
+php artisan pollora:make:wp-cli ModuleCommand --module=Portfolio --description="Module tools"
 ```
+
+The command is also available as `pollora:make-wp-cli`.
+
+### What it generates
+
+`php artisan pollora:make:wp-cli TestCommand --description="Test command"` writes `app/Cms/Commands/TestCommand.php`:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace App\Cms\Commands;
+
+use Pollora\Attributes\WpCli;
+use WP_CLI;
+
+/**
+ * Test command
+ */
+#[WpCli]
+class TestCommand
+{
+    /**
+     * Execute the WP CLI command.
+     *
+     * @param array $arguments Positional arguments passed to the command
+     * @param array $options Named options passed to the command
+     * @return void
+     */
+    public function __invoke(array $arguments, array $options): void
+    {
+        // Add your command logic here
+        WP_CLI::success('TestCommand executed successfully!');
+    }
+}
+```
+
+The class is a single command (`wp test`: the `Command` suffix is dropped, the rest is kebab-cased). Add `#[Command]` methods yourself for subcommands. The folder is `Cms/Commands` under the `app/` directory of the target, and the namespace follows it:
+
+| Target | File | Namespace |
+|--------|------|-----------|
+| Application | `app/Cms/Commands/` | `App\Cms\Commands` |
+| `--theme=mytheme` | `themes/mytheme/app/Cms/Commands/` | `Theme\Mytheme\Cms\Commands` |
+| `--plugin=myplugin` | `{WP_PLUGIN_DIR}/myplugin/app/Cms/Commands/` | `Plugin\Myplugin\Cms\Commands` |
+| `--module=Portfolio` | `Modules/Portfolio/app/Cms/Commands/` | The module's PSR-4 prefix for `app/`, else `Modules\Portfolio\Cms\Commands` |
 
 ### Options
 
 | Option | Description |
 |--------|-------------|
-| `--description, -d` | Command description (required) |
+| `--description, -d` | Command description, written in the class docblock (default: `A custom WP CLI command`) |
 | `--force, -f` | Overwrite existing files |
 | `--theme` | Generate in specific theme |
 | `--plugin` | Generate in specific plugin |
@@ -546,3 +595,6 @@ Commands are automatically discovered in:
 - `app/Cms/Commands/`
 - `themes/{theme}/app/Cms/Commands/`
 - `plugins/{plugin}/app/Cms/Commands/`
+- `Modules/{Module}/app/Cms/Commands/`
+
+`Cms/Commands` is where the generator writes, not a requirement: Pollora scans the whole `app/` directory of the application, of each theme and plugin (`src/` when there is no `app/`) and of each module, and registers every class that carries `#[WpCli]`. A command generated with `--module` is therefore discovered.
