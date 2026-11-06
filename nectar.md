@@ -220,7 +220,7 @@ Nectar includes MCP upgrade prompts that guide AI agents through Pollora version
 | Prompt | Available When | What It Covers |
 |--------|---------------|----------------|
 | `upgrade-pollora-v13` | Pollora 12.x detected | Full migration guide from Pollora 12 to 13 |
-| `upgrade-pollora-v13-32` | Pollora 13.0 to 13.4.x detected | Migration to 13.32: dependencies, composer-patches 2, renamed commands, extracted packages, blocks, skeleton files, theme.json |
+| `upgrade-pollora-v13-32` | Pollora 13.0 up to, but not including, 13.32 detected | Migration to 13.32: dependencies, composer-patches 2, renamed commands, extracted packages, blocks, skeleton files, theme.json |
 
 ### Pollora 12→13 Upgrade Coverage
 
@@ -239,7 +239,7 @@ The prompt follows a systematic 6-step process: assess → create safety net →
 
 ### Pollora 13.x → 13.32 Upgrade Coverage
 
-The `upgrade-pollora-v13-32` prompt covers the move from 13.0–13.4 to 13.32, whose version now tracks the Laravel release it targets:
+The `upgrade-pollora-v13-32` prompt covers the move from 13.0 up to 13.31 to 13.32, whose version now tracks the Laravel release it targets:
 
 - **Dependencies** — `laravel/framework` `^13.35` (`pollora/framework` 13.35 requires it), `johnpbloch/wordpress` `^7.1`, WordPress packages from wp-packages instead of wpackagist
 - **WordPress patching** — `cweagans/composer-patches` 2, `patches.lock.json`, the `patches-relock` script, and checking that WordPress's `__()` is patched
