@@ -150,7 +150,7 @@ sudo supervisorctl start "laravel-worker:*"
 
 1. **Document root is `public/`.** `curl -I https://example.com/.env` must not answer `200`. The doctor's *Document root* check does the same from **Tools › Site Health** in wp-admin, since it needs a web request. See [Server Configuration](server-configuration.md#document-root).
 2. **Environment.** `APP_ENV=production`, `APP_DEBUG=false` (debug mode turns the discovery cache off and sets `WP_DEBUG`), a generated `APP_KEY`, and `APP_URL` written with its scheme, `https://`. See [Environment Management](environment-management.md).
-3. **HTTPS behind a proxy** trusts the proxy: [Reverse Proxy & HTTPS](server-configuration.md#reverse-proxy-and-https).
+3. **HTTPS behind a proxy** trusts the proxy: [Reverse Proxy & HTTPS](server-configuration.md#reverse-proxy--https).
 4. **The database is MySQL or MariaDB**, and the migrations have run.
 5. **Assets are built** and no hot file is present.
 6. **Discovery is warm** (`discovery:run` printed `Cache Status: Enabled`).
