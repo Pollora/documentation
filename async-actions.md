@@ -300,7 +300,7 @@ Async::assertDispatchedTimes(SyncEventToCrm::class, 1);
 Async::assertNotDispatched(Indexer::class);
 ```
 
-`Async::runDispatched()` then runs what was recorded. Without `fake()`, `HOOKS_ASYNC_DRIVER=sync` runs everything at once, which suits end-to-end tests.
+`runDispatched()`, a method of the object `Async::fake()` returns, then runs what was recorded. Without `fake()`, `HOOKS_ASYNC_DRIVER=sync` runs everything at once, which suits end-to-end tests.
 
 ## Inspecting
 
