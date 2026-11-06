@@ -43,7 +43,7 @@ Laravel's `app.env` gives WordPress its environment type, unless the process alr
 
 Plugins and themes read it with `wp_get_environment_type()`. The mapping and its overrides are described in [WordPress Configuration](wordpress-config.md#wordpress-environment-type); it does not depend on `APP_DEBUG`.
 
-`APP_ENV=production` also matters to `pollora:doctor`: it expects Laravel's configuration and route caches (`php artisan optimize`) in production only, and warns when they are on in any other environment.
+`APP_ENV=production` also matters to `pollora:doctor`: in production it treats Laravel's configuration and route caches (`php artisan optimize`) as expected and does not warn when they are missing, and in any other environment it warns when they are on.
 
 ### `APP_DEBUG`
 
