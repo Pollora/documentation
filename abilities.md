@@ -12,6 +12,95 @@ An ability is not an MCP tool, though it is what an MCP tool is usually made of.
 
 That is also why the package is named for abilities rather than for MCP — it implements no part of that protocol.
 
+## Connect a client
+
+This section follows the MCP Adapter's own documentation ([`README.md`](https://github.com/WordPress/mcp-adapter/blob/trunk/README.md), [`docs/getting-started/site-owners.md`](https://github.com/WordPress/mcp-adapter/blob/trunk/docs/getting-started/site-owners.md), [`docs/guides/cli-usage.md`](https://github.com/WordPress/mcp-adapter/blob/trunk/docs/guides/cli-usage.md), [`docs/guides/creating-abilities.md`](https://github.com/WordPress/mcp-adapter/blob/trunk/docs/guides/creating-abilities.md)), read at version 0.7.1. Check them when you upgrade the plugin: the adapter is young and its documentation has migration guides.
+
+### What the adapter exposes
+
+With the plugin active, the site gains one MCP server, reachable over HTTP at your Site Address (URL) followed by `/wp-json/mcp/mcp-adapter-default-server`, for example `https://example.com/wp-json/mcp/mcp-adapter-default-server`. On a site with plain permalinks the adapter documents `https://example.com/?rest_route=/mcp/mcp-adapter-default-server` instead.
+
+That server does not list one tool per ability. It offers three tools that work on the abilities of the site:
+
+| Tool | What it does |
+|---|---|
+| `mcp-adapter/discover-abilities` | Lists the public abilities |
+| `mcp-adapter/get-ability-info` | Returns the details of one ability |
+| `mcp-adapter/execute-ability` | Runs an ability with the given input |
+
+Abilities declared with `meta.mcp.type` set to `resource` or `prompt` are published as MCP resources and prompts on the same server.
+
+### Authenticate
+
+The adapter's default transport permission is `is_user_logged_in()`, and its documentation connects with an **Application Password**: create one under **Users > Profile** in wp-admin, for a dedicated user. Every call then runs with that user's role, so the permission callbacks of your abilities apply as usual. WordPress offers Application Passwords on HTTPS sites, local development sites excepted. Revoke the password in the same screen to cut a client off.
+
+The adapter documents two ways to send the credentials:
+
+- **Directly over HTTP**, for a client that accepts a URL and a header. The header is `Authorization: Basic ` followed by `username:application-password` encoded in base64.
+- **Through a proxy**, for a client that only starts local processes: [`@automattic/mcp-wordpress-remote`](https://www.npmjs.com/package/@automattic/mcp-wordpress-remote), started with `npx`, translates the client's STDIO into HTTP calls to the site. It reads `WP_API_URL`, `WP_API_USERNAME` and `WP_API_PASSWORD` from its `env`.
+
+The adapter has no OAuth server, and WordPress core has none either. Per its documentation, web apps such as claude.ai and ChatGPT, which sign in through OAuth, cannot connect on their own.
+
+For a local site, the adapter can also serve over STDIO with WP-CLI, without a password: `wp --path=/path/to/site mcp-adapter serve --server=mcp-adapter-default-server --user=admin`. Without `--user` the server runs unauthenticated.
+
+### Configure Claude Code
+
+Claude Code connects over HTTP, so it needs no proxy. Encode the credentials, then add the server (both commands come from the adapter's documentation; the `claude mcp add --transport http … --header` syntax is the one [Claude Code's MCP documentation](https://code.claude.com/docs/en/mcp) describes):
+
+```bash
+printf 'your-username:xxxx xxxx xxxx xxxx xxxx xxxx' | base64 | tr -d '\n'
+
+claude mcp add --transport http my-wordpress-site \
+  https://example.com/wp-json/mcp/mcp-adapter-default-server \
+  --header "Authorization: Basic PASTE_THE_BASE64_HERE"
+```
+
+By default the server is stored for you alone in the current project. `--scope project` writes it to `.mcp.json`, shared with the team; the same page of the Claude Code documentation shows that file with `"type": "http"`, a `url` and `headers`, and `${VAR}` expansion in those values. Use it so the encoded credentials stay out of the repository, and never commit them.
+
+In a client that only starts processes (Claude Desktop, Cursor), use the proxy entry from the adapter's documentation:
+
+```json
+{
+    "mcpServers": {
+        "my-wordpress-site": {
+            "command": "npx",
+            "args": ["-y", "@automattic/mcp-wordpress-remote@latest"],
+            "env": {
+                "WP_API_URL": "https://example.com/wp-json/mcp/mcp-adapter-default-server",
+                "WP_API_USERNAME": "your-username",
+                "WP_API_PASSWORD": "xxxx xxxx xxxx xxxx xxxx xxxx"
+            }
+        }
+    }
+}
+```
+
+To check the connection, ask the assistant to list the WordPress abilities it can use: it calls `mcp-adapter/discover-abilities`. An empty list is a valid answer, see below.
+
+### Which abilities are reachable
+
+**None, by default.** The adapter publishes only the abilities marked public in their `meta`:
+
+- `meta.public` set to `true` exposes the ability to clients, MCP included.
+- `meta.mcp.public` overrides it for MCP only: `true` exposes the ability over MCP alone, `false` keeps a public ability off MCP.
+
+Pollora does not set either key. Its registrar publishes `show_in_rest` as `true` and `annotations` from the declared [behaviour](#behaviour), and merges the rest of `meta` as you give it. With the facade, add the key yourself:
+
+```php
+Ability::define('acme/get-posts')
+    // …
+    ->meta(['mcp' => ['public' => true]]);
+```
+
+The `#[Ability]` attribute has no `meta` parameter (see [Attribute Parameters](#attribute-parameters)), so an ability declared that way is not reachable over MCP today. Declare it with the facade when it has to be.
+
+Choose what to expose deliberately:
+
+- Start with abilities that read. Mark as public a `creates`, `updates` or `deletes` ability only when an assistant should change the site, and remember that [behaviour hints are advisory](#behaviour): the client decides whether to ask the user first.
+- The permission callback is the real boundary. A client acts as the Application Password's user, and an ability without `can()` refuses everything.
+- Use a dedicated user with the lowest role that can do the work, and a separate Application Password per client.
+- Try write abilities on a copy of the site: the adapter's documentation notes that they change the live site as an action in wp-admin does.
+
 ## Categories
 
 Every ability is filed under a category, and the category has to exist first. Declare it once, typically in a service provider:
