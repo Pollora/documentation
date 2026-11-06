@@ -1,31 +1,28 @@
 # Routing
 
-The framework implements a hybrid routing system that combines Laravel's powerful routing capabilities with WordPress's template hierarchy. This system follows a clear priority order:
+The framework implements a hybrid routing system that combines Laravel's powerful routing capabilities with WordPress's template hierarchy. A request that reaches the Laravel router follows a clear priority order:
 
 1. **Laravel Routes First**: All routes defined in your `routes/web.php` file take precedence. This gives you full control over specific URLs and allows you to leverage Laravel's routing features when needed.
 
-2. **WordPress Template Hierarchy as Fallback**: If no Laravel route matches the current URL, the system falls back to WordPress's template hierarchy system, automatically mapping URLs to corresponding Blade views.
+2. **WordPress Template Hierarchy as Fallback**: If no Laravel route matches the current URL, a catch-all fallback route hands the request to `FrontendController`, which asks WordPress which template the request needs and renders the matching Blade view.
 
 This "Laravel-first, WordPress-fallback" approach provides the best of both worlds:
 - Full control and flexibility of Laravel routing when you need it
 - Automatic handling of standard WordPress content through the template hierarchy
 - No need to define routes for every WordPress page or post
 
+Some requests never reach the router: WordPress answers them itself (the admin, `wp-login.php`, the REST API, robots.txt, the favicon, feeds and trackbacks). See [How Pollora runs WordPress inside Laravel](https://pollora.dev/guides/how-pollora-runs-wordpress-inside-laravel/#requests-that-skip-the-laravel-router).
+
 ```
 Incoming Request
        │
        ▼
-┌──────────────┐
-│ WordPress    │    Yes    ┌─────────────────┐
-│ Admin Area?  ├──────────►│ Handle via      │
-└──────┬───────┘           │ Admin Route     │
-       │ No                └─────────────────┘
-       ▼
-┌──────────────┐
-│ Special WP   │    Yes    ┌─────────────────┐
-│ Request?     ├──────────►│ Handle via      │
-└──────┬───────┘           │ Special Route   │
-       │ No                └─────────────────┘
+┌────────────────┐
+│ Admin, login,  │    Yes    ┌─────────────────┐
+│ REST, robots,  ├──────────►│ WordPress       │
+│ favicon, feed? │           │ answers it      │
+└──────┬─────────┘           └─────────────────┘
+       │ No
        ▼
 ┌──────────────┐
 │ Match Laravel│    Yes    ┌─────────────────┐
@@ -35,17 +32,10 @@ Incoming Request
        │ No
        ▼
 ┌──────────────┐
-│    Match     │    Yes    ┌─────────────────┐
-│   WordPress  ├──────────►│ Render Template │
-│  Template?   │           └─────────────────┘
-└──────┬───────┘
-       │ No
-       ▼
-┌──────────────┐
-│  Fallback to │
-│ Frontend     │
-│ Controller   │
-└──────────────┘
+│  Fallback to │           ┌─────────────────┐
+│ Frontend     ├──────────►│ Render the      │
+│ Controller   │           │ template found  │
+└──────────────┘           └─────────────────┘
 ```
 
 ## Laravel Routing Basics
@@ -329,95 +319,24 @@ Route::wp('special-page', function() {
 
 This approach allows you to create highly customized routing logic while maintaining the clean syntax of WordPress-style routes.
 
-### Dynamic Template Hierarchy
+### How the Blade view is found
 
-The framework uses an enhanced template hierarchy system that builds upon WordPress's native template hierarchy, but with several improvements:
-
-1. **Plugin Integration**: The system dynamically integrates with plugins that register custom template types or conditions through WordPress hooks.
-
-2. **Template Filter Hooks**: Plugins can filter the template hierarchy for each template type using hooks like `pollora/template_hierarchy/{type}_templates`.
-
-3. **Custom Template Handlers**: Developers can register custom template handlers for specific scenarios:
-
-```php
-// In a service provider or plugin
-$templateHierarchy = app(\Pollora\Theme\TemplateHierarchy::class);
-
-// Register a custom template handler for product pages on sale
-$templateHierarchy->registerTemplateHandler('product_on_sale', function($queriedObject) {
-    if (!$queriedObject || !function_exists('wc_get_product')) {
-        return [];
-    }
-    
-    $product = wc_get_product($queriedObject->ID);
-    if (!$product || !$product->is_on_sale()) {
-        return [];
-    }
-    
-    return [
-        "product-on-sale-{$product->get_slug()}.php",
-        'product-on-sale.php',
-    ];
-});
-
-// Add the corresponding condition
-add_filter('pollora/template_hierarchy/conditions', function($conditions) {
-    $conditions['is_product_on_sale'] = 'product_on_sale';
-    return $conditions;
-});
-
-// Define the conditional function
-function is_product_on_sale() {
-    if (!function_exists('is_product') || !is_product()) {
-        return false;
-    }
-    
-    global $product;
-    if (!$product) {
-        $product = wc_get_product(get_queried_object_id());
-    }
-    
-    return $product && $product->is_on_sale();
-}
-```
-
-4. **Performance Optimization**: The template hierarchy can be cached to improve performance:
-
-```php
-// In a service provider
-$templateHierarchy = app(\Pollora\Theme\TemplateHierarchy::class);
-$templateHierarchy->finalizeHierarchy(true); // true enables caching
-```
-
-5. **Adjusting Template Priority**: Plugins can modify the hierarchy order:
-
-```php
-add_filter('pollora/template_hierarchy/order', function($hierarchyOrder) {
-    // Move 'is_product' higher in priority
-    if (($key = array_search('is_product', $hierarchyOrder)) !== false) {
-        unset($hierarchyOrder[$key]);
-        array_unshift($hierarchyOrder, 'is_product');
-    }
-    return $hierarchyOrder;
-});
-```
+When no route matches, WordPress decides which template the request needs (`single`, `page`, `archive`, `404`...) and Pollora looks for the matching Blade view: it swaps `.php` for `.blade.php` in each candidate of WordPress's template hierarchy and searches the theme's view paths. The mapping is described in [Theme Structure](theming.md#template-hierarchy). To add candidates of your own, use WordPress's `{type}_template_hierarchy` filters, as shown in [Extending the Template Hierarchy](theming.md#extending-the-template-hierarchy).
 
 ### Automatic Template Routing
 
 The framework implements a cascading routing system that works as follows:
 
-1. **WordPress Admin Requests**: If the request is for the WordPress admin area, it is handled by a dedicated admin route.
+1. **Requests WordPress answers itself**: the admin, `wp-login.php`, the REST API and the special requests below (robots.txt, favicon, feeds, trackbacks) are answered by WordPress. The Laravel router does not run for them.
 
-2. **Special WordPress Requests**: If the request is for a special WordPress feature (robots.txt, favicon, feeds, trackbacks), it is handled by a dedicated special route.
+2. **Laravel Custom Routes**: The framework checks if a matching route exists in your `routes/web.php` file. These routes have high priority and will be executed if they match the requested URL.
 
-3. **Laravel Custom Routes**: The framework checks if a matching route exists in your `routes/web.php` file. These routes have high priority and will be executed if they match the requested URL.
-
-4. **WordPress Template Hierarchy**: If no custom route matches, the `FrontendController` takes over and:
+3. **WordPress Template Hierarchy**: If no custom route matches, the fallback route calls `FrontendController`, which:
     - Determines the appropriate template hierarchy based on WordPress conditional tags
     - Sequentially searches for matching Blade views in your views directory
     - Returns the first view found in the hierarchy order
 
-5. **Fallback Handling**: If no view is found in the template hierarchy, a 404 error is returned.
+4. **Fallback Handling**: If the hierarchy gives no Blade view, a template file WordPress resolved (a block theme's `template-canvas.php`, for example) is included as it is. A request for a page that does not exist, with no 404 template in the theme, gets Laravel's 404 page.
 
 For example, for an "About" page, the process would be as follows:
 
@@ -433,7 +352,7 @@ Route::wp('page', 'about-us', function() {
 // - singular.blade.php
 // - index.blade.php
 
-// 3. If no view is found, returns a 404
+// 3. If no view is found, a block theme's template file is included, or Laravel's 404 page is returned
 ```
 
 This approach offers several benefits:
@@ -450,79 +369,28 @@ This approach offers several benefits:
 
 ### Special WordPress Requests
 
-The framework automatically handles special WordPress request types, including:
+The framework hands these WordPress request types back to WordPress:
 
 - **robots.txt**: Requests for `/robots.txt` are handled by WordPress's built-in `do_robots` action
 - **favicon.ico**: Requests for `/favicon.ico` are handled by WordPress's built-in `do_favicon` action
 - **Feeds**: RSS and Atom feed requests are handled by WordPress's built-in `do_feed` function
 - **Trackbacks**: Trackback requests are handled by WordPress's built-in trackback handler
 
-You can override these default handlers by defining your own routes for these special requests:
+They are answered once `template_redirect` has run, and the request ends there: the Laravel router never sees them, so a `Route::wp()` declared for them is never reached. To change what they return, use WordPress's own hooks, for example the `robots_txt` filter for robots.txt:
 
 ```php
-// Override the default robots.txt handler
-Route::wp('is_robots', function() {
-    return response("User-agent: *\nDisallow: /wp-admin/\nAllow: /wp-admin/admin-ajax.php", 200)
-        ->header('Content-Type', 'text/plain');
-});
-
-// Override the default feed handler
-Route::wp('is_feed', function() {
-    return response()->view('custom-feed', ['posts' => Post::latest()->take(10)->get()])
-        ->header('Content-Type', 'application/rss+xml');
-});
+add_filter('robots_txt', fn (string $output): string => $output."\nDisallow: /private/");
 ```
 
 ### Fallback Routes
 
-When no route matches the current request, the framework automatically creates a fallback route that delegates to the `FrontendController`. This controller:
+After all other routes, the framework registers a catch-all fallback route, `{any}`, which delegates to the `FrontendController`. It matches every path except those starting with `api/`. This controller:
 
 1. Determines the appropriate template based on WordPress's template hierarchy
 2. Renders the corresponding Blade view
-3. Returns a 404 response if no appropriate view is found
+3. Includes the template file WordPress resolved when there is no Blade view (a block theme's template), and returns Laravel's 404 page when nothing fits
 
 This ensures that all requests are handled appropriately, even if no explicit route is defined.
-
-### Extending WordPress Routes
-
-You can extend WordPress routes by adding custom conditions and template handlers. This is typically done in a service provider:
-
-```php
-use Pollora\Theme\TemplateHierarchy;
-
-class RouteServiceProvider extends ServiceProvider
-{
-    public function boot(TemplateHierarchy $templateHierarchy)
-    {
-        // Register a custom template handler
-        $templateHierarchy->registerTemplateHandler('custom_post_type', function($post) {
-            if (!$post || $post->post_type !== 'custom_post_type') {
-                return [];
-            }
-            
-            return [
-                "custom-post-type-{$post->post_name}.blade.php",
-                'custom-post-type.blade.php',
-            ];
-        });
-
-        // Add custom condition
-        add_filter('pollora/template_hierarchy/conditions', function($conditions) {
-            $conditions['is_custom_post_type'] = 'custom_post_type';
-            return $conditions;
-        });
-
-        // Define custom conditional function
-        if (!function_exists('is_custom_post_type')) {
-            function is_custom_post_type() {
-                return is_singular('custom_post_type');
-            }
-        }
-    }
-}
-```
-
-This allows you to create custom routes that integrate seamlessly with both Laravel's routing system and WordPress's template hierarchy.
 
 ## Theme & Plugin API Routes
 
