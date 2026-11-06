@@ -83,7 +83,7 @@ See [Assets & Vite](assets.md) for the containers and the manifest.
 | Cache | Status |
 | --- | --- |
 | Discovery | Used outside debug mode, filled by `discovery:run`. Required step in the sequence above. |
-| `config:cache` | Optional. The doctor expects a cached configuration in production and warns about one elsewhere. |
+| `config:cache` | Optional. In production the doctor treats Laravel's caches as expected and does not warn when they are missing; in any other environment it warns when they are on. |
 | `route:cache` | Not recommended here: how it behaves with `Route::wp()` routes has not been verified. |
 
 In the `production` environment (`APP_ENV=production`), the doctor's *Configuration and route caches* check reports "Production: caches are expected". In any other environment, a cached configuration or route file is a warning, because edits to `.env` and `routes/` are then ignored. A staging site with `APP_ENV=staging` that caches therefore gets a warning, which does not fail the doctor.
