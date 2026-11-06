@@ -78,7 +78,7 @@ Independently of the debug bar, Pollora writes an HTML comment into the page nam
 - **Condition**: the `WP_DEBUG` constant is `true`. Otherwise nothing is added, and production output is unchanged. It is a comment, so markup and styling do not change.
 - **Where**: inside `<head>`, printed on `wp_head` (once per request), so the theme has to call `wp_head()`.
 - **Which responses**: only pages rendered by the template hierarchy (`single`, `archive`, `index`…). A `Route::wp()` route or a Laravel route never goes through the `template_include` filter, so its response has no marker. That also tells the two apart when you view the source.
-- **Block themes**: WordPress renders every block template through `template-canvas.php`, so the marker always reads `template="template-canvas"`. Tell templates apart by the `<body>` classes, or read the **Pollora** tab of the debug bar, which names the template and the Blade view.
+- **Block themes**: WordPress renders every block template through `template-canvas.php`, so the marker always reads `template="template-canvas"`. Tell templates apart by the `<body>` classes (`single-post`, `search-results`, `error404`…).
 
 ## Configuration
 
