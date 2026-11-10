@@ -8,6 +8,7 @@ The engine lives in its own package, [`pollora/discovery`](https://github.com/Po
 
 - [Overview](#overview)
 - [Architecture](#architecture)
+- [Where to Put Your Classes](#where-to-put-your-classes)
 - [Built-in Discovery Classes](#built-in-discovery-classes)
 - [Skipping Discovery](#skipping-discovery)
 - [API Usage](#api-usage)
@@ -27,7 +28,7 @@ The Discovery system automatically scans your codebase to find and register comp
 
 - **Custom Post Types** with `#[PostType]` attributes
 - **Custom Taxonomies** with `#[Taxonomy]` attributes
-- **Scheduled Tasks** with `#[Schedule]` attributes
+- **Scheduled Tasks** with `#[Schedule]` attributes (with `pollora/schedule`)
 - **WordPress Hooks** with `#[Action]` and `#[Filter]` attributes
 - **REST API Routes** with `#[WpRestRoute]` attributes
 - **Custom Components** through extensible discovery classes
@@ -73,7 +74,43 @@ The Discovery system automatically scans your codebase to find and register comp
 4. **Application Phase**: Discovered items are applied/registered with the framework
 5. **Caching**: Results are cached for performance in production
 
+## Where to Put Your Classes
+
+Discovery scans these folders by default. A class placed in one of them is found with no registration:
+
+| Context | Scanned folder |
+|---|---|
+| Project | `app_path()` |
+| Theme | `<theme>/app`, otherwise `<theme>/src`, otherwise nothing (never both) |
+| Laravel module | `<module>/app`, enabled modules only |
+| Plugin | `<plugin>/app`, otherwise `<plugin>/src`; a plugin with neither is scanned in its other top-level folders, except `node_modules`, `vendor`, `bower_components`, `build`, `dist`, `public` and similar build or dependency folders |
+
+`vendor/` is not scanned. The default theme (`pollora/theme-default`) is a working example: `app/Cms/StyleLayers.php` (two `#[Action]`) and `app/Providers/AssetServiceProvider.php` and `MenuServiceProvider.php` are all found without any registration.
+
+`addLocation()` (see [API Usage](#api-usage)) is only for extra folders outside these defaults.
+
 ## Built-in Discovery Classes
+
+The framework registers the discoveries below. The identifier is what `php artisan discovery:run --discovery=<id>` and `DiscoveryManager::getDiscoveredItems('<id>')` expect.
+
+| Identifier | Trigger | Package |
+|---|---|---|
+| `hooks` | `#[Action]`, `#[Filter]`, `#[Async]` | framework |
+| `post_types` | `#[PostType]` | framework |
+| `taxonomies` | `#[Taxonomy]` | framework |
+| `ajax` | `#[Ajax]` | framework |
+| `ability` | `#[Ability]` | framework |
+| `service_providers` | any concrete `ServiceProvider` (no attribute) | framework |
+| `schedules` | `#[Schedule]` | `pollora/schedule` |
+| `wp_rest_routes` | `#[WpRestRoute]` | `pollora/wp-rest` |
+| `meta` | `#[PostMeta]`, `#[TermMeta]`, `#[UserMeta]`, `#[CommentMeta]` | `pollora/meta` |
+| `roles` | `#[Role]`, `#[ModifyRole]` | `pollora/roles` |
+| `block_bindings` | `#[BlockBinding]` | `pollora/block-bindings` |
+| `wp_cli_commands` | `#[WpCli]`, `#[Command]` | `pollora/wp-cli` |
+
+Only the first six live in the framework; the others are active when their package is installed. `service_providers` is why a service provider placed in a discovered folder is registered with no extra step.
+
+The sections below detail the most common ones.
 
 ### PostType Discovery
 **Location**: `Pollora\PostType\Infrastructure\Services\PostTypeDiscovery`
@@ -165,7 +202,7 @@ A route that declares no `permissionCallback` is refused since `pollora/wp-rest`
 
 ### Excluding a Class Entirely
 
-Use the `#[SkipDiscovery]` attribute to prevent a class from being processed by the discovery engine. No reflection will be loaded and no attributes will be scanned — the class is completely invisible to all discoveries.
+Use the `#[SkipDiscovery]` attribute to prevent a class from being processed by the discovery engine. The class is completely invisible to all discoveries.
 
 ```php
 use Pollora\Attributes\SkipDiscovery;
@@ -248,17 +285,14 @@ return [
 ];
 ```
 
-Config-level exclusions are checked before any reflection is loaded, just like `#[SkipDiscovery]`.
+Config-level exclusions are checked without reflection: `skip_classes` against the exact class name, `skip_paths` with `str_contains()` on the file path.
 
 ### How It Works
 
-The `#[SkipDiscovery]` attribute is detected during the Spatie token-parsing phase — before any reflection is loaded. This means:
+The scan only *lists* the class: it still appears in the scan result and in the cache. To decide what to do with it, the engine reads the `#[SkipDiscovery]` attribute through reflection (`new ReflectionClass(...)`), for every class that carries it, with or without `except`. A fully skipped class is therefore still autoloaded; it is just never handed to any discovery.
 
-- **Zero overhead** on classes without the attribute
-- **No reflection cost** for fully skipped classes (`#[SkipDiscovery]` without `except`)
-- Reflection is only loaded when `except` is used, to read the parameter values
-
-Config-level exclusions (`skip_classes`, `skip_paths`) are also checked at the same early stage — no reflection is triggered for excluded classes.
+- Classes **without** the attribute cost nothing extra.
+- `skip_classes` and `skip_paths` are checked without reflection, so they are the cheaper way to exclude a class you cannot edit.
 
 ## API Usage
 
@@ -395,7 +429,7 @@ final class CustomComponentDiscovery implements DiscoveryInterface
 
 ### 3. Registering Custom Discovery
 
-Discovery classes are **automatically registered** by the framework. You only need to bind your discovery as a singleton in a service provider — the `DiscoveryRegistrar` will detect it and add it to the engine.
+Discovery classes are **automatically registered** by the framework. You only need to bind your discovery in a service provider, under a name ending with `Discovery` — the `DiscoveryRegistrar` will detect it and add it to the engine.
 
 ```php
 <?php
@@ -415,7 +449,12 @@ class ThemeServiceProvider extends ServiceProvider
 }
 ```
 
-That's it. The `DiscoveryRegistrar` scans the container for all singletons whose class name ends with `Discovery` and that implement `DiscoveryInterface`. It registers them with the engine using the identifier returned by `getIdentifier()`.
+That's it. The `DiscoveryRegistrar` loops over the container bindings and keeps every one whose **key** ends with `Discovery`, then resolves it and checks that it implements `DiscoveryInterface`. It registers it with the engine using the identifier returned by `getIdentifier()`. The rules:
+
+- The test is on the binding key, not on the class: `$this->app->singleton(Foo::class, fn () => new ComponentScanner)` is ignored, and so is a class named `ComponentScanner` bound under its own name.
+- A singleton is not required: `bind()` works too (the binding is resolved once per run, then the engine keeps the instance).
+- `$this->app->instance(...)` is not supported: such a binding is not listed, so it is never found.
+- If two discoveries return the same `getIdentifier()`, the second one is skipped silently. A resolution error is only logged at debug level.
 
 > **How it works:** During the engine's `discover()` phase, the registrar iterates over container bindings, resolves any that look like discovery classes, and calls `addDiscovery()` automatically. No manual wiring needed.
 
@@ -434,7 +473,7 @@ $engine = app(DiscoveryEngineInterface::class);
 $engine->addLocation(new DiscoveryLocation('App\\', app_path()));
 $engine->addLocation(new DiscoveryLocation('MyTheme\\', get_stylesheet_directory() . '/app'));
 
-// Discoveries are auto-registered from container singletons.
+// Discoveries are auto-registered from container bindings named *Discovery.
 // Manual registration is no longer needed.
 
 // Run discovery
@@ -483,7 +522,13 @@ A class added after the cache was filled is not discovered until the cache is cl
 php artisan discovery:clear
 ```
 
-`php artisan pollora:doctor` names the classes on disk that the cache lacks.
+Nothing is logged or shown at runtime for such a class: it stays invisible to discovery (no hook, no post type, no route) until the cache is cleared. `php artisan pollora:doctor` is the only place it appears. The check:
+
+- runs in the console only;
+- reports OK without comparing anything in debug mode, since the cache is off;
+- compares the class names found by a fresh scan with the names stored in the cache, so it reports classes that were *added*, not removed ones, nor cached ones that were edited;
+- lists at most 20 classes (sorted), although the message gives the full count, and suggests `php artisan discovery:clear`;
+- skips locations that have no cache entry.
 
 > `DiscoveryCacheInterface` and `LaravelDiscoveryCache` are deprecated and removed in 15.0: nothing reads that cache.
 
@@ -521,18 +566,27 @@ Two contracts let an environment plug in: `InstanceResolverInterface` builds the
 ### Run Discovery
 
 ```bash
-# Run all discoveries
+# Run all discoveries (plus the Laravel module and framework module passes)
 php artisan discovery:run
 
-# Run specific discovery
+# Inspect one discovery, by identifier (see Built-in Discovery Classes)
 php artisan discovery:run --discovery=post_types
 
-# Clear cache before running
+# Clear the cache before running
 php artisan discovery:run --clear-cache
 
-# Run with verbose output
-php artisan discovery:run -v
+# Show the performance statistics block
+php artisan discovery:run --stats
+
+# With --stats: show the trace if the statistics cannot be read
+php artisan discovery:run --verbose-errors
 ```
+
+The options are `--clear-cache`, `--discovery=`, `--stats` and `--verbose-errors`; `-v` is Symfony Console's global flag and adds nothing on success.
+
+- Without options, the command prints a "Discovery Summary" with one line per identifier. `--stats` adds the "Performance Statistics" block; `--verbose-errors` only prints the trace when that block cannot be built.
+- `--discovery=<id>` prints the items found, then asks "Apply discovered items?" (default yes), so it blocks in a script. It does not run the module passes of a plain run. An unknown identifier fails; note that the scheduled-task identifier is `schedules`, not `schedule`.
+- `--clear-cache` does nothing in debug mode: with `APP_DEBUG=true` the persistent cache is off and the command prints "Cache is disabled - skipping cache clear".
 
 ### Clear Discovery Cache
 
@@ -769,8 +823,8 @@ if (!$manager->hasDiscovery('my_discovery')) {
 **Debug**:
 
 ```php
-// Enable verbose console output
-php artisan discovery:run -v
+// Show the discovery counts and the statistics
+php artisan discovery:run --stats
 
 // Check discovery locations
 $manager = app(DiscoveryManager::class);
