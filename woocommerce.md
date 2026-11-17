@@ -18,6 +18,12 @@ WooCommerce looks for a template in the theme, then in its own folder. The packa
 
 Add a folder to the search with the `pollora/woocommerce/template_paths` filter.
 
+### Emails
+
+WooCommerce's email templates (`emails/email-header.php`, `emails/email-footer.php`…) go through the same search, so the theme can ship their Blade variant.
+
+This also holds when the email is sent while WordPress answers a request of its own: a REST request, or a `?wc-api=` callback such as a payment webhook or a Store API checkout. The package registers its hooks before WordPress runs such a request. Before `pollora/woocommerce` 0.1.2 an email sent that way fell back to WooCommerce's own header and footer.
+
 ## Route conditions
 
 `Route::wp()` knows WooCommerce's conditionals (see [Routing](routing.md)):
