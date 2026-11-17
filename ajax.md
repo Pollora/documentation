@@ -65,9 +65,16 @@ class NewsletterHandler
         wp_send_json_success([/* ... */]);
     }
 
-    // Guest users only
-    #[Ajax('track_visit', access: AjaxAccess::GUEST)]
+    // Guest users only, no nonce on purpose
+    #[Ajax('track_visit', access: AjaxAccess::GUEST, nonce: false)]
     public function trackVisit(): void
+    {
+        wp_send_json_success([/* ... */]);
+    }
+
+    // Logged-in users, the nonce is verified before the method runs
+    #[Ajax('save_note', nonce: true)]
+    public function saveNote(): void
     {
         wp_send_json_success([/* ... */]);
     }
@@ -82,6 +89,7 @@ The class is automatically discovered and instantiated via the service container
 |---|---|---|---|
 | `action` | `string` | *(required)* | The WordPress AJAX action name |
 | `access` | `AjaxAccess` | `AjaxAccess::LOGGED` | Audience targeting |
+| `nonce` | `bool\|string\|null` | `null` | `true` verifies a nonce named after the action, a string verifies the nonce of that name, `false` turns it off on purpose, `null` has not chosen yet (see [Nonces and CSRF](#nonces-and-csrf)) |
 
 ### AjaxAccess Enum
 
@@ -97,23 +105,66 @@ The class is automatically discovered and instantiated via the service container
 
 ## Nonces and CSRF
 
-Pollora registers the handler and nothing more: `Ajax::listen()` and `#[Ajax]` call `add_action('wp_ajax_{action}', ...)` (and `wp_ajax_nopriv_{action}`) with your callback. They do **not** verify a nonce before calling it. The handler has to do it, with `check_ajax_referer()`, and check the user's capability as well when the action changes data:
+An AJAX request carries the visitor's cookies, so a page of another site can make a logged-in visitor's browser send it. A nonce, a token WordPress creates for a user and an action, tells a request your own page sent from one it did not. Pollora can verify it for you before your handler runs.
+
+### Verify the nonce
+
+```php
+// Facade: the nonce is verified before the callback runs
+Ajax::listen('save_note', function () {
+    wp_send_json_success(['message' => 'Saved!']);
+})->requireNonce();
+
+// Another nonce action than the AJAX action name, when a form already has one
+Ajax::listen('save_note', $callback)->requireNonce('notes_form');
+
+// No nonce on purpose: a public beacon, a webhook that signs its own requests
+Ajax::listen('track_visit', $callback)->forGuestUsers()->withoutNonce();
+```
+
+The attribute says the same: `#[Ajax('save_note', nonce: true)]`, `nonce: 'notes_form'` or `nonce: false`.
+
+A request without a valid nonce gets a `403` and the callback does not run. The response is JSON:
+
+```json
+{ "success": false, "data": { "code": "pollora_ajax_invalid_nonce", "message": "Invalid or expired security token." } }
+```
+
+The nonce is read from `_ajax_nonce`, then `_wpnonce`, in the request, as `check_ajax_referer()` does. By default the nonce action is the AJAX action name; create the nonce for it, for example with `wp_create_nonce('save_note')` (see [Frontend JavaScript](#frontend-javascript)).
+
+### An action that does not choose
+
+An action that never says `requireNonce()` or `withoutNonce()` (`nonce: null` on the attribute) still runs **without a check** in the 1.x versions of `pollora/ajax`, so existing code keeps working. WordPress is told, through `_doing_it_wrong()`, which action does not choose and how to fix it; the notice is visible with `WP_DEBUG` and skipped while an AJAX request is answered. **The next major version verifies a nonce by default.**
+
+To get that behaviour now, on every action that did not choose, return `true` from the `pollora/ajax/nonce_by_default` filter:
+
+```php
+add_filter('pollora/ajax/nonce_by_default', '__return_true');
+```
+
+A guest's nonce is tied to no user, and a cached page can serve an old one: prefer another protection for an action open to guests, and say `withoutNonce()` when you do.
+
+### Verify it yourself
+
+The handler can still check the nonce on its own, with `check_ajax_referer()`, and should check the user's capability as well when the action changes data:
 
 ```php
 Ajax::listen('my_action', function () {
     check_ajax_referer('my_action'); // ends the request with a 403 if the nonce is missing or invalid
 
     wp_send_json_success(['message' => 'It works!']);
-});
+})->withoutNonce(); // already checked here
 ```
 
-`check_ajax_referer()` reads the nonce from `_ajax_nonce`, then `_wpnonce`, in the request. Use an action name of your own for the nonce (`wp_create_nonce('my_action')`), not `wp_rest`, which is the REST API's.
+Use an action name of your own for the nonce (`wp_create_nonce('my_action')`), not `wp_rest`, which is the REST API's.
+
+### Other endpoints
 
 Laravel's CSRF middleware plays no part in AJAX. `admin-ajax.php` is a file under `wp-admin/` run by PHP directly: the Laravel HTTP kernel never handles the request, so no Laravel middleware runs. What protects each kind of endpoint:
 
 | Endpoint | Laravel CSRF (`PreventRequestForgery`) | Who verifies | How |
 |---|---|---|---|
-| admin-ajax (`Ajax::listen()`, `#[Ajax]`) | Not involved | Your handler | `check_ajax_referer('my_action')` |
+| admin-ajax (`Ajax::listen()`, `#[Ajax]`) | Not involved | Pollora, with `requireNonce()` or `nonce: true`; otherwise your handler | `check_ajax_referer('my_action')` |
 | REST (`/wp-json/...`, `#[WpRestRoute]`) | Not involved | WordPress REST server | The `X-WP-Nonce` header (or `_wpnonce`), action `wp_rest`, for cookie authentication. With no nonce the request is treated as unauthenticated; the route's `permission_callback` then decides |
 | `Route::wp()` | Runs, because the routes sit in the `web` group, unless `wordpress.sessions` is `false` | Laravel | `@csrf` / `X-CSRF-TOKEN` on `POST`, `PUT`, `PATCH`, `DELETE` ([Middleware](middleware.md)) |
 | `/api/...` (`routes/api.php` of a theme, plugin or module) | Not applied: no session, no `web` group | Nobody by default | Add your own authentication middleware to the routes ([Routing](routing.md)) |
