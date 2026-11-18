@@ -139,7 +139,9 @@ A size is made at upload only if it is declared `eager()`. The others are made t
 - **S3 or compatible service behind a CDN.** The origin of the CDN for the library is the site: one rule at the CDN, and PHP sees each file only the first time.
 - **S3 without a CDN.** There is no fallback: declare the sizes you use `eager()` and run `pollora:media:thumbs:warm`. The URL stays the same.
 
-What the URL says is not trusted. Before anything is made, without asking the disk: the name is one of a declared size, the signature is the one the site would have made, the extension is an image's. Then, against the original: its dimensions are those the name gives (nobody can name a size of their own), it is not private, it is not a GIF. A request that fails a check gets a `404` and costs nothing.
+What the URL says is not trusted: a size is made only if it is declared and signed. Before anything is made, without asking the disk: the name is one of a declared size, the signature is the one the site would have made, the extension is an image's. The signature is an HMAC bound to the original, to the name of the size and to its fingerprint (fit, dimensions, format, quality), so it cannot be reused for another image or another size. Then, against the original: its dimensions are those the name gives (they are imposed by the geometry of the declared size, nobody can name a size of their own), it is not private, it is not a GIF. A request that fails a check gets a `404` and costs nothing.
+
+A size name that carries a control character, above all a trailing newline, is a `404` too: it used to get past the name checks (the `$` of a pattern matches before a final newline) and end in a `500` at the storage. The route and the name parser now anchor their patterns strictly.
 
 Making a size costs CPU, so it is limited per server in `config/media.php`:
 
@@ -203,6 +205,13 @@ php artisan pollora:media:thumbs:export --driver=imgproxy         # the configur
 ```
 
 For Bunny, the classes are read, merged by name and written back: the ones you made are kept, nothing is deleted, and the setting that forces classes is never changed. The merge matters: Bunny replaces the whole list of classes with the one it is sent. The access key is sent in the `AccessKey` header and nowhere else. imgproxy has no API for presets: the command prints `IMGPROXY_PRESETS`, `IMGPROXY_ONLY_PRESETS=true`, `IMGPROXY_MAX_SRC_RESOLUTION` (in megapixels) and `IMGPROXY_ALLOWED_SOURCES`, never the key or the salt. A driver that is badly set up does not take the site down: the default driver is kept, and `pollora:doctor` says why.
+
+### Securing a service
+
+With the default driver the rule "only declared, signed sizes are made" is enforced by the site. With a service, it has to be enforced by the service, and the two do not offer the same guarantee.
+
+- **Bunny.** The Dynamic Image API is **not signed** on Bunny's side: anyone can send `photo.jpg?width=99999` to the pull zone and Bunny will make that size, at your cost. Either turn the Dynamic Image API off and serve only the image classes, or enable **Token Authentication** in the pull zone. Forcing classes ("Force Transformation Classes") helps, but it is your setting to check: Pollora never changes it.
+- **imgproxy.** The signature of the URL is not enough on its own. `IMGPROXY_ONLY_PRESETS=true` makes the server refuse any transformation that is not a preset, and `IMGPROXY_ALLOWED_SOURCES` limits where it fetches originals from. Both are what guarantee the rule at the server, and both are part of what `thumbs export --driver=imgproxy` prints: copy them with the presets, with `IMGPROXY_KEY` and `IMGPROXY_SALT` set on the server.
 
 ## Private media
 
