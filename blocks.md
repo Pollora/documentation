@@ -251,7 +251,7 @@ php artisan pollora:make:block <name> [options]
 
 | Argument | Description |
 |---|---|
-| `name` | Block slug in kebab-case (e.g. `hero-banner`) |
+| `name` | Block slug in kebab-case (e.g. `hero-banner`): a lowercase letter, then lowercase letters, digits and `-`. Any other name, a trailing line break included, is refused |
 
 ### Options
 
