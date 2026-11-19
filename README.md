@@ -35,6 +35,8 @@ This repository is the source of the documentation of **Pollora, the Laravel fra
 - [Typed Meta](meta.md) — `#[Meta]` properties, `Meta::of()`, typed reads and writes, REST schema
 - [Block Bindings](block-bindings.md) — `#[BlockBinding]` sources, typed meta in core blocks, bindable Blade blocks
 - [Options](options.md) — WordPress options with Laravel's fluent API
+- [Query](query.md) — `pollora/query`: fluent builders for `WP_Query` and the other query classes, tag slugs, extending a query
+- [Colt Models](colt.md) — `pollora/colt`: Eloquent models for the WordPress tables, collections, no N+1 queries
 
 ## WordPress Integration
 

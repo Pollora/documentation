@@ -514,6 +514,14 @@ return [
 ];
 ```
 
+### The warm cache costs no file access
+
+Once a location is cached, discovery does not read, list or stat any source file: it takes the entry from the cache and rebuilds the discoveries from it. The cache of a location is read once per request (the entry is fetched with a single `get()` after the `has()` check, not once more per call), and a cold scan, which still reads the files, writes it once. This is locked by tests that count file accesses, not by timings.
+
+For orientation, `php tests/Benchmark/warm-cache.php` in `pollora/discovery` measures 200 classes at about 7.9 ms cold and 0.24 ms warm (a developer's machine, informative only: the guarantee is the counted accesses).
+
+The other side of the coin: **nothing invalidates the cache by modification time**. A file edited, added or removed is not seen until the cache is cleared with `php artisan discovery:clear` (see below). Do it on each deployment.
+
 ### Clearing the cache
 
 A class added after the cache was filled is not discovered until the cache is cleared:
