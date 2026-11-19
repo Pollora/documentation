@@ -241,7 +241,7 @@ php artisan pollora:make:plugin my-plugin \
 - `--plugin-description` : Plugin description
 - `--plugin-version` : Plugin version
 - `--repository` : GitHub repository to download (owner/repo format)
-- `--repo-version` : Specific version/tag to download
+- `--repo-version` : Tag to download (a plain tag name such as `v1.2.0`, not a branch; see [Template version](modules.md#template-version))
 - `--asset=true/false` : Include asset files (JS/CSS) with ViteJS compilation (default: false)
 - `--force` : Force create plugin with same name
 
