@@ -250,3 +250,4 @@ php artisan pollora:doctor
 - [Options](options.md#unit-testing) — `OptionRepositoryInterface`
 - [Dashboard & Status](dashboard.md#diagnosing-a-project-polloradoctor) — `pollora:doctor`
 - [Local Development Environments](local-environments.md) — a database and a server for the project
+- [Performance Gates](performance-gates.md) — the framework's query budgets and nightly measures

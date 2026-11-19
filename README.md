@@ -64,6 +64,7 @@ This repository is the source of the documentation of **Pollora, the Laravel fra
 
 - [Dashboard & Status](dashboard.md) — Admin dashboard, `pollora:status` command, `--json` output
 - [Debugging](debugging.md) — `pollora/debugbar`: WordPress queries, hooks, the answering template and REST calls in Laravel Debugbar
+- [Performance Gates](performance-gates.md) — `X-Pollora-Diagnostics` header, query budgets per page type, nightly boot and discovery measures
 - [Nectar — AI Context](nectar.md) — AI guidelines, agent skills, and MCP tools for AI-assisted development
 
 ## Advanced Features
