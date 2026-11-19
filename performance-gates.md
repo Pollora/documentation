@@ -50,7 +50,7 @@ npm run budgets:update       # sets E2E_UPDATE_BUDGETS=1, measures, then writes 
 
 Run it against a site like the CI one, or take the first measure from a green CI run: every run writes `test-results/budgets.measured.json` and the CI uploads it as the `e2e-budgets-measured-*` artifact. Commit the result.
 
-At the time of writing, `budgets.json` on the framework's `develop` branch still holds `null` everywhere (measure only). A pull request, #651, makes them strict: home 24, post 20, page 19, archive 26, 404 15, search 22, REST 19, and 0 Laravel queries on every page. Read the file for the current values.
+The budgets are strict since v13.43.0: home 24, post 20, page 19, archive 26, 404 15, search 22, REST 19 WordPress queries, and 0 Laravel queries on every page. Read `tests/e2e/budgets.json` for the current values.
 
 ## Nightly measures
 
