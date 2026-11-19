@@ -4,6 +4,7 @@
 
 - [Installation](#installation)
 - [When it runs](#when-it-runs)
+- [Who sees the bar](#who-sees-the-bar)
 - [The tabs](#the-tabs)
 - [REST and admin-ajax requests](#rest-and-admin-ajax-requests)
 - [In wp-admin](#in-wp-admin)
@@ -30,6 +31,24 @@ It is a development dependency on purpose. `composer install --no-dev` leaves it
 Exactly when Laravel Debugbar does: `DEBUGBAR_ENABLED`, or `APP_DEBUG` when that is not set, and never in the `production` or `testing` environments. Turning the bar off turns everything here off, including `SAVEQUERIES`.
 
 To keep Laravel's tabs and drop Pollora's, set `DEBUGBAR_POLLORA_ENABLED=false`.
+
+## Who sees the bar
+
+The environment alone does not say who may look: on a staging site in debug mode, every visitor would see SQL queries, options and file paths. The bar, its wp-admin entry, the data it collects and its endpoints are therefore reserved to **signed-in users who hold a WordPress capability**, `manage_options` by default:
+
+```dotenv
+DEBUGBAR_POLLORA_CAPABILITY=edit_posts
+```
+
+or, in `config/debugbar-pollora.php`:
+
+```php
+'capability' => 'manage_options',
+```
+
+Anyone else gets no bar. Nothing is collected or stored for their request, and Debugbar's endpoints (stored requests, assets, query explain) and the doctor answer `403`. The check runs from `init`, once WordPress knows who the user is, and fails closed: an empty or non-string setting is treated as `manage_options`. Production stays off whatever the capability.
+
+> **Upgrading.** Anonymous visitors and users without the capability, editors included, no longer get the bar on a staging site. Set `DEBUGBAR_POLLORA_CAPABILITY` to a capability they hold (for example `edit_posts`) to give it back.
 
 ## The tabs
 
@@ -97,6 +116,7 @@ php artisan vendor:publish --tag=debugbar-pollora-config
 | `options.wp_hooks.count_filters` | `false` | Count filters too. It listens to every hook call, so it costs on every `apply_filters()` |
 | `options.wp_hooks.timings` | `false` | Time every hook callback (**WP Hook timings**). Each callback is wrapped in place in `$wp_filter`, so code reading `$wp_filter` directly sees the wrapper; callbacks taking parameters by reference are not timed |
 | `options.wp_hooks.timings_limit` | `200` | How many callbacks the timings tab lists |
+| `capability` | `manage_options` | WordPress capability a signed-in user needs to get the bar, its data and its endpoints (`DEBUGBAR_POLLORA_CAPABILITY`) |
 | `iframes` | `false` | Print the bar inside pages loaded in an iframe (Site Editor canvas, Customizer preview). Off, those requests are still stored and open from the bar's request list |
 | `admin.enabled` | `true` | Show the bar on wp-admin pages |
 | `admin.hidden_collectors` | `route`, `views`, `session`, `livewire`, `inertia` | Laravel Debugbar tabs left out in wp-admin |

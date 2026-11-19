@@ -28,6 +28,17 @@ The dashboard is accessible in the WordPress admin under **Tools > Pollora**. It
 
 When a newer stable version of Pollora is available on Packagist, a notification badge appears on the **Tools > Pollora** menu item, similar to WordPress's Site Health counter. Dev versions (`dev-develop`, `dev-main`, etc.) are excluded from this check to avoid false positives.
 
+### Update and missing-theme notices
+
+Two notices appear at the top of wp-admin pages:
+
+- **Update notice**: when a newer stable version of Pollora is available, a dismissible banner shows the new version and its changelog. Its close button sends an AJAX request that remembers the dismissed version for that user; the banner comes back for the next release.
+- **No theme installed**: when no theme exists, a notice says so. It cannot be dismissed, since the front end is unusable until a theme is installed.
+
+Both are reserved to users with the `manage_options` capability, and so is the dismissal request (it answers `403` to anyone else). Other signed-in users, subscribers and editors included, see neither notice: they say which framework version runs and what the site is missing, which is for administrators.
+
+> **Upgrading.** Before this restriction, any signed-in user saw these notices and could dismiss the banner. Nothing to configure: users without `manage_options` simply stop seeing them.
+
 ### Access control
 
 The dashboard page requires the `manage_options` capability (administrators only).
