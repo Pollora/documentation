@@ -48,6 +48,10 @@ There is no service provider, controller, route file, configuration, seeder or t
 
 Other options: `--description`, `--author`, `--no-enable`, `--no-npm`, `--repository=owner/repo` and `--repo-version=tag` for another template, `--offline` for the copy bundled with the framework (also used when GitHub cannot be reached), `--force` to replace an existing module.
 
+#### Template version
+
+`--repo-version` takes a plain tag name of the template repository: it starts with a letter or a digit and holds only letters, digits, `.`, `_`, `-` and `+` (`v1.2.0`, `1.0.0-beta.1` and `release-2024` are valid). The framework downloads `archive/refs/tags/<tag>.zip`, so a branch name has never worked. A value with `..`, a `/`, a space, a `?` or a line break is refused with an `Invalid version tag` error before anything is downloaded. `pollora:make:theme` and `pollora:make:plugin` read `--repo-version` the same way.
+
 A layer added later uses nwidart's own generators: `php artisan module:make-provider PortfolioServiceProvider Portfolio`, `module:make-migration`, and so on.
 
 ### `module:make`
@@ -329,6 +333,7 @@ $discovery->discover('/path/to/module');
 - Test a module in its own `tests` directory (`pollora:make:module --tests`).
 - **Leverage automatic discovery**: Use PHP 8 attributes instead of manual registrations for cleaner, more maintainable code.
 - **Organize by feature**: Group related service providers, models, and controllers within logical subdirectories.
+- **Keep names plain**: a module name is letters and digits starting with a letter (`Portfolio`), a block or WP-CLI command name is lowercase letters, digits and `-`; anything else, a trailing line break included, is refused. `--repository` is `owner/repo` and `--repo-version` a tag name (see [Template version](#template-version)).
 - **Follow naming conventions**: Use descriptive class names that clearly indicate their purpose and functionality.
 
 ## Checks

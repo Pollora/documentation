@@ -42,7 +42,7 @@ php artisan pollora:make:theme {theme-name} \
 - `--theme-description` : Theme description
 - `--theme-version` : Theme version
 - `--repository` : GitHub repository to download (owner/repo format)
-- `--repo-version` : Specific version/tag to download
+- `--repo-version` : Tag to download (a plain tag name such as `v1.2.0`, not a branch; see [Template version](modules.md#template-version))
 - `--force` : Force create theme with same name
 - `--activate` : Activate the generated theme without asking
 - `--no-activate` : Leave the active theme as it is, without asking
