@@ -177,6 +177,31 @@ Reads a WordPress option value by key (read-only).
 
 Returns the option value and whether it exists.
 
+#### Secret options are refused
+
+Whatever this tool returns is sent by your AI agent to a model provider. Plugins store API keys, tokens, passwords, licence keys and salts in ordinary options, so `wp_option` does not return them by default.
+
+- **Refused by name.** An option whose name matches `/(pass(word)?|secret|token|api[_-]?key|private[_-]?key|salt|auth|credential|license)/i` is refused, as are the WordPress security keys `auth_key`, `secure_auth_key`, `logged_in_key`, `nonce_key` and `recovery_keys`. The check runs **before** `get_option()` is called, so the answer does not reveal whether the option exists. The message tells the agent why and how to allow it.
+- **Masked inside a value.** In an option that holds an array or an object, every sub-key whose name matches the same rule is replaced by `[masqué]`, at any depth. This applies to an allowed option as well.
+
+The match is a substring match on the name, so it can refuse a harmless option (for instance `author_page_layout` contains `auth`). That is deliberate: refusing too much is safe, and you can allow an option explicitly.
+
+#### Allowing a specific option
+
+List the option's exact name under `wp_option.allow` in `config/nectar.php`:
+
+```php
+'wp_option' => [
+    'allow' => [
+        'author_page_layout',
+    ],
+],
+```
+
+Names are matched exactly and case-insensitively. A pattern such as `*` or `my_plugin_*` is never expanded: an entry allows only the option it spells out. Allowing an option does not unmask secret-looking sub-keys inside it, which stay `[masqué]`.
+
+> **Warning: `wp_cli.allowed_commands` is reserved.** `config/nectar.php` still contains a `wp_cli.allowed_commands` list, but no Nectar tool reads or applies it. Do not rely on it to restrict anything, and do not treat its presence as a safeguard.
+
 ## AI Guidelines
 
 Guidelines are injected automatically into your AI agent's context when Boost runs. They cover:
@@ -189,6 +214,29 @@ Guidelines are injected automatically into your AI agent's context when Boost ru
 - **Available Artisan commands** — All Pollora-specific commands
 
 Version-specific guidelines (e.g., Pollora 13.x with Laravel 13 and WordPress 7) are selected automatically from your installed framework version.
+
+### What the Guidelines Teach an Agent
+
+The core guidelines and the `pollora-rest-api` skill carry a few rules an agent applies to every change. Two are about security.
+
+**AJAX actions** (`pollora/ajax` 1.2+). Every `#[Ajax]` action must say how it is protected against cross-site request forgery. The agent is taught to choose, never to leave the parameter out:
+
+```php
+#[Ajax('save_note', nonce: true)]                                   // verifies the nonce `save_note`
+public function saveNote(): void {}
+
+#[Ajax('track_visit', access: AjaxAccess::GUEST, nonce: false)]     // no nonce, on purpose
+public function trackVisit(): void {}
+```
+
+- `nonce: true` verifies a nonce named after the action before the method runs (the page creates it with `wp_create_nonce('save_note')` and sends it as `_ajax_nonce`). A request without a valid nonce gets a 403 and the method does not run. `nonce: 'name'` verifies the nonce of that name.
+- `nonce: false` turns the check off on purpose, for a public beacon or a webhook that signs its own requests. The agent is told not to use it for an action that changes data without another protection.
+- An action that does not choose runs unchecked for now and is reported by WordPress with `WP_DEBUG`. The next major version of `pollora/ajax` verifies a nonce by default.
+- An action is never opened to guests without a decision, and the agent no longer adds a `check_ajax_referer()` call in a method that declares `nonce: true`.
+
+**REST routes.** Every `#[WpRestRoute]` declares a permission (`Everyone`, `IsLoggedIn`, `IsAdmin`); a route without one is deprecated in `pollora/wp-rest` 0.2.
+
+**MCP tools.** The guidelines list `wp_option` with its limits and tell the agent not to try to get around a refusal: the project owner allows a safe option by its exact name in `wp_option.allow`.
 
 ## Agent Skills
 
@@ -275,8 +323,15 @@ return [
             'include' => [],
         ],
     ],
+
+    // Exact names of options that wp_option may show despite a secret-looking name
+    'wp_option' => [
+        'allow' => [],
+    ],
 ];
 ```
+
+See [Secret options are refused](#secret-options-are-refused) for what `wp_option` hides and how to allow an option. The `wp_cli.allowed_commands` key that the published file also holds is reserved and applied by no tool.
 
 Disable Nectar via environment variable:
 
