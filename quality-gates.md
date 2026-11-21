@@ -1,15 +1,22 @@
 # Quality Gates
 
-[`pollora/harness`](https://github.com/Pollora/harness) is the set of rules, checked by machines, that every Pollora repository runs: code style, static analysis, architecture, tests, security, dependencies and the public contract. The same gates run on a developer's machine (`pollora-qa`), in a coding agent's hooks and in CI, so a change that breaks a rule is stopped before it is merged. This page describes the version 0.1.33 of the harness: how to adopt it, which rules it enforces, how to read a failure and how to take an exemption.
+[`pollora/harness`](https://github.com/Pollora/harness) is the set of rules, checked by machines, that every Pollora repository runs: code style, static analysis, architecture, tests, security, dependencies and the public contract. The same gates run on a developer's machine (`pollora-qa`), in a coding agent's hooks and in CI, so a change that breaks a rule is stopped before it is merged. This page describes the version 0.1.34 of the harness: how to adopt it, which rules it enforces, how to read a failure and how to take an exemption.
+
+> **Version 0.1.34 is not published yet.** It is merged on the harness's `main` branch. Until the tag exists, the workflow examples below stay pinned to `v0.1.33`, and a repository on 0.1.33 ignores the options marked *0.1.34*.
 
 It is a development tool. Install it with `--dev`; nothing of it ships to the sites that run your code. It constrains the code of the framework, the packages and the plugins, never how a Pollora project is written.
 
 - [Adopting the harness](#adopting-the-harness)
 - [Observe and enforce](#observe-and-enforce)
-- [What changes in v0.1.33](#what-changes-in-v0133)
+- [What changes in v0.1.34](#what-changes-in-v0134)
+- [What changed in v0.1.33](#what-changed-in-v0133)
 - [The rules](#the-rules)
+- [Observed rules](#observed-rules)
+- [Performance budgets](#performance-budgets)
 - [Reading a failure](#reading-a-failure)
 - [Exemptions](#exemptions)
+- [Promoting a rule](#promoting-a-rule)
+- [Workflow security](#workflow-security)
 - [The public surface](#the-public-surface)
 - [Commands](#commands)
 - [See also](#see-also)
@@ -78,11 +85,26 @@ A repository that is ready for most gates but not all lists the others under `ob
 }
 ```
 
-The names are the ones `pollora-qa check` prints: `Code style`, `Static analysis`, `Rector`, `Tests and architecture`, `Dependency policy`, `Dependency analysis`, `Security patterns`, `Dependency audit`, `Public surface`, `Ratchet`. Shorten the list as each gate comes clean.
+The names are the ones `pollora-qa check` prints: `Code style`, `Static analysis`, `Rector`, `Tests and architecture`, `Dependency policy`, `Dependency analysis`, `Security patterns`, `Dependency audit`, `Public surface`, `Performance budgets`, `Ratchet`. Shorten the list as each gate comes clean.
 
 A gate whose tool is not installed does not run, and is not a pass: the summary marks it `no tool`, prints the command that installs the tool, and ends with "Every gate that ran passed, but not every gate ran." `pollora-qa check --strict` makes a missing tool fail the check. Semgrep is the usual case locally; CI installs it.
 
-## What changes in v0.1.33
+## What changes in v0.1.34
+
+> **Observed, nothing blocks.** The new gates and rules only report: no repository turns red by raising the harness to v0.1.34.
+>
+> - **Mutation on pull requests.** A pull request mutates only the files it changes (see [Mutation score](#mutation-score-mutation)).
+> - **Performance budgets**, a new observed step: PERF-01 and PERF-07 (see [Performance budgets](#performance-budgets)).
+> - **CONV-02, CONV-08, CONV-09 and CONV-12** are observed (see [Observed rules](#observed-rules)); CONV-11 now has a measure, `type_coverage`.
+> - **`pollora-qa promote-report`** tells what would block if each observed rule became enforced (see [Promoting a rule](#promoting-a-rule)).
+> - **CONV-08, CONV-09 and CONV-12 can be exempted** with `allow_rules` before they are promoted.
+> - **A `ratchet` value that cannot be compared makes `.harness.json` invalid**, instead of being read as "never measured".
+> - **A layer shared with an installed package is judged** on the repository's own classes, instead of being skipped (ARCH-01, ARCH-03, CONV-03, CONV-05, CONV-07).
+> - **The workflows pin what they run** (see [Workflow security](#workflow-security)), and `check` shows the time of each step.
+>
+> The catalogue now counts 32 enforced, 7 observed and 1 planned rules.
+
+## What changed in v0.1.33
 
 > **Six rules become blocking: SEC-02, SEC-06, SEC-07, QA-03, CONV-04 and CONV-06.** In `enforce` mode, every repository that raises the harness to v0.1.33 is now stopped by them.
 >
@@ -93,11 +115,10 @@ A gate whose tool is not installed does not run, and is not a pass: the summary 
 >
 > Also new: the `services` key (`["redis"]`) asks the CI for a Redis, and a cache key, transient or option named `pollora/…` is no longer read as a hook of the public surface.
 >
-> The catalogue now counts 32 enforced, 1 observed and 7 planned rules.
 
 ## The rules
 
-`vendor/bin/pollora-qa rules` prints the catalogue and `pollora-qa rules <ID>` explains one rule. A rule is **enforced** (fails the gate), **observed** (reported only) or **planned** (not checked by this version yet). The gates are G0 (local and agent hooks), G1 (fast pull request checks), G2 (full pull request checks, blocks the merge), G3 (nightly) and G4 (release).
+`vendor/bin/pollora-qa rules` prints the catalogue and `pollora-qa rules <ID>` explains one rule. A rule is **enforced** (fails the gate), **observed** (reported only, never blocks) or **planned** (not checked by this version yet). The catalogue counts 32 enforced, 7 observed and 1 planned rules. The gates are G0 (local and agent hooks), G1 (fast pull request checks), G2 (full pull request checks, blocks the merge), G3 (nightly) and G4 (release).
 
 ### Architecture (ARCH)
 
@@ -118,17 +139,17 @@ A gate whose tool is not installed does not run, and is not a pass: the summary 
 | Rule | What it requires | Tool | Status |
 | --- | --- | --- | --- |
 | CONV-01 | Expressive API: the common case needs no configuration | Review | planned |
-| CONV-02 | A WordPress registration is an attribute or a typed object, never a raw argument array | PHPStan custom rule | planned |
+| CONV-02 | A WordPress registration is an attribute or a typed object, never a raw argument array in the public API | Pest arch (files, AST), review | **observed** |
 | CONV-03 | Laravel naming: `ServiceProvider`, `Command`, `Exception`, `Repository`, `Factory` suffixes | Pest arch | enforced |
 | CONV-04 | Hooks fired by Pollora are named `pollora/<module>/<event_snake_case>` | `pollora-qa surface` | enforced |
 | CONV-05 | Configuration lives under `pollora.<package>`; `env()` is only called in `config/` | Pest arch | enforced |
 | CONV-06 | Commands are named `pollora:<verb>` or `pollora:<group>:<verb>`; older dashed names stay as aliases | `pollora-qa surface` | enforced |
 | CONV-07 | Domain and Application code never calls `app()` or `resolve()` | Pest arch | enforced |
-| CONV-08 | A class is final unless it is an extension point | Pest arch | planned |
-| CONV-09 | A facade is a thin front for an injectable service; a new facade resolves a contract | Pest arch | planned |
+| CONV-08 | A class is final unless it is an extension point | Pest arch | **observed** |
+| CONV-09 | A facade is a thin front for an injectable service; a new facade resolves a contract | Pest arch | **observed** |
 | CONV-10 | One named exception per business case; never throw a bare `\Exception` | Semgrep | enforced |
-| CONV-11 | Native types everywhere; PHPDoc only for generics, array shapes, `@internal`, `@deprecated` | PHPStan, Pest type coverage | **observed** |
-| CONV-12 | Pest tests are `it()` / `test()` functions, no PHPUnit test class | Pest arch, review | planned |
+| CONV-11 | Native types everywhere; PHPDoc only for generics, array shapes, `@internal`, `@deprecated` | PHPStan, `type_coverage` ratchet | **observed** |
+| CONV-12 | Pest tests are `it()` / `test()` functions, no PHPUnit test class | Pest arch, review | **observed** |
 
 ### Security (SEC)
 
@@ -148,12 +169,12 @@ A gate whose tool is not installed does not run, and is not a pass: the summary 
 
 | Rule | What it requires | Tool | Status |
 | --- | --- | --- | --- |
-| PERF-01 | SQL queries per page type never exceed the reference | Golden project | planned |
+| PERF-01 | SQL queries per page type never exceed the reference | Budgets file (*Performance budgets* step) | **observed** |
 | PERF-02 | Discovery reads no file when its cache is warm | Pest test in `pollora/discovery` | enforced |
 | PERF-03 | No N+1 query in Colt | Pest test in `pollora/colt` | enforced |
-| PERF-07 | Boot, cold discovery and thumbnail timings tracked nightly, alert above 10 % | PHPBench | planned |
+| PERF-07 | Boot, cold discovery and thumbnail timings tracked nightly, alert above 10 % | Scheduled workflow (*Performance budgets* step) | **observed** |
 
-PERF-02 and PERF-03 run in the own test suites of those two packages. The framework's page budgets and nightly measures are described in [Performance Gates](performance-gates.md).
+PERF-02 and PERF-03 run in the own test suites of those two packages. PERF-01 and PERF-07 are read by the harness itself, see [Performance budgets](#performance-budgets); the framework's page budgets and nightly measures are described in [Performance Gates](performance-gates.md).
 
 ### Process (QA)
 
@@ -165,6 +186,50 @@ PERF-02 and PERF-03 run in the own test suites of those two packages. The framew
 | QA-04 | The public surface changes only with a label: `api-change` to add, `breaking` to remove or change | `pollora-qa surface` | enforced |
 | QA-05 | No PHP signature breaks backward compatibility outside a major version | roave/backward-compatibility-check | enforced |
 | QA-06 | The release archive carries only what runs: tests, CI, tool configuration and agent files are `export-ignore`d | `pollora-qa archive` | enforced |
+
+### Observed rules
+
+An observed rule reports and never blocks. `tests/Arch.php` registers CONV-08, CONV-09, CONV-12 and CONV-02 as a test that is marked incomplete: the step stays green and prints `observed, not blocking: CONV-08 — N problem(s)` with the list; it passes when nothing is found. A rule with nothing to read (no class, no test file) prints `not evaluated: <rule> — <reason>`. The rules read the files without an autoloader.
+
+| Rule | Reported | Not reported |
+| --- | --- | --- |
+| CONV-02 | A public method or global function whose array parameter flows into `register_post_type()`, `register_taxonomy()`, `register_block_type()`, `register_block_type_from_metadata()`, `register_rest_route()` (their `$args`) or `add_menu_page()` / `add_submenu_page()`; a public method (interfaces too) named `register…`, `create…`, `define…` or `add…` about a post type, taxonomy, block, route or menu, with an `$args`, `$arguments`, `$config`, `$options` or `$settings` parameter that can hold an array | The infrastructure layer (`Infrastructure`, `Adapter`), non-public methods, `@internal` code, literal arrays built inside a method, object-typed parameters. An array stored then registered elsewhere, or a registration through a wrapper, is out of reach |
+| CONV-08 | A class that is not `final` | An abstract class, a builder named `…Builder`, a class that uses `Macroable`, a parent that another class of the repository extends |
+| CONV-09 | A facade with anything but `getFacadeAccessor()`, or whose `Service::class` is a concrete class of the repository (a contract is an interface) | A facade that returns a `Service::class` of an interface, or a binding name |
+| CONV-12 | A concrete class that extends a `…TestCase` and has a test method | `#[RunInSeparateProcess]` / `#[RunTestsInSeparateProcesses]`, the PHPStan rule tests, the `Fixtures` and `Stubs` directories |
+
+A file that does not parse is listed, never skipped silently. CONV-11 has no test of its own: the *Ratchet* step counts the declarations that carry a native type (every return, parameter and property; `mixed` is a type; constructors, closures and arrow functions are out) and prints the percentage, the share of returns, parameters and properties, and the five files that hold most of the gap. The parameters of a method that overrides an untyped WordPress method (`Walker*`, `WP_Widget`) are left out and reported, since a child cannot narrow them. A repository that recorded `type_coverage` in its `ratchet` can no longer lower it: that floor is what CONV-11 will enforce, and `ratchet --update` records it. The count reads the `psr-4`, `psr-0`, `classmap` and `files` entries of `autoload` plus `src` and `app`, minus `vendor`, `node_modules`, `tests` and Blade; it needs neither Pest's type-coverage plugin nor an autoloader.
+
+### Performance budgets
+
+The *Performance budgets* step (PERF-01, PERF-07) reads files and never starts a site. The framework measures its queries and timings in its browser tests; the step checks that those measures are still declared, still wired and never loosened. It is observed by default.
+
+**PERF-01.** It applies when the repository has a budgets file (`tests/e2e/budgets.json` by default):
+
+```json
+{ "pages": { "home": { "wordpress": 24, "laravel": 0 } } }
+```
+
+Every budget is a whole number of queries (0 is a real limit) or `null`; a `null` budget is listed as measured-only. A budget that went up, became `null` or was removed since the base commit fails the step. The base is `HEAD^1`, or `check --budgets-base=REF`. When the base is not in the checkout, the file is new there or the base file is unreadable, the step says `not compared with <base>: <why>` and passes on the other checks: it never reports a comparison that did not happen. The reusable workflow checks out two commits so that `HEAD^1` exists.
+
+**PERF-07.** It applies when the repository has the measuring spec (`tests/e2e/specs/perf-metrics.spec.ts`) or declares `performance.nightly`. It checks that the measuring and the comparing files exist, that a workflow has an `on: schedule` trigger with a `cron` and runs both, and that the `--tolerance` given to the comparison is at most 0.1 (an alert above 10 %). It proves the wiring is declared, not that last night passed. A repository that declares neither is `skipped` with the reason.
+
+Where to look is set under `performance` in `.harness.json`, every key optional, paths relative to the repository and without `..`:
+
+```json
+{
+    "performance": {
+        "budgets": "tests/e2e/budgets.json",
+        "nightly": {
+            "measure": "tests/e2e/specs/perf-metrics.spec.ts",
+            "compare": "tests/e2e/bin/perf-compare.ts",
+            "workflow": ".github/workflows/ci.yml"
+        }
+    }
+}
+```
+
+`"nightly": {}` declares the nightly measures with the default paths, so a repository that lost the files is told so instead of being skipped. Without `workflow`, every file of `.github/workflows` is read.
 
 ## Reading a failure
 
@@ -250,7 +315,7 @@ A template reads the same key from `.harness.json` or, failing that, from `.gith
 
 ### An architecture rule a repository cannot satisfy (`allow_rules`)
 
-A rule of `tests/Arch.php` (ARCH-01, ARCH-03, ARCH-08, ARCH-09, CONV-03, CONV-05, CONV-07) can be exempted for the whole repository, with a `reason`:
+A rule of `tests/Arch.php` (ARCH-01, ARCH-03, ARCH-08, ARCH-09, CONV-03, CONV-05, CONV-07, CONV-08, CONV-09, CONV-12) can be exempted for the whole repository, with a `reason`:
 
 ```json
 {
@@ -261,6 +326,8 @@ A rule of `tests/Arch.php` (ARCH-01, ARCH-03, ARCH-08, ARCH-09, CONV-03, CONV-05
 ```
 
 The tests of that rule are registered as skipped, with the reason printed; every other rule runs. The number of exemptions is a ratchet metric, `exempted_rules`.
+
+**An exemption of an observed rule is declared, not applied.** CONV-08, CONV-09 and CONV-12 may be listed before they are promoted, so that a repository says why it cannot satisfy them on the day they become blocking. While the rule is observed it keeps running and reporting; the step prints `declared, not applied while the rule is observed: CONV-08 — <reason> (allow_rules)`, and the exemption already counts in `exempted_rules`. Once the catalogue says `enforced`, the same line skips the rule.
 
 ### Mutation score (`mutation`)
 
@@ -276,7 +343,19 @@ The tests of that rule are registered as skipped, with the reason printed; every
 | `changed` | The PHP source files the change touches | `min`, a threshold and not a ratchet |
 | `added` | Only the files the change adds | `min` |
 
-The base of the comparison is `HEAD^1`; `--mutation-base=REF` gives another. The score is computed on whole files, so a surviving mutant in a file you touched counts even if you did not write it. A change with nothing to mutate passes.
+The base of the comparison is `HEAD^1`; `--mutation-base=REF` gives another. The score is computed on whole files, so a surviving mutant in a file you touched counts even if you did not write it. A change with nothing to mutate passes (`nothing to mutate`).
+
+**On a pull request (0.1.34).** `check --mutation-scope=all|changed|added` sets the scope for one run and wins over the file; an unknown value fails before any gate runs. A limited scope without `min` is held to a floor of 50 %, deliberately low because the files of a repository score unevenly. The reusable workflow uses it: on a `pull_request` event, a repository that mutates (it recorded `ratchet.msi`) and sets no `mutation.scope` runs `--mutation-scope=changed --mutation-base=HEAD^1` on the merge commit. Every other event (a push to `main` or `develop`, a tag, a manual run) mutates the whole repository, so the `msi` ratchet is still measured on the main branch.
+
+```yaml
+jobs:
+  harness:
+    uses: Pollora/harness/.github/workflows/php-package.yml@v0.1.33
+    with:
+      mutation-on-pull-request: all   # changed (default) or all
+```
+
+The trade-off: on a pull request the repository's score is **not measured** (the *Ratchet* step says `msi` was not measured on purpose), so a drop of the whole score shows on the next push to the main branch, not on the pull request. A file the pull request does not touch no longer fails it; a file it touches is judged as a whole, at `min` or 50 %, which is a weaker bar than the ratchet. `all` keeps the old behaviour. If the checkout is not a merge commit, the workflow warns and mutates everything rather than count from the wrong base. The `mutation-on-pull-request` input only exists from 0.1.34: a repository on 0.1.33 ignores the option and mutates everything.
 
 ### Services the tests need (`services`)
 
@@ -288,7 +367,36 @@ The reusable workflow starts a Redis 7 on `127.0.0.1:6379` and installs the `red
 
 ### The ratchet (`ratchet`)
 
-A metric starts from where the repository is today and may only improve. `.harness.json` records the best value reached for `phpstan_level` (higher is better), `phpstan_baseline`, `exempted_rules` (lower), `coverage`, `type_coverage` and `msi` (higher). `pollora-qa ratchet --update` records improvements and never a regression; only a person lowers a threshold by hand. Line coverage is read from a Clover report (`pollora-qa check --coverage` writes `.harness/coverage.xml`); without a report nothing is compared. Record the first `msi` with `pollora-qa ratchet --update --metric=msi:<score>`, a couple of points under what you measured: the score moves between runs.
+A metric starts from where the repository is today and may only improve. `.harness.json` records the best value reached for `phpstan_level` (higher is better), `phpstan_baseline`, `exempted_rules` (lower), `coverage`, `type_coverage` and `msi` (higher). `pollora-qa ratchet --update` records improvements and never a regression; only a person lowers a threshold by hand. Since 0.1.34 a value that cannot be compared makes `.harness.json` invalid, instead of being read as "never measured": `coverage`, `type_coverage` and `msi` are numbers from 0 to 100, `phpstan_level` an integer from 0 to 10 or `"max"`, `phpstan_baseline` and `exempted_rules` whole numbers from 0. Line coverage is read from a Clover report (`pollora-qa check --coverage` writes `.harness/coverage.xml`); without a report nothing is compared. Record the first `msi` with `pollora-qa ratchet --update --metric=msi:<score>`, a couple of points under what you measured: the score moves between runs.
+
+### Where the time goes (`slow_step_share`)
+
+`check` times every step: the console summary, the job summary (a *Time* column and a total) and `.harness/report.json` (`total_seconds`, and the `seconds` of each step) show it. To be warned when one step takes most of the run, set the share of the total above which it is flagged:
+
+```json
+{ "slow_step_share": 0.5 }
+```
+
+A step that takes more than that share and at least 30 seconds is listed as `Slow step`, and under `slow_steps` in the JSON report. It is a warning, never a failure. Without the key nothing is flagged; a value that is not above 0 and up to 1 makes `.harness.json` invalid.
+
+## Promoting a rule
+
+A rule is born observed. Moving it to enforced turns red every repository that still breaks it, so the move is prepared first:
+
+1. **Measure.** `vendor/bin/pollora-qa promote-report` (`--json` for a machine) prints, for each observed rule, what would block in the current repository: `would block (N problems)` with the first five, `clean`, `not applicable` (nothing to read: not a pass) or `no probe` (an observed rule it cannot measure is listed, never left out). It reads files and the recorded ratchet, runs no tool, writes nothing and always exits 0. CONV-08, CONV-09 and CONV-12 run the analyses of their tests, CONV-02 the same reading as its test, CONV-11 compares the type count with the recorded `type_coverage`, PERF-01 and PERF-07 the same assessment as the *Performance budgets* step.
+2. **Declare the motivated exemptions** in `allow_rules`, with their reason (see above).
+3. **Record the floors.** `ratchet --update` writes `type_coverage` and `exempted_rules`. From then on a drop fails QA-01 in `enforce` mode and only warns in `observe`.
+4. **Promote** by changing the rule's status in the harness catalogue, then release a new version. A repository that stays on the previous tag is not affected and moves when it is ready.
+
+Steps 1, 3 and 4 are the maintainers' work on the harness itself; the repository that adopts it takes steps 1 to 3 on its own code.
+
+## Workflow security
+
+The reusable workflows (`php-package.yml`, `template.yml`) keep their inputs and job names, and since 0.1.34 harden what they run:
+
+- Every third-party action is referenced by the full SHA of its tag's commit, with the tag in a comment. Semgrep is installed at a fixed version and gitleaks runs from an image pinned by digest, not `latest`.
+- Least privilege: no permission at the top, `contents: read` per job, `persist-credentials: false` on every checkout, no `pull_request_target`, and no `${{ }}` of a third-party value inside a `run:`.
+- Composer authenticates with the job's token, to avoid the `HTTP/2 429` of anonymous downloads; its download cache is only written by runs that are not pull requests. Every job has a time limit, and a new push cancels the pull request's older run.
 
 ## The public surface
 
@@ -319,7 +427,9 @@ The workflow turns the label into `--allow=additions` (`api-change`) or `--allow
 | `pollora-qa check --fast` | The fast gates (G0) on the files changed in the working tree |
 | `pollora-qa check --strict` | Also fails when a gate could not run because a tool is missing |
 | `pollora-qa check --coverage[=FILE]` | Runs the tests with coverage and compares the Clover report with the ratchet |
-| `pollora-qa check --mutation` | Also runs Pest's mutation testing; `--mutation-base=REF` sets the base for `changed` |
+| `pollora-qa check --mutation` | Also runs Pest's mutation testing; `--mutation-base=REF` sets the base for `changed`, `--mutation-scope=all\|changed\|added` the scope for this run |
+| `pollora-qa check --budgets-base=REF` | The commit the query budgets (PERF-01) are compared with (default `HEAD^1`) |
+| `pollora-qa promote-report [--json]` | For each observed rule, what would block here if it were enforced (read only) |
 | `pollora-qa ratchet [--update]` | Compares the metrics with `.harness.json`; `--update` records improvements |
 | `pollora-qa deps` | Checks the declared dependencies against the profile (ARCH-04, ARCH-06) |
 | `pollora-qa surface [--update]` | Compares the public surface with `api-surface.json`; `--update` records it |
