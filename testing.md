@@ -1,6 +1,6 @@
 # Testing a Pollora Project
 
-A Pollora project is tested with PHPUnit, through `composer test`. Plain classes take an ordinary unit test; code that needs WordPress takes a feature test that loads the site first; and the asynchronous actions, the scheduler and the options have helpers so a test does not queue, schedule or store anything for real.
+A Pollora project is tested with [Pest](https://pestphp.com), which runs on PHPUnit, through `composer test`. Plain classes take an ordinary unit test; code that needs WordPress takes a feature test that loads the site first; and the asynchronous actions, the scheduler and the options have helpers so a test does not queue, schedule or store anything for real.
 
 - [The runner and `composer test`](#the-runner-and-composer-test)
 - [What the test environment changes](#what-the-test-environment-changes)
@@ -8,12 +8,13 @@ A Pollora project is tested with PHPUnit, through `composer test`. Plain classes
 - [A first feature test that reaches WordPress](#a-first-feature-test-that-reaches-wordpress)
   - [Why the test loads WordPress itself](#why-the-test-loads-wordpress-itself)
   - [Why it runs in its own process](#why-it-runs-in-its-own-process)
+    - [Hooks outlive the test that registered them](#hooks-outlive-the-test-that-registered-them)
 - [Fakes and helpers](#fakes-and-helpers)
 - [In a CI job](#in-a-ci-job)
 
 ## The runner and `composer test`
 
-The skeleton requires `phpunit/phpunit` in `require-dev`, with Mockery and Faker. `pestphp/pest` is not installed: `tests/Pest.php` is a template file that does nothing until you install Pest yourself.
+Since v13.43.0 the skeleton requires `pestphp/pest` in `require-dev`, next to `phpunit/phpunit`, Mockery and Faker. Its own tests are written in Pest (`it()`, `expect()`), and `tests/Pest.php` binds `Tests\TestCase` to every test under `tests/Feature`, so a Pest feature test boots the application and WordPress without extending anything. Test classes written for PHPUnit (`extends TestCase`, `test_*` methods) still run under `php artisan test`: the skeleton's `Feature/Routing` tests are such classes. Two PHPUnit features do not work under Pest, see [Why it runs in its own process](#why-it-runs-in-its-own-process).
 
 `composer test` clears the configuration cache, then runs Laravel's test command:
 
@@ -58,7 +59,7 @@ Two things to know:
 
 ## A first unit test
 
-A class that does not call WordPress or Laravel needs only PHPUnit's `TestCase`. This is what the skeleton's `tests/Unit/ExampleTest.php` does:
+A class that does not call WordPress or Laravel needs no base class. The skeleton's `tests/Unit/ExampleTest.php` is a Pest test of this kind:
 
 ```php
 // app/Support/Vat.php
@@ -75,19 +76,14 @@ final class Vat
 
 ```php
 // tests/Unit/VatTest.php
-namespace Tests\Unit;
-
 use App\Support\Vat;
-use PHPUnit\Framework\TestCase;
 
-class VatTest extends TestCase
-{
-    public function test_it_adds_the_rate(): void
-    {
-        $this->assertSame(1200, Vat::including(1000, 0.2));
-    }
-}
+it('adds the rate', function (): void {
+    expect(Vat::including(1000, 0.2))->toBe(1200);
+});
 ```
+
+The same test as a PHPUnit class (`class VatTest extends PHPUnit\Framework\TestCase` with a `test_it_adds_the_rate()` method and `$this->assertSame()`) runs just as well.
 
 When the class takes the options repository, mock `OptionRepositoryInterface` rather than WordPress: see [Options, Unit Testing](options.md#unit-testing).
 
@@ -95,7 +91,16 @@ When the class takes the options repository, mock `OptionRepositoryInterface` ra
 
 `Tests\TestCase` extends Laravel's `TestCase`, so a feature test boots the application, and Pollora loads WordPress with it. What it does not do is process a request. A test that asks WordPress what it would do for a URL (which page is it, is it a 404) has to set the URL and ask WordPress to parse it.
 
-Add a base class once:
+A feature test that only needs WordPress loaded (a function, a registered post type, the options) needs nothing more:
+
+```php
+// tests/Feature/EventPostTypeTest.php
+it('registers the event post type', function (): void {
+    expect(post_type_exists('event'))->toBeTrue();
+});
+```
+
+To ask WordPress about a URL, add a base class once:
 
 ```php
 // tests/WordPressTestCase.php
@@ -120,11 +125,11 @@ abstract class WordPressTestCase extends TestCase
 }
 ```
 
-Then a test declares the URL it visits and runs in its own process:
+Then a test declares the URL it visits and runs in its own process. This is a PHPUnit class, and the process attributes are a PHPUnit feature: put it in a directory that no suite of `phpunit.xml` lists (here `tests/Isolated`, so that `php artisan test` does not pick it up) and run it with PHPUnit's own runner, `vendor/bin/phpunit tests/Isolated`. Run by `php artisan test` (that is, by Pest), it fails with `Class "PHPUnit\TextUI\Configuration\Registry" not found`:
 
 ```php
-// tests/Feature/UnknownUrlTest.php
-namespace Tests\Feature;
+// tests/Isolated/UnknownUrlTest.php
+namespace Tests\Isolated;
 
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -158,7 +163,35 @@ The base class does what a web request does. It sets `REQUEST_URI` and the serve
 Two details:
 
 - Put the attributes on the test class itself. Placed on an abstract base class, they were not applied: the tests of a class extending it shared one process.
-- Instead of attributes, `php artisan test --process-isolation` runs every test of the suite in its own process. It is slower.
+- Instead of attributes, PHPUnit's `--process-isolation` option runs every test in its own process. It is slower.
+
+#### Hooks outlive the test that registered them
+
+WordPress hooks are globals too: the callbacks that a test registers on `$wp_filter` stay in the process after the test ends. Each test gets a new application container, but those callbacks keep resolving their services from the new one, which may not have them. A test that fires WordPress actions or filters then fails depending on what ran before it. Two feature tests show it:
+
+```php
+// tests/Feature/FirstTest.php: any test that boots the application
+it('boots the application', function (): void {
+    expect(function_exists('post_type_exists'))->toBeTrue();
+});
+
+// tests/Feature/FooterTest.php
+it('runs the footer hooks', function (): void {
+    ob_start();
+    do_action('wp_footer');
+    ob_end_clean();
+
+    expect(true)->toBeTrue();
+});
+```
+
+`FooterTest` passes when it runs alone. Run after `FirstTest` it fails with `Target [Pollora\Theme\Domain\Contracts\ThemeJsonResolverInterface] is not instantiable.`, thrown from `do_action()` through `WP_Hook::apply_filters()`. The message does not point at the cause, and the test passes alone, so it looks flaky.
+
+What to do:
+
+- Test a hook class by calling its method directly, as in `(new ShowBanner())->handleWpFooter()`, instead of firing `do_action()`. This does not meet the problem.
+- A test that must fire the action goes in a PHPUnit class with `#[RunTestsInSeparateProcesses]` and `#[PreserveGlobalState(false)]`, run by `vendor/bin/phpunit` like `UnknownUrlTest` above.
+- Under Pest (`php artisan test`, `vendor/bin/pest`) process isolation is not available: `--process-isolation` stops with `The [--process-isolation] option is not supported`, and `->runInSeparateProcess()` does not exist on a Pest test. `processIsolation="true"` in `phpunit.xml` makes the child processes fail with a parse error.
 
 The tests in the next section call neither `wp()` nor `define()`, and ran in the suite's process.
 
