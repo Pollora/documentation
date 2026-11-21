@@ -55,27 +55,27 @@ The logging system is automatically registered through the main `PolloraServiceP
 
 ### Laravel Facade (Recommended)
 
-The simplest way to log WordPress errors in Laravel is using the `WordPressError` facade:
+The simplest way to log WordPress errors in Laravel is using the `WordPressError` facade. Its methods are `handleDoingItWrong()`, `handleDeprecatedFunction()` and `handleDeprecatedArgument()`, each taking the function, a message (or the replacement) and the version, and returning nothing; the short names `doingItWrong()` and the others belong to the `WordPressError` **domain model** (see below), not to the facade, and calling them on the facade throws `BadMethodCallException`:
 
 ```php
 use Pollora\Support\Facades\WordPressError;
 
 // Log a "doing it wrong" error
-WordPressError::doingItWrong(
+WordPressError::handleDoingItWrong(
     'wp_enqueue_script',
     'Scripts should be enqueued in wp_enqueue_scripts action',
     '6.0.0'
 );
 
 // Log a deprecated function usage
-WordPressError::deprecatedFunction(
+WordPressError::handleDeprecatedFunction(
     'mysql_query',
     'wpdb::prepare()',
     '3.9.0'
 );
 
 // Log a deprecated argument usage
-WordPressError::deprecatedArgument(
+WordPressError::handleDeprecatedArgument(
     'get_posts',
     'The "numberposts" parameter is deprecated. Use "posts_per_page" instead.',
     '4.4.0'
@@ -341,7 +341,7 @@ class WordPressErrorFacadeTest extends TestCase
             
         $this->app->instance(WordPressErrorLoggingService::class, $mockService);
         
-        WordPressError::doingItWrong('wp_enqueue_script', 'Invalid usage', '6.0.0');
+        WordPressError::handleDoingItWrong('wp_enqueue_script', 'Invalid usage', '6.0.0');
     }
 }
 ```
