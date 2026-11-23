@@ -2,7 +2,7 @@
 
 WordPress caches options, posts, terms and queries for the length of one request. A *persistent* object cache keeps them in a shared store, so the next request, and the next worker, finds the work already done instead of rebuilding it from the database. The package [`pollora/object-cache`](https://github.com/Pollora/object-cache) does this with Redis, and adds a Laravel cache driver over the same store.
 
-> **Status: first release (`0.1`).** The package has not run in production yet, and its API may change before `1.0`: pin the version. Installing it changes nothing until you run `php artisan pollora:object-cache:enable`.
+> **Status: early release (`0.2`).** The package has not run in production yet, and its API may change before `1.0`: pin the version. Installing it changes nothing until you run `php artisan pollora:object-cache:enable`.
 
 WordPress loads a persistent object cache from a drop-in file, `object-cache.php`, in the content directory. The package implements the whole contract of `WP_Object_Cache`: `add`, `get`, `set`, `replace`, `delete`, `incr`, `decr`, their `*_multiple` forms, `flush`, `flush_group`, `flush_runtime`, global and non-persistent groups, and multisite. It follows WordPress's own behavior, down to a stored `false` being a hit and a number never going below zero.
 
@@ -44,6 +44,10 @@ Publish the file with `php artisan vendor:publish --tag=object-cache-config`, or
 | `allowed_classes` | | `true`: any class (or `false`, or a list of class names) |
 | `max_ttl` | `OBJECT_CACHE_MAX_TTL` | `0`, no limit |
 | `global_groups`, `non_persistent_groups` | | `[]`; a name may end with `*` |
+| `prefetch.enabled` | `OBJECT_CACHE_PREFETCH` | `false` |
+| `prefetch.max_keys` | `OBJECT_CACHE_PREFETCH_MAX_KEYS` | `300` |
+| `prefetch.ttl` | `OBJECT_CACHE_PREFETCH_TTL` | `604800` seconds |
+| `prefetch.exclude_groups` | | `['userlogins']`; a name may end with `*` |
 | `laravel.group` | `OBJECT_CACHE_LARAVEL_GROUP` | `laravel` |
 | `laravel.flush_with_cache_clear` | `OBJECT_CACHE_FLUSH_WITH_CACHE_CLEAR` | `true` |
 
@@ -51,6 +55,19 @@ Publish the file with `php artisan vendor:publish --tag=object-cache-config`, or
 - **Timeouts.** Without a limit, phpredis waits for the PHP socket timeout (60 s) when Redis stops answering. The one-second default keeps a request from hanging.
 - **Objects.** Plugins cache objects of their own, so `allowed_classes` rebuilds any class by default. Set a list of class names to narrow it.
 - **Groups.** `global_groups` are shared by every site of a network; `non_persistent_groups` are kept out of Redis. A name may end with `*`, as in `wc_cache_*`.
+
+## Prefetch
+
+A WordPress page reads a hundred keys or more, one call to Redis each. With the prefetch on (`OBJECT_CACHE_PREFETCH=true`), the pages of one kind remember what they read, and the next one loads those keys with a single call.
+
+- **A kind of page** is the first segment of the path (`/shop/...`, `/blog/...`, the home page), the blog of a network, and whether the visitor is signed in. The query string does not count.
+- **Which requests take part**: pages of the front, fetched with GET or HEAD. Console commands, the administration, AJAX, REST, cron and form submissions neither load nor record anything. A page that is not answered with a 200 writes nothing.
+- **The profile** is written when a request read keys it did not know, up to `max_keys`, and expires after `ttl` seconds without a rewrite. It lives under the site prefix, so a flush removes it too. A page that brings few new keys does not rewrite a full profile.
+- **What is never loaded early**: non-persistent groups, `prefetch.exclude_groups`, and what a request wrote before its first read. A key changed or deleted since the profile was written is read from Redis as of the request, so the prefetch cannot serve an older value than a normal read would. A value that holds an object whose class is not loaded yet is left out and read normally when it is asked for.
+- **Groups where a value read a moment too soon would be wrong** (sessions, logins) belong in `prefetch.exclude_groups`. Another package adds its own from a service provider's `register()`: `config()->push('pollora.object-cache.prefetch.exclude_groups', 'session_*')`.
+- If Redis stops answering while the profile is loaded, the request degrades as for any read.
+
+It is off by default: turn it on, measure the number of Redis commands per page (`redis-cli INFO commandstats`), and keep it if it falls. On a development site (WordPress 7, WooCommerce, a Blade theme), once the profiles were written, the commands per request went from about 230 to 100-130 on the home page, from 203 to 126 on the shop page, and from 168 to 52 on a product page. These numbers are an orientation: they depend on the site. A WooCommerce cart and a checkout through the Store API gave the same results with the prefetch on as without it.
 
 ## Key prefix and flush scope
 
