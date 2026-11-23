@@ -106,4 +106,5 @@ wp_cache_get('greeting', 'laravel'); // 'hello'
 | phpredis is loaded and no persistent drop-in exists | Warns, and suggests `composer require pollora/object-cache && php artisan pollora:object-cache:enable` |
 | The package is installed, but its drop-in is not | Warns |
 | The package is installed, but the drop-in is another object cache's | Warns |
-| Anything else | Skipped |
+| The package is installed and its drop-in is in place | Ok |
+| Another object cache is in place without the package, phpredis is not loaded, or WordPress is not loaded | Skipped |
