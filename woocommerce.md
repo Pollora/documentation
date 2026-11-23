@@ -71,6 +71,10 @@ Event::listen(OrderStatusChanged::class, function (OrderStatusChanged $event): v
 });
 ```
 
+## With the object cache
+
+With [`pollora/object-cache`](object-cache.md) and its prefetch on, the shopper's session is kept out of it: `pollora/woocommerce` adds `wc_session_id` (or the group `WC_SESSION_CACHE_GROUP` names, if you renamed it) and `wc_cache_*` to `prefetch.exclude_groups`. A cart is read when the request asks for it, never loaded early. Nothing changes without the object cache package, and nothing is required of you.
+
 ## Coming from the framework
 
 | Was | Is |
