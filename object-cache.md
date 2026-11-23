@@ -2,7 +2,7 @@
 
 WordPress caches options, posts, terms and queries for the length of one request. A *persistent* object cache keeps them in a shared store, so the next request, and the next worker, finds the work already done instead of rebuilding it from the database. The package [`pollora/object-cache`](https://github.com/Pollora/object-cache) does this with Redis, and adds a Laravel cache driver over the same store.
 
-> **Status: in development, not released yet.** The package has no tag, and its API may change before the first one. Installing it changes nothing until you run `php artisan pollora:object-cache:enable`.
+> **Status: first release (`0.1`).** The package has not run in production yet, and its API may change before `1.0`: pin the version. Installing it changes nothing until you run `php artisan pollora:object-cache:enable`.
 
 WordPress loads a persistent object cache from a drop-in file, `object-cache.php`, in the content directory. The package implements the whole contract of `WP_Object_Cache`: `add`, `get`, `set`, `replace`, `delete`, `incr`, `decr`, their `*_multiple` forms, `flush`, `flush_group`, `flush_runtime`, global and non-persistent groups, and multisite. It follows WordPress's own behavior, down to a stored `false` being a hit and a number never going below zero.
 
