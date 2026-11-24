@@ -214,7 +214,9 @@ Every ability declares what it does to the site. WordPress publishes this under 
 
 Getting these wrong is worse than omitting them, which is why they are declared as one of four shapes rather than three loose booleans.
 
-> **They are advisory.** WordPress does not enforce them. The permission callback is what protects the site.
+> **One of them is enforced.** The REST controller of WordPress runs an ability with the HTTP method it derives from these hints: `GET` when it is read-only, `DELETE` when it is both destructive and idempotent, `POST` otherwise. So `->updates()` is run by `DELETE`, like `->deletes()`, and a call with another method gets a 405. The destructive hint stays on an update on purpose: it overwrites data, and the hint is what tells a client to ask for confirmation first.
+
+> **Apart from that, they are advisory.** The permission callback is what protects the site.
 
 ## Permissions
 
@@ -251,6 +253,8 @@ $input->idList('post_ids');
 $input->map('terms');                                 // free-form associative array
 $input->all();                                        // everything, for the rare case
 ```
+
+An ability with no `input()`, or whose properties are all optional, runs without any input. The schema published to WordPress then carries `"default": []`, so the `null` of a call with no input is accepted; the default is left out as soon as a property is required, so a missing required property is still reported, and a default the schema already declares is kept. Clients that list abilities (REST, MCP) see that `default` in the schema.
 
 Accessors coerce rather than throw. A model that sends `"12"` where an integer was asked for should get a working call, not an error it cannot act on.
 
