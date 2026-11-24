@@ -222,6 +222,17 @@ class Maintenance
 }
 ```
 
+### Named arguments under Action Scheduler
+
+With the `action-scheduler` driver the handler of an event receives the arguments with their keys, as it does under WP-Cron: `->with(['order' => 7])` reaches `->call()` or a `#[Schedule]` method as `['order' => 7]`, not `[7]`. This holds for events already scheduled too, since nothing stored changes.
+
+Action Scheduler itself runs a hook with the values only. A callback you attach straight to the hook with `add_action()` keeps getting that list (`[7]`):
+
+```php
+add_action('send_digest', fn (...$args) => $args); // [7] under Action Scheduler
+Schedule::once('send_digest')->in(minutes: 10)->with(['order' => 7])->call(SendDigest::class); // ['order' => 7]
+```
+
 ## All-in-One Example
 
 Here's a comprehensive example showing various ways to use the Schedule attribute:

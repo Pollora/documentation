@@ -110,6 +110,19 @@ $config['smtp_host'] = 'new-smtp.example.com';
 Option::update('email_settings', $config);
 ```
 
+#### Autoload
+
+`set()` and `update()` never change the autoload of an option that already exists: it stays on or off as it was. A new option is stored with autoload on. These methods take no autoload argument, so the facade cannot switch it.
+
+To choose the autoload explicitly, give it to the `Option` value object (its `autoload` property is `null` by default, meaning "no choice") and write it through the repository; a boolean, `true` included, overwrites the stored value:
+
+```php
+use Pollora\Option\Adapter\Out\WordPress\WordPressOptionRepository;
+use Pollora\Option\Domain\Model\Option as OptionModel;
+
+(new WordPressOptionRepository)->update(new OptionModel('api_credentials', $credentials, autoload: false));
+```
+
 #### `delete(string $key): bool`
 
 Removes an option from the database. Returns `true` if deleted or didn't exist.
@@ -200,7 +213,7 @@ use Pollora\Option\Domain\Model\Option as OptionModel;
 $option = new OptionModel('api_credentials', [
     'key' => 'abc123',
     'secret' => 'xyz789'
-], autoload: false); // Don't autoload sensitive data
+], autoload: false); // Autoload off once written through the repository (see Autoload)
 
 // Value objects are immutable
 $updatedOption = $option->withValue([
@@ -476,7 +489,7 @@ class OptionIntegrationTest extends TestCase
 1. **Use specific keys** - Prefer targeted gets over broad queries
 2. **Batch operations** - Group related option updates together
 3. **Cache frequently accessed options** - Use Laravel's cache for hot options
-4. **Consider autoload** - Set `autoload: false` for large or rarely accessed options
+4. **Consider autoload** - Turn autoload off for large or rarely accessed options (see [Autoload](#autoload))
 5. **Use meaningful defaults** - Always provide sensible fallback values
 
 ### WordPress Compatibility

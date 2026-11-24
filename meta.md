@@ -403,8 +403,20 @@ A declaration WordPress cannot register is refused at discovery, and the error i
 - an enum without backing values (`enum Mood { … }` instead of `enum Mood: string { … }`);
 - a non-nullable property without a default value;
 - a protected key exposed in REST without a `capability`;
-- `revisions: true` on anything but posts;
+- `revisions: true` on anything but posts (and, on a post type that does not support `revisions`, an exception at registration: [see below](#revisions-need-a-post-type-that-supports-them));
 - the same key declared twice, in one class or by two classes for the same objects (a post type in common, users, comments).
+
+### Revisions need a post type that supports them
+
+`#[Meta(revisions: true)]` is only valid for a post type that supports `revisions`. WordPress refuses to register such a meta otherwise, and its notice is hidden without `WP_DEBUG`. Pollora checks it when the meta is registered (on `init`) and throws an `InvalidMetaDefinitionException` that names the class, the property, the post type and the meta key, before any meta of that declaration is registered.
+
+To fix it, add `revisions` to the supports of the post type (`page` and `post` have it by default), or drop `revisions: true`:
+
+```php
+#[PostType('product')]
+#[Supports(['title', 'editor', 'revisions'])]
+class Product {}
+```
 
 ## Without Laravel: a plugin or Bedrock
 
