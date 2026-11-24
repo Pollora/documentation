@@ -166,6 +166,10 @@ php artisan pollora:media:thumbs:prune --execute
 
 `prune` only considers files named the way the module names its sizes, next to an original that is still there: what WordPress or a plugin made is left alone. `pollora:doctor` reports a declaration that cannot make a size, and a format the image editor of the server cannot write (GD and Imagick write WebP; AVIF depends on the server).
 
+### Signing key
+
+The names of the sizes carry an HMAC signature, made with `app.key` under Laravel and with the WordPress salts (`AUTH_KEY` and the others) without it. When that key is empty or blank, Pollora refuses to sign, because anyone could then compute the signatures and have any size made for any original: `InvalidMediaConfigurationException` is thrown, and the fallback route that makes a size on demand answers 500. Set `APP_KEY` (`php artisan key:generate`), or define the salts in `wp-config.php`. A site that already has a key sees no change: names and signatures stay the same.
+
 ### Sizes made by a service
 
 For a very large library, an image service can make the sizes instead of the site. The declaration of the sizes does not change; only the shape of the URL does. Choose the driver in `config/media.php`:
@@ -205,6 +209,17 @@ php artisan pollora:media:thumbs:export --driver=imgproxy         # the configur
 ```
 
 For Bunny, the classes are read, merged by name and written back: the ones you made are kept, nothing is deleted, and the setting that forces classes is never changed. The merge matters: Bunny replaces the whole list of classes with the one it is sent. The access key is sent in the `AccessKey` header and nowhere else. imgproxy has no API for presets: the command prints `IMGPROXY_PRESETS`, `IMGPROXY_ONLY_PRESETS=true`, `IMGPROXY_MAX_SRC_RESOLUTION` (in megapixels) and `IMGPROXY_ALLOWED_SOURCES`, never the key or the salt. A driver that is badly set up does not take the site down: the default driver is kept, and `pollora:doctor` says why.
+
+### Same answers from every driver
+
+The three thumbnail drivers (`pollora`, `bunny`, `imgproxy`) answer alike on the edge cases: a leading slash on the key of the original is ignored, Bunny encodes `?` and `#` in that key, `sizeOf()` recognises only the names of declared sizes (imgproxy no longer recognises the URL of a refused size such as `default`), and an original recorded with 0 px dimensions keeps the dimensions it has instead of failing with a division by zero. The names and URLs of valid keys are unchanged.
+
+**Upgrading to 0.10 (breaking, only if you build the drivers by hand).** `PolloraThumbnailDriver` and `ImgproxyThumbnailDriver` now take the declared sizes (`ImageSizes`) as a required argument: third for `PolloraThumbnailDriver`, third for `ImgproxyThumbnailDriver`, before the base URL. The module builds them itself, so a site that does not construct these classes is not affected.
+
+```php
+new PolloraThumbnailDriver($names, $config, $sizes);
+new ImgproxyThumbnailDriver($signer, $config, $sizes, $baseUrl, $bucket);
+```
 
 ### Securing a service
 
