@@ -48,7 +48,13 @@ define('WP_OBJECT_CACHE_CONFIG', [
 
 `wp object-cache` has the same four commands as above (`enable`, `disable`, `status`, `flush`). Requires PHP 8.3+ and phpredis. Without `WP_OBJECT_CACHE_CONFIG` the drop-in stays inert and WordPress keeps its own cache.
 
-`enable` records the absolute path of the Composer autoloader in the drop-in, because WordPress loads `object-cache.php` before any plugin. The package therefore has to be installed with the site's Composer (Bedrock does, since `wp-config.php` loads the autoloader first); a package installed with `wp package install` lands in the home directory of the user who ran it, where a web request does not look.
+`enable` records the absolute path of the Composer autoloader in the drop-in, because WordPress loads `object-cache.php` before any plugin. The web server's PHP must be able to read that file, or the cache is **silently not used**: the site answers normally, nothing is written to Redis, and no error is logged.
+
+- **Composer in the site** (a `composer.json` at the root, Bedrock being the usual case): the path is the site's own `vendor/autoload.php`, which the web server already reads. This is the layout the package is built for; it has not been run on a real Bedrock site.
+- **`wp package install pollora/object-cache`**: WP-CLI puts the package in `~/.wp-cli/packages/` of the user who ran the command, and the drop-in records `~/.wp-cli/packages/vendor/autoload.php`. On a classic WordPress with no Composer of its own this is the only way to install the package without Composer, and it works from the command line. The web server runs as another user, usually with no access to that home directory: unless it can read the path, web requests do not use the cache. This was measured on a WordPress 7.1 installed this way: with the path unreachable, three page views wrote nothing to Redis (and answered 200); once readable, they wrote 39 keys.
+- **Copying the package by hand** is not supported: it has no autoloader, and the `wp object-cache` commands do not exist without one.
+
+`wp object-cache status` runs on the command line, so its "Used by this process: yes" says nothing about web requests. To check them, load a page and count the keys of the site's database (`redis-cli -n <database> dbsize` goes up, and `redis-cli -n <database> --scan` lists keys that start with the site prefix).
 
 `enable` and `disable` are idempotent. They only touch a drop-in this package wrote: another object cache's `object-cache.php` is left alone, and `enable --force` replaces it. A drop-in from an older version of the package is updated by running `enable` again.
 
