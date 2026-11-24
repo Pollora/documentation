@@ -168,7 +168,7 @@ php artisan pollora:media:thumbs:prune --execute
 
 ### Signing key
 
-The names of the sizes carry an HMAC signature, made with `app.key` under Laravel and with the WordPress salts (`AUTH_KEY` and the others) without it. When that key is empty or blank, Pollora refuses to sign, because anyone could then compute the signatures and have any size made for any original: `InvalidMediaConfigurationException` is thrown, and the fallback route that makes a size on demand answers 500. Set `APP_KEY` (`php artisan key:generate`), or define the salts in `wp-config.php`. A site that already has a key sees no change: names and signatures stay the same.
+The names of the sizes carry an HMAC signature, made with `app.key` under Laravel and with the WordPress salts (`AUTH_KEY` and the others) without it. When that key is empty or blank, Pollora refuses to sign, because anyone could then compute the signatures and have any size made for any original: `InvalidMediaConfigurationException` is thrown. Set `APP_KEY` (`php artisan key:generate`), or define the salts in `wp-config.php`. A site that already has a key sees no change: names and signatures stay the same.
 
 ### Sizes made by a service
 
