@@ -33,3 +33,29 @@ protected function mergeSubQuery(string $type, ?array $current, callable|SubQuer
 ```
 
 `$type` is `meta`, `tax` or `date`. Nothing changes for code that only uses the public builders.
+
+## Decimal meta values
+
+A float compared in a meta query (`1.5`) is cast with `DECIMAL(30,10)`: the scale is at least 10, more when the value has more decimals (up to 30), and a list takes its widest scale. A numeric string with decimals (`'1.5'`) is no longer truncated to an integer either, so `1.5` and `1.9` no longer compare as `2`. An explicit type still wins:
+
+```php
+PostQuery::select()
+    ->metaQuery(function (MetaQuery $query) {
+        $query->where($query->meta('price')->greaterThan(1.5));                           // DECIMAL(30,10)
+        $query->where($query->meta('weight')->ofType('DECIMAL(10,2)')->greaterThan(1.5)); // yours
+    })
+    ->get();
+```
+
+## `containsAll()` and child terms
+
+On a hierarchical taxonomy WordPress includes the children of every listed term, so a native `AND` clause asked for a post that has a term and its child together. `containsAll()` therefore sends one `IN` clause per term, joined with `AND`: a post that has each term, or one of its children. With `excludeChildren()` or `onlyParent()` the single native `AND` clause is kept.
+
+```php
+PostQuery::select()
+    ->taxQuery(function (TaxQuery $query) {
+        $query->where($query->taxonomy('category')->containsAll([4, 7]));              // IN(4 + children) AND IN(7 + children)
+        // ->containsAll([4, 7])->onlyParent() would send one AND clause
+    })
+    ->get();
+```
