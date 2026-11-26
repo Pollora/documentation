@@ -180,6 +180,8 @@ class EventAPI
 
 A guest is refused with a 401 status, a logged-in user without the capability with a 403. `permissionCallback` accepts an instance of any permission class, yours included.
 
+With `parameter`, the value must be a positive integer, such as a post ID: a digit string like `'42'` is accepted and passed to WordPress as an `int`. When the parameter is missing, or its value is empty, `0`, negative, decimal (`4.5`), mixed with other characters (`4abc`), an array or a boolean, the request is refused with the same 401 or 403 and WordPress is not asked at all. Without that check a meta capability such as `edit_post` would be evaluated against the global post instead of the one in the URL. Declare the route's parameter with a numeric pattern, as in `(?P<id>\d+)` above, so a malformed value never reaches the permission check.
+
 ## Custom Permission Classes
 
 A permission class must implement `Pollora\Attributes\WpRestRoute\Permission` and define an `allow()` method that returns `true`, `false`, or a `WP_Error`.
