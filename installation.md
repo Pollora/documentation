@@ -36,7 +36,7 @@ For security reasons, never commit your `.env` file to source control. Different
 <a name="databases-and-migrations"></a>
 ### Databases & Migrations
 
-With your Pollora application ready, you might want to store data. The application's `.env` configuration points Pollora at a MySQL database, and that is a requirement: WordPress is only loaded when Laravel's default connection uses the `mysql` driver, which covers MySQL 5.7+ and MariaDB 10.3+. SQLite and PostgreSQL are not supported. If you're on macOS, installing MySQL or MariaDB is a breeze with [DBngin](https://dbngin.com/).
+With your Pollora application ready, you might want to store data. The application's `.env` configuration points Pollora at a MySQL or MariaDB database, and that is a requirement: WordPress is only loaded when Laravel's default connection uses the `mysql` driver or the `mariadb` driver (MySQL 5.7+, MariaDB 10.3+). SQLite and PostgreSQL are not supported. If you're on macOS, installing MySQL or MariaDB is a breeze with [DBngin](https://dbngin.com/).
 
 Set the connection in `.env` with Laravel's names (`DB_CONNECTION=mysql`, `DB_HOST`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`). Names from a Bedrock or `wp-config.php` setup, such as `DB_NAME`, are not read; `php artisan pollora:doctor` flags them.
 
@@ -116,7 +116,13 @@ return [
 ];
 ```
 
-These values are typically defined in your `.env` file during installation. If you need to generate new keys, you can use the [WordPress Secret Key Generator](https://api.wordpress.org/secret-key/1.1/salt/).
+`php artisan pollora:install` writes them to the `.env` of a new site. To give them to a project that has none (one installed from a database copy, for instance), run:
+
+```bash
+php artisan pollora:salts:generate
+```
+
+It writes only the missing ones and never prints a value. `--force` replaces them all, which signs everyone out. Without a `.env` file, set the eight variables where your platform keeps its environment variables.
 
 <a name="multisite-configuration"></a>
 ### Multisite Configuration
@@ -232,7 +238,7 @@ NONCE_SALT=your-nonce-salt
 DB_CACHE=false
 ```
 
-During installation, the WordPress authentication keys and salts are automatically generated for security. You can regenerate these keys at any time using the [WordPress Secret Key Generator](https://api.wordpress.org/secret-key/1.1/salt/).
+`pollora:install` generates the WordPress authentication keys and salts of a new site. `php artisan pollora:salts:generate` writes the missing ones at any time, and `--force` replaces them (everyone has to log in again).
 
 <a name="development-environments"></a>
 ## Development Environments
