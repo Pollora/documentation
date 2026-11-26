@@ -60,4 +60,4 @@ wp hornet unlock --all           # lift every login lock
 
 ## Limits
 
-Translations are machine-made. `wp hornet` has not been verified inside a Pollora project, nor Hornet on a multisite network. Hornet is not a firewall, nor a signature-based malware scanner.
+Translations are machine-made. Hornet has not been verified on a multisite network. Hornet is not a firewall, nor a signature-based malware scanner.
