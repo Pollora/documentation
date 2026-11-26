@@ -111,7 +111,7 @@ The preview is fetched from the core `block-renderer` REST route, again 200 ms a
 
 Pollora registers the blocks of every active theme, plugin and module by itself: whatever holds a `resources/views/blocks` directory (or the former `resources/blocks`) has its blocks registered on WordPress `init`. There is nothing to write — no service provider, no `register_block_type()` call.
 
-A service provider of your own could not do this reliably. Over HTTP, WordPress is loaded, and `init` has fired, before theme and plugin providers boot; a REST request — which the editor and its block previews rely on — is answered before they boot at all. A block registered from a provider existed in WP-CLI only.
+A service provider of your own could not do this reliably. Over HTTP, WordPress is loaded, and `init` has fired, before theme and plugin providers boot; before Pollora 13.44.1 a REST request — which the editor and its block previews rely on — was also answered before they booted at all (it is now answered once every provider has booted). A block registered from a provider existed in WP-CLI only.
 
 A `BlocksServiceProvider` written by an earlier `pollora:make:block` is harmless — a block WordPress already holds is skipped — and can be deleted.
 
