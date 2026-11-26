@@ -192,7 +192,7 @@ Then, depending on your server, add the [`LocalValetDriver.php`](#laravel-herd) 
 <a name="the-database"></a>
 ## The Database
 
-Pollora needs MySQL 5.7+ or MariaDB 10.3+. WordPress is only loaded when Laravel's default connection uses the `mysql` driver, so SQLite and PostgreSQL are not supported. Set the connection in `.env` with Laravel's names (`DB_CONNECTION=mysql`, `DB_HOST`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`).
+Pollora needs MySQL 5.7+ or MariaDB 10.3+. WordPress is only loaded when Laravel's default connection uses the `mysql` or `mariadb` driver; PostgreSQL is not supported. Set the connection in `.env` with Laravel's names (`DB_CONNECTION=mysql`, `DB_HOST`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`).
 
 An empty password is accepted: the MySQL `root` user installed with Homebrew has none, so leave the password empty when `pollora:install` asks for it. MAMP's MySQL user is `root` with the password `root`. On macOS, [DBngin](https://dbngin.com/) installs MySQL or MariaDB. DDEV provides its own database; see [DDEV](#ddev).
 
