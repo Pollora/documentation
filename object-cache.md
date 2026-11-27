@@ -87,6 +87,15 @@ A list a project sets (`exclude_groups`, `global_groups`) replaces the default l
 - **Objects.** Plugins cache objects of their own, so `allowed_classes` rebuilds any class by default. Set a list of class names to narrow it.
 - **Groups.** `global_groups` are shared by every site of a network; `non_persistent_groups` are kept out of Redis. A name may end with `*`, as in `wc_cache_*`.
 
+## Keep Redis private
+
+What Redis holds is trusted. The cache reads values back with `unserialize()`, and with `allowed_classes` at its default (`true`) any class can be rebuilt: whoever can write to your Redis can make the site build objects of their choosing, which can lead to code running on the server. Whoever can read it sees what WordPress caches, which includes user data.
+
+- Do not expose Redis to the internet: bind it to the loopback interface, a Unix socket or a private network, and filter the port.
+- Require authentication (`redis.password`, with `redis.username` for an ACL user; in a Pollora project they come from the connection of `config/database.php`).
+- Do not share the instance with applications or people you do not trust. A database number and a key prefix keep sites from mixing their keys; they are not a security boundary.
+- If you know every class your site caches, list them in `allowed_classes`: a class left out is not rebuilt, so check the site after narrowing it.
+
 ## Prefetch
 
 A WordPress page reads a hundred keys or more, one call to Redis each. With the prefetch on (`OBJECT_CACHE_PREFETCH=true`, or `'prefetch' => ['enabled' => true]` in `WP_OBJECT_CACHE_CONFIG`), the pages of one kind remember what they read, and the next one loads those keys with a single call.
