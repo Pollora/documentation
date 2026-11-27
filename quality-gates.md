@@ -48,7 +48,7 @@ CI runs the reusable workflow, pinned to a release tag. `init` writes the call f
 ```yaml
 jobs:
   harness:
-    uses: Pollora/harness/.github/workflows/php-package.yml@v0.1.40
+    uses: Pollora/harness/.github/workflows/php-package.yml@v0.1.41
     permissions:
       contents: read
 ```
@@ -62,7 +62,7 @@ A template (the skeleton, a theme, a plugin or module template) cannot carry `po
 ```yaml
 jobs:
   harness:
-    uses: Pollora/harness/.github/workflows/template.yml@v0.1.40
+    uses: Pollora/harness/.github/workflows/template.yml@v0.1.41
     with:
       mode: enforce   # observe reports and never blocks
       observed: ''    # among secrets, style, security, audit, ratchet
@@ -115,7 +115,7 @@ The rules live in the Composer package, not only in the workflow.
 
 | Repository | What CI installs |
 | --- | --- |
-| No `composer.lock`, workflow called at a release tag (`@v0.1.40`) | That version, in the quality, test and WordPress integration jobs (`composer.json` is not changed) |
+| No `composer.lock`, workflow called at a release tag (`@v0.1.41`) | That version, in the quality, test and WordPress integration jobs (`composer.json` is not changed) |
 | `composer.lock` committed | The quality job installs the locked version and warns when it differs from the tag. The jobs that run `composer update` resolve it anew |
 | Workflow called at a branch or a commit, a `dev-` constraint, or a runner that does not give the workflow its tag (GitHub Enterprise Server) | What Composer resolves, with a notice or a warning |
 
@@ -130,7 +130,7 @@ The quality job stops after 30 minutes, and GitHub shows a timed-out job as canc
 ```yaml
 jobs:
   harness:
-    uses: Pollora/harness/.github/workflows/php-package.yml@v0.1.40
+    uses: Pollora/harness/.github/workflows/php-package.yml@v0.1.41
     with:
       quality-timeout-minutes: 90
 ```
@@ -392,6 +392,23 @@ A limited scope blocks in `enforce` mode. The base is `HEAD^1`; `--mutation-base
 
 The harness refuses a score it cannot trust, for instance when Pest cannot write its mutants or when the test bootstrap prevents them from loading.
 
+### Tests must pass on unchanged code
+
+Since 0.1.41, no score is given when the tests do not pass on code that did not change, run the way a mutant is run. Pest counts a mutant whose tests fail, or loop until the time limit, as caught: a suite that breaks there scores mutants nothing tested. Before Pest starts, the harness runs the covering tests against an exact copy of the source and fails the gate, listing them, if they do not pass.
+
+A repository that passed before may now be refused. Two causes have been seen:
+
+- **Patchwork** (loaded by Brain Monkey) breaks directory reading under Pest's stream wrapper. It is fixed upstream ([antecedent/patchwork#235](https://github.com/antecedent/patchwork/pull/235)) but not released yet: until it is, require the fixed commit, with `"antecedent/patchwork": "dev-master#d588654e5c1304810b038db2b5c98d39b6f76c61 as 2.2.6"` in `require-dev`.
+- **Pest's own stream wrapper** takes every `flock()` as shared and reports an unreadable file as absent. The test bootstrap has to give `file` back and load the mutated file itself, only when Pest's wrapper is on it: the [harness README](https://github.com/Pollora/harness#readme) has the code.
+
+Ask the question alone, without a mutation pass:
+
+```bash
+vendor/bin/pollora-qa check --mutation-canary
+```
+
+An accepted suite does not prove that every counted mutant is legitimate. Once a repository is fixed, its real score may be well below the one recorded in `ratchet.msi`: that floor was resting on mutants nothing tested, and only a maintainer can lower it, by hand.
+
 ### On pull requests
 
 On a `pull_request` event, a repository that recorded `ratchet.msi` and sets no `mutation.scope` mutates only the changed files, at `mutation.min` or 50 %. Every other event mutates the whole repository, so the `msi` ratchet is measured on the main branch: a drop of the whole score shows there, not on the pull request. To keep the full run on pull requests:
@@ -399,7 +416,7 @@ On a `pull_request` event, a repository that recorded `ratchet.msi` and sets no 
 ```yaml
 jobs:
   harness:
-    uses: Pollora/harness/.github/workflows/php-package.yml@v0.1.40
+    uses: Pollora/harness/.github/workflows/php-package.yml@v0.1.41
     with:
       mutation-on-pull-request: all   # changed (default) or all
 ```
@@ -450,7 +467,7 @@ Tests that double WordPress are fast but cannot show what only a real one does: 
 ```yaml
 jobs:
   harness:
-    uses: Pollora/harness/.github/workflows/php-package.yml@v0.1.40
+    uses: Pollora/harness/.github/workflows/php-package.yml@v0.1.41
     with:
       wordpress-integration: tests/Integration    # the suite; empty (default) = off
       wordpress-version: latest                   # latest (default), nightly, 6.9, 6.9.1
@@ -546,6 +563,7 @@ The workflow turns the label into `--allow=additions` (`api-change`) or `--allow
 | `pollora-qa check --coverage[=FILE]` | Runs the tests with coverage and compares the Clover report with the ratchet |
 | `pollora-qa check --mutation` | Also runs Pest's mutation testing; `--mutation-base=REF` sets the base for `changed`, `--mutation-scope=all\|changed\|added\|changed-relative` the scope for this run |
 | `pollora-qa check --budgets-base=REF` | The commit the query budgets (PERF-01) are compared with (default `HEAD^1`) |
+| `pollora-qa check --mutation-canary[=FILES]` | Runs no gate: only checks that a mutation score could be believed |
 | `pollora-qa check --template` | The ratchet of a template's `.harness.json` |
 | `pollora-qa composer-audit [--locked]` | The Composer audit alone (SEC-09) |
 | `pollora-qa promote-report [--json] [<path>… \| --root=<dir>]` | For each observed rule, what would block here if it were enforced (read only) |
