@@ -26,6 +26,34 @@ Manages HTTP headers for WordPress responses:
 - Controls cache headers
 - Removes unnecessary WordPress headers for unauthenticated requests
 
+A visitor who is not logged in receives `Cache-Control: public, must-revalidate, max-age=…` on HTML pages, so a browser, a CDN or a reverse proxy may keep them (`wordpress.cache.*` sets the durations; a page that defines `DONOTCACHEPAGE` is left out).
+
+#### Keeping a personal response out of shared caches
+
+Not being logged in does not mean a page is the same for everyone: a guest may have a cart or have chosen a currency. Mark such a response with the `pollora/route/private_response` filter, and a shared cache will not store it:
+
+```php
+use Illuminate\Http\Request;
+use Pollora\Support\Facades\Filter;
+
+Filter::add(
+    'pollora/route/private_response',
+    fn (bool $private, Request $request): bool => $private || $request->cookies->has('my_cart'),
+    10,
+    2
+);
+```
+
+Return `$private || …`, so that one callback never undoes the mark of another. The third argument is the response.
+
+A marked response is sent `private, no-cache, must-revalidate`:
+
+- this wins over public directives your application had set on it;
+- a `no-store` response stays `no-store`;
+- `Expires`, `CDN-Cache-Control` and `Surrogate-Control` are removed, as is a `Cache-Control` sent with PHP's `header()`.
+
+The filter applies to the routes that go through this middleware. It is available from the framework release that follows v13.44.0.
+
 ### Body classes on Laravel routes
 
 Not a middleware: a listener on Laravel's `RouteMatched` event, so it also reaches routes that carry none of the middleware above.
