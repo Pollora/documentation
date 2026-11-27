@@ -2,6 +2,8 @@
 
 Pollora provides two ways to register WordPress AJAX handlers: the **imperative `Ajax` facade** and the **declarative `#[Ajax]` attribute**. Both default to logged-in users only and verify a [nonce](#nonces-and-csrf) before your handler runs (security-by-default, `pollora/ajax` 2.0), and both can require a [capability](#capabilities-who-may-do-it).
 
+> **In a Pollora project, this is not in effect yet.** The framework still requires `pollora/ajax: ^1.3`, which runs an action that chose nothing **without a nonce check**. Until the framework accepts 2.0, declare `nonce: true` (or `requireNonce()`) on every action that needs the protection: it works in both versions. What this page says about the default applies to `pollora/ajax` 2.0 installed on its own.
+
 > **Coming from `pollora/ajax` 1.x?** An action that chose nothing ran without a nonce check. It is now refused with a `403` unless the request carries one: see [Upgrading from 1.x](#upgrading-from-1x).
 
 ## Imperative API (Facade)
