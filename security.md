@@ -2,7 +2,7 @@
 
 [`pollora/hornet`](https://github.com/Pollora/hornet) audits a site, scans it, and tells what to fix and how. It runs on Pollora, on a classic WordPress and on Bedrock. It reads and reports: nothing is hardened, sent or changed until you ask for it.
 
-> Version 0.9: the settings, commands, hooks and abilities can still change before 1.0.
+> Version 0.10: the settings, commands, hooks and abilities can still change before 1.0.
 
 ## Install
 
