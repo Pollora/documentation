@@ -10,7 +10,7 @@
 composer require pollora/hornet
 ```
 
-On Pollora nothing else is needed: Laravel discovers the service provider. The screen is in **Tools > Security**, and the audit is also one line of `php artisan pollora:doctor`.
+On Pollora nothing else is needed: Laravel discovers the service provider. The screen is in **Tools > Security**, and the audit is also one line of `php artisan pollora:doctor`. For a classic WordPress or Bedrock, see [below](#classic-wordpress-and-bedrock).
 
 Requirements: PHP 8.3, WordPress 6.9, MySQL 8 or MariaDB 11.
 
@@ -31,6 +31,31 @@ return [
 ];
 ```
 
+## Classic WordPress and Bedrock
+
+Without Laravel, nothing loads the package for you. After `composer require pollora/hornet`, copy its loader to the must-use plugins:
+
+```bash
+cp vendor/pollora/hornet/stubs/pollora-hornet.php wp-content/mu-plugins/   # Bedrock: web/app/mu-plugins/
+```
+
+Composer's autoloader must be loaded before it. Bedrock does that already. On a classic install, require it in `wp-config.php`:
+
+```php
+require __DIR__ . '/vendor/autoload.php';
+```
+
+Settings are a constant, defined before WordPress loads: in `wp-config.php`, or in a Bedrock configuration file such as `config/environments/production.php`. The keys are the same as in the Pollora file:
+
+```php
+define('HORNET_CONFIG', [
+    'scanner' => ['schedule' => 'daily'],
+    'hardening' => ['xmlrpc' => true],
+]);
+```
+
+If a rule ever locks you out, `define('HORNET_DISABLED', true);` switches everything off. It works on Pollora too.
+
 ## What it looks at
 
 - **Configuration and accounts**: keys and salts, debug mode, HTTPS, file editor, versions, XML-RPC, user enumeration, open registration, application passwords, new and dormant administrators, updates and inactive plugins and themes.
@@ -41,7 +66,7 @@ A score from 0 to 100 sums it up, with what to fix first. The [README](https://g
 
 ## The scan needs the scheduled tasks
 
-Pollora sets `DISABLE_WP_CRON`, so the server runs them (see [Schedule Events](schedule-events.md)):
+**Scan now** and a scheduled scan run in WordPress's scheduled tasks. Pollora sets `DISABLE_WP_CRON`, so the server runs them (see [Schedule Events](schedule-events.md)):
 
 ```
 * * * * * curl -s https://example.com/cms/wp-cron.php
