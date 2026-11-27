@@ -53,6 +53,7 @@ This repository is the source of the documentation of **Pollora, the Laravel fra
 - [WooCommerce](woocommerce.md) — `pollora/woocommerce`: Blade templates for the shop, `Route::wp()` conditions, the Coming Soon page and WooCommerce events
 - [WP Rocket](wp-rocket.md) — `pollora/wp-rocket`: keep WP Rocket from writing `.htaccess` and setting `WP_CACHE`, unless the project asks
 - [Object Cache](object-cache.md) — `pollora/object-cache`, shipped with the framework: a persistent Redis object cache for WordPress (also usable on a classic WordPress or Bedrock site), the `wordpress` Laravel cache driver and `pollora:object-cache:*` commands
+- [Security (Hornet)](security.md) — `pollora/hornet`: audit, scan, hardening and alerts, from the dashboard and the command line
 
 ## Frontend & Theming
 
