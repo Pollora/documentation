@@ -231,7 +231,7 @@ public function trackVisit(): void {}
 
 - `nonce: true` verifies a nonce named after the action before the method runs (the page creates it with `wp_create_nonce('save_note')` and sends it as `_ajax_nonce`). A request without a valid nonce gets a 403 and the method does not run. `nonce: 'name'` verifies the nonce of that name.
 - `nonce: false` turns the check off on purpose, for a public beacon or a webhook that signs its own requests. The agent is told not to use it for an action that changes data without another protection.
-- An action that does not choose runs unchecked for now and is reported by WordPress with `WP_DEBUG`. The next major version of `pollora/ajax` verifies a nonce by default.
+- An action that does not choose is verified like `nonce: true` from `pollora/ajax` 2.0. In 1.x it runs unchecked and is reported by WordPress with `WP_DEBUG`.
 - An action is never opened to guests without a decision, and the agent no longer adds a `check_ajax_referer()` call in a method that declares `nonce: true`.
 
 **REST routes.** Every `#[WpRestRoute]` declares a permission (`Everyone`, `IsLoggedIn`, `IsAdmin`); a route without one is deprecated in `pollora/wp-rest` 0.2.
