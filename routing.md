@@ -38,6 +38,14 @@ Incoming Request
 └──────────────┘           └─────────────────┘
 ```
 
+## When the main query is built
+
+From Pollora 13.44.1, WordPress parses the request and builds the main query once every provider has booted, the application's and the theme's included, and before the Laravel router runs. REST requests are answered at that same moment, so the hooks and REST routes your providers add in `boot()` are there.
+
+- A `pre_get_posts`, `parse_query` or `request` hook added in a provider's `boot()` applies to the main query. Before 13.44.1 it did not.
+- A provider's `boot()` runs before the query is parsed, and so does a route file while it is loaded: `is_*()`, `get_queried_object()` and query vars have no answer there. Read them from a hook such as `wp`, or inside the route.
+- A `booted()` callback is not enough: one registered in `register()`, or by a provider that boots before WordPress's, still runs before the query is parsed. On a REST request WordPress answers and exits, so a `booted()` callback registered from an application provider's `boot()` never runs.
+
 ## Laravel Routing Basics
 
 In Laravel, routes are defined in the `routes/web.php` file. A route associates a URL with a controller action or a closure that returns a view. For example:
